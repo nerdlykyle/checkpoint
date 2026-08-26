@@ -1,19 +1,20 @@
 import {
-  Bell, BookOpen, Camera, Check, ChevronDown, CircleHelp, Clock3, Flag, Gamepad2,
-  GripVertical, Heart, LayoutDashboard, Library, ListFilter, MoreHorizontal,
-  LogOut, NotebookPen, Plus, Puzzle, Search, Settings, Share2, Sparkles, Trash2, Trophy, Users, X,
+  Bell, BookOpen, Camera, Check, ChevronDown, CircleHelp, Clock3, Eraser, Flag, Gamepad2,
+  GripVertical, Heart, ImagePlus, LayoutDashboard, Library, ListFilter, MoreHorizontal,
+  LogOut, NotebookPen, Pencil, Plus, Puzzle, RotateCcw, Search, Settings, Share2, Sparkles, Trash2, Trophy, Users, X,
 } from 'lucide-react'
 import {
   createContext, useContext, useEffect, useMemo, useRef, useState,
-  type CSSProperties, type DragEvent, type FormEvent,
+  type ClipboardEvent as ReactClipboardEvent, type CSSProperties, type DragEvent, type FormEvent, type PointerEvent as ReactPointerEvent,
 } from 'react'
 import type { User } from 'firebase/auth'
 import './App.css'
 import { initialGames, members, statusLabels } from './data'
-import type { ContentType, Game, GameStatus, Member, Persona } from './types'
+import type { ContentType, Game, GameStatus, Member, Persona, PuzzleBoard, PuzzlePoint, PuzzleStroke } from './types'
 import { firebaseConfigured, signInWithGoogle, signOut, watchAuth } from './lib/firebase'
 import { searchGames, type GameSearchResult } from './lib/gameSearch'
 import { connectBoard, getBoardId, getExistingPersona, type BoardConnection } from './lib/sharedBoard'
+import { connectPuzzle, type PuzzleConnection } from './lib/sharedPuzzle'
 
 const STORAGE_KEY = 'checkpoint-games-v1'
 const DEMO_USER = 'local-player'
@@ -94,6 +95,37 @@ async function resizeProfileImage(file: File) {
   }
 }
 
+async function resizePuzzleImage(file: File) {
+  if (!file.type.startsWith('image/')) throw new Error('Choose an image file.')
+  if (file.size > 15 * 1024 * 1024) throw new Error('Choose an image smaller than 15 MB.')
+  const objectUrl = URL.createObjectURL(file)
+  try {
+    const image = new Image()
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve()
+      image.onerror = () => reject(new Error('That image could not be opened.'))
+      image.src = objectUrl
+    })
+    let scale = Math.min(1, 1600 / Math.max(image.naturalWidth, image.naturalHeight))
+    for (let attempt = 0; attempt < 7; attempt += 1) {
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale))
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale))
+      const context = canvas.getContext('2d')
+      if (!context) throw new Error('That image could not be processed.')
+      context.fillStyle = '#ffffff'
+      context.fillRect(0, 0, canvas.width, canvas.height)
+      context.drawImage(image, 0, 0, canvas.width, canvas.height)
+      const dataUrl = canvas.toDataURL('image/jpeg', Math.max(.48, .8 - attempt * .06))
+      if (dataUrl.length <= 600000) return dataUrl
+      scale *= .82
+    }
+    throw new Error('That image is too detailed to sync. Try a smaller screenshot.')
+  } finally {
+    URL.revokeObjectURL(objectUrl)
+  }
+}
+
 function Cover({ game, size = 'medium' }: { game: Game; size?: 'small' | 'medium' | 'large' }) {
   const games = useContext(GamesContext)
   const style = { '--cover-color': game.color, '--cover-accent': game.accent } as CSSProperties
@@ -161,6 +193,250 @@ function CrewModal({ members: crew, currentUserId, googlePhotoUrl, onClose, onSa
           <label className={`button button-secondary ${saving ? 'is-disabled' : ''}`}><Camera size={16} /> {saving ? 'Saving…' : 'Upload custom'}<input type="file" accept="image/*" disabled={saving} onChange={(event) => { void saveFile(event.target.files?.[0]); event.currentTarget.value = '' }} /></label>
           {googlePhotoUrl && currentMember.customPhotoUrl && <button className="button button-secondary" type="button" onClick={useGooglePhoto} disabled={saving}>Use Google photo</button>}
         </div>{error && <p className="profile-image-error">{error}</p>}</div>}
+      </section>
+    </div>
+  )
+}
+
+const PUZZLE_COLORS = ['#f8f6ed', '#f2c94c', '#ff6b76', '#6ad8ff', '#8df0a9']
+
+function renderPuzzleCanvas(canvas: HTMLCanvasElement, strokes: PuzzleStroke[], preview: PuzzleStroke | null) {
+  const bounds = canvas.getBoundingClientRect()
+  const width = Math.max(1, bounds.width)
+  const height = Math.max(1, bounds.height)
+  const ratio = window.devicePixelRatio || 1
+  const pixelWidth = Math.round(width * ratio)
+  const pixelHeight = Math.round(height * ratio)
+  if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+    canvas.width = pixelWidth
+    canvas.height = pixelHeight
+  }
+  const context = canvas.getContext('2d')
+  if (!context) return
+  context.setTransform(ratio, 0, 0, ratio, 0, 0)
+  context.clearRect(0, 0, width, height)
+  for (const stroke of preview ? [...strokes, preview] : strokes) {
+    if (!stroke.points.length) continue
+    context.beginPath()
+    context.lineCap = 'round'
+    context.lineJoin = 'round'
+    context.strokeStyle = stroke.color
+    context.lineWidth = stroke.width
+    context.moveTo(stroke.points[0].x * width, stroke.points[0].y * height)
+    for (const point of stroke.points.slice(1)) context.lineTo(point.x * width, point.y * height)
+    if (stroke.points.length === 1) context.lineTo(stroke.points[0].x * width + .01, stroke.points[0].y * height + .01)
+    context.stroke()
+  }
+}
+
+function PuzzleCanvas({ strokes, tool, color, width, authorId, onAddStroke, onErase }: {
+  strokes: PuzzleStroke[]
+  tool: 'draw' | 'erase'
+  color: string
+  width: number
+  authorId: string
+  onAddStroke: (stroke: PuzzleStroke) => void
+  onErase: (point: PuzzlePoint) => void
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const drawingRef = useRef(false)
+  const previewPointsRef = useRef<PuzzlePoint[]>([])
+  const [previewPoints, setPreviewPoints] = useState<PuzzlePoint[]>([])
+  const [canvasSize, setCanvasSize] = useState(0)
+
+  const preview = previewPoints.length ? { id: 'preview', color, width, points: previewPoints, authorId } : null
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    renderPuzzleCanvas(canvas, strokes, preview)
+  }, [canvasSize, color, preview, strokes, width])
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const observer = new ResizeObserver(() => setCanvasSize((value) => value + 1))
+    observer.observe(canvas)
+    return () => observer.disconnect()
+  }, [])
+
+  function pointFromEvent(event: ReactPointerEvent<HTMLCanvasElement>) {
+    const bounds = event.currentTarget.getBoundingClientRect()
+    return {
+      x: Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width)),
+      y: Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height)),
+    }
+  }
+
+  function startStroke(event: ReactPointerEvent<HTMLCanvasElement>) {
+    drawingRef.current = true
+    try { event.currentTarget.setPointerCapture(event.pointerId) } catch { /* Synthetic pointers may not support capture. */ }
+    const point = pointFromEvent(event)
+    if (tool === 'erase') { onErase(point); return }
+    previewPointsRef.current = [point]
+    setPreviewPoints([point])
+  }
+
+  function continueStroke(event: ReactPointerEvent<HTMLCanvasElement>) {
+    if (!drawingRef.current) return
+    const point = pointFromEvent(event)
+    if (tool === 'erase') { onErase(point); return }
+    setPreviewPoints((current) => {
+      const last = current[current.length - 1]
+      if (!last || current.length >= 1200) return current
+      if (Math.hypot(point.x - last.x, point.y - last.y) < .002) return current
+      const next = [...current, point]
+      previewPointsRef.current = next
+      return next
+    })
+  }
+
+  function finishStroke(event: ReactPointerEvent<HTMLCanvasElement>) {
+    if (!drawingRef.current) return
+    drawingRef.current = false
+    try {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+    } catch { /* The pointer may already have been released. */ }
+    const finishedPoints = previewPointsRef.current
+    if (tool === 'draw' && finishedPoints.length) {
+      onAddStroke({ id: crypto.randomUUID(), color, width, points: finishedPoints, authorId })
+    }
+    previewPointsRef.current = []
+    setPreviewPoints([])
+  }
+
+  return <canvas ref={canvasRef} className={`puzzle-canvas tool-${tool}`} aria-label="Shared puzzle drawing canvas"
+    onPointerDown={startStroke} onPointerMove={continueStroke} onPointerUp={finishStroke} onPointerCancel={finishStroke} />
+}
+
+function PuzzleBoardModal({ game, boardId, currentUserId, onClose }: {
+  game: Game
+  boardId: string
+  currentUserId: string
+  onClose: () => void
+}) {
+  const localKey = `checkpoint-puzzle:${boardId}:${game.id}`
+  const [board, setBoard] = useState<PuzzleBoard>(() => {
+    try {
+      const stored = localStorage.getItem(localKey)
+      if (stored) return JSON.parse(stored) as PuzzleBoard
+    } catch { /* Start with a fresh puzzle board. */ }
+    return { imageDataUrl: '', imageName: '', note: '', strokes: [], updatedBy: currentUserId }
+  })
+  const [tool, setTool] = useState<'draw' | 'erase'>('draw')
+  const [color, setColor] = useState(PUZZLE_COLORS[1])
+  const [brushWidth, setBrushWidth] = useState(4)
+  const [aspectRatio, setAspectRatio] = useState(16 / 9)
+  const [sync, setSync] = useState<'connecting' | 'live' | 'saving' | 'local' | 'error'>(firebaseConfigured ? 'connecting' : 'local')
+  const [error, setError] = useState<string | null>(null)
+  const connectionRef = useRef<PuzzleConnection | null>(null)
+  const boardRef = useRef(board)
+  const dirtyRef = useRef(false)
+
+  useEffect(() => {
+    const connection = connectPuzzle(boardId, game.id, (remoteBoard) => {
+      if (dirtyRef.current) return
+      boardRef.current = remoteBoard
+      setBoard(remoteBoard)
+      try { localStorage.setItem(localKey, JSON.stringify(remoteBoard)) } catch { /* Firestore remains the primary copy. */ }
+      setSync('live')
+    }, () => setSync('error'))
+    connectionRef.current = connection
+    setSync(connection ? 'live' : 'local')
+    return () => { connection?.close(); connectionRef.current = null }
+  }, [boardId, game.id, localKey])
+
+  useEffect(() => {
+    boardRef.current = board
+    try { localStorage.setItem(localKey, JSON.stringify(board)) } catch { setError('This browser could not keep a local puzzle backup.') }
+    if (!dirtyRef.current) return
+    const timer = window.setTimeout(() => {
+      const connection = connectionRef.current
+      if (!connection) { dirtyRef.current = false; setSync('local'); return }
+      const savingBoard = board
+      setSync('saving')
+      connection.save(savingBoard).then(() => {
+        if (boardRef.current === savingBoard) dirtyRef.current = false
+        setSync('live')
+      }).catch(() => {
+        setSync('error')
+        setError('The puzzle is backed up here, but Firebase rejected the live update. Publish the latest Firestore rules.')
+      })
+    }, 280)
+    return () => window.clearTimeout(timer)
+  }, [board, localKey])
+
+  function editBoard(change: (current: PuzzleBoard) => PuzzleBoard) {
+    setBoard((current) => {
+      const next = change(current)
+      if (next === current) return current
+      dirtyRef.current = true
+      return { ...next, updatedBy: currentUserId }
+    })
+  }
+
+  async function useImage(file?: File) {
+    if (!file) return
+    if (board.strokes.length && !window.confirm('Replace the puzzle image and clear the current drawing?')) return
+    setError(null)
+    try {
+      const imageDataUrl = await resizePuzzleImage(file)
+      editBoard((current) => ({ ...current, imageDataUrl, imageName: file.name || 'Pasted puzzle', strokes: [] }))
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : 'That puzzle image could not be added.')
+    }
+  }
+
+  function handlePaste(event: ReactClipboardEvent<HTMLElement>) {
+    const imageItem = [...event.clipboardData.items].find((item) => item.type.startsWith('image/'))
+    const file = imageItem?.getAsFile()
+    if (!file) return
+    event.preventDefault()
+    void useImage(new File([file], 'Pasted puzzle.jpg', { type: file.type }))
+  }
+
+  function eraseAt(point: PuzzlePoint) {
+    editBoard((current) => {
+      const strokes = current.strokes.filter((stroke) => !stroke.points.some((candidate) => Math.hypot(candidate.x - point.x, candidate.y - point.y) < .028))
+      return strokes.length === current.strokes.length ? current : { ...current, strokes }
+    })
+  }
+
+  function removeImage() {
+    if (!window.confirm('Remove the puzzle image and clear its drawing?')) return
+    editBoard((current) => ({ ...current, imageDataUrl: '', imageName: '', strokes: [] }))
+    setAspectRatio(16 / 9)
+  }
+
+  const syncLabel = sync === 'live' ? 'Shared live' : sync === 'saving' ? 'Saving…' : sync === 'connecting' ? 'Connecting…' : sync === 'error' ? 'Local backup · sync needs rules' : 'Saved on this device'
+
+  return (
+    <div className="modal-backdrop puzzle-backdrop" onMouseDown={onClose}>
+      <section className="modal puzzle-modal" onMouseDown={(event) => event.stopPropagation()} onPaste={handlePaste} aria-modal="true" role="dialog" tabIndex={-1}>
+        <div className="modal-heading puzzle-heading"><div><span className="eyebrow">{game.title}</span><h2>Puzzle Board</h2><p>Draw together, paste screenshots, and type notes live.</p></div><div className={`puzzle-sync sync-${sync}`}><span />{syncLabel}</div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
+        <div className="puzzle-layout">
+          <div className="puzzle-workspace">
+            <div className="puzzle-toolbar">
+              <label className="puzzle-tool upload-tool"><ImagePlus size={16} /> {board.imageDataUrl ? 'Replace image' : 'Add image'}<input type="file" accept="image/*" onChange={(event) => { void useImage(event.target.files?.[0]); event.currentTarget.value = '' }} /></label>
+              <button className={`puzzle-tool ${tool === 'draw' ? 'active' : ''}`} type="button" onClick={() => setTool('draw')}><Pencil size={15} /> Draw</button>
+              <button className={`puzzle-tool ${tool === 'erase' ? 'active' : ''}`} type="button" onClick={() => setTool('erase')}><Eraser size={15} /> Erase</button>
+              <span className="toolbar-divider" />
+              <div className="puzzle-colors" aria-label="Drawing color">{PUZZLE_COLORS.map((option) => <button type="button" key={option} className={color === option ? 'active' : ''} style={{ background: option }} onClick={() => { setColor(option); setTool('draw') }} aria-label={`Use ${option}`} />)}</div>
+              <select className="brush-size" value={brushWidth} onChange={(event) => setBrushWidth(Number(event.target.value))} aria-label="Brush size"><option value="2">Thin</option><option value="4">Medium</option><option value="8">Thick</option></select>
+              <span className="toolbar-spacer" />
+              <button className="puzzle-icon-tool" type="button" onClick={() => editBoard((current) => ({ ...current, strokes: current.strokes.slice(0, -1) }))} disabled={!board.strokes.length} aria-label="Undo last stroke"><RotateCcw size={16} /></button>
+              <button className="puzzle-icon-tool danger" type="button" onClick={() => { if (board.strokes.length && window.confirm('Clear the shared drawing?')) editBoard((current) => ({ ...current, strokes: [] })) }} disabled={!board.strokes.length} aria-label="Clear drawing"><Trash2 size={16} /></button>
+            </div>
+            <div className={`puzzle-stage ${board.imageDataUrl ? 'has-image' : ''}`} style={{ aspectRatio }}>
+              {board.imageDataUrl ? <img src={board.imageDataUrl} alt="Puzzle reference" draggable={false} onLoad={(event) => setAspectRatio(event.currentTarget.naturalWidth / event.currentTarget.naturalHeight)} /> : <div className="puzzle-empty"><ImagePlus size={28} /><strong>Add or paste a puzzle screenshot</strong><span>You can also draw on the blank board.</span></div>}
+              <PuzzleCanvas strokes={board.strokes} tool={tool} color={color} width={brushWidth} authorId={currentUserId}
+                onAddStroke={(stroke) => editBoard((current) => ({ ...current, strokes: [...current.strokes.slice(-499), stroke] }))}
+                onErase={eraseAt} />
+            </div>
+            <div className="puzzle-image-footer"><span>{board.imageName || 'Blank shared canvas'}</span><span>{board.strokes.length} {board.strokes.length === 1 ? 'stroke' : 'strokes'}</span>{board.imageDataUrl && <button type="button" onClick={removeImage}>Remove image</button>}</div>
+          </div>
+          <aside className="puzzle-notes"><div><span className="eyebrow">Shared live notes</span><h3>Work it out together</h3><p>Typing autosaves and appears for the crew while this board is open.</p></div><textarea value={board.note} maxLength={20000} onChange={(event) => editBoard((current) => ({ ...current, note: event.target.value }))} placeholder="Codes, clues, theories, steps…" /><div className="puzzle-note-footer"><span>{board.note.length.toLocaleString()} / 20,000</span><span>Paste an image anywhere in this window</span></div>{error && <p className="puzzle-error">{error}</p>}</aside>
+        </div>
       </section>
     </div>
   )
@@ -280,7 +556,7 @@ function AddGameModal({ onClose, onAdd, games, defaultParentId }: { onClose: () 
   )
 }
 
-function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onAddDlc }: { game: Game; onClose: () => void; onSave: (updates: Partial<Game>) => void; onVote: () => void; onRemove: () => void; onAddDlc: () => void }) {
+function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onAddDlc, onOpenPuzzle }: { game: Game; onClose: () => void; onSave: (updates: Partial<Game>) => void; onVote: () => void; onRemove: () => void; onAddDlc: () => void; onOpenPuzzle: () => void }) {
   const [progress, setProgress] = useState(game.progress)
   const [status, setStatus] = useState(game.status)
   const [note, setNote] = useState(game.note)
@@ -292,7 +568,7 @@ function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onAddDlc }:
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <section className="modal details-modal" onMouseDown={(event) => event.stopPropagation()} aria-modal="true" role="dialog">
-        <div className="details-hero"><Cover game={game} size="large" /><div className="details-title"><div className="details-pills"><span className="status-pill">{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="content-pill"><Puzzle size={10} /> DLC</span>}</div><h2>{game.title}</h2><p>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle} · ` : ''}{[game.year, game.genre, game.platform].filter(Boolean).join(' · ')}</p><div className="details-quick-actions"><VoteButton game={game} onVote={onVote} />{game.contentType !== 'dlc' && <button className="add-dlc-button" type="button" onClick={onAddDlc}><Puzzle size={14} /> Add DLC</button>}</div></div><button className="icon-button details-close" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
+        <div className="details-hero"><Cover game={game} size="large" /><div className="details-title"><div className="details-pills"><span className="status-pill">{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="content-pill"><Puzzle size={10} /> DLC</span>}</div><h2>{game.title}</h2><p>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle} · ` : ''}{[game.year, game.genre, game.platform].filter(Boolean).join(' · ')}</p><div className="details-quick-actions"><VoteButton game={game} onVote={onVote} /><button className="puzzle-board-button" type="button" onClick={onOpenPuzzle}><Pencil size={14} /> Puzzle Board</button>{game.contentType !== 'dlc' && <button className="add-dlc-button" type="button" onClick={onAddDlc}><Puzzle size={14} /> Add DLC</button>}</div></div><button className="icon-button details-close" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
         <form onSubmit={save} className="details-form">
           <div className="form-grid">
             <label className="field"><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value as GameStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
@@ -381,6 +657,7 @@ function App() {
   const [showAdd, setShowAdd] = useState(false)
   const [addParentId, setAddParentId] = useState<string | undefined>()
   const [showCrew, setShowCrew] = useState(false)
+  const [puzzleGameId, setPuzzleGameId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [libraryFilter, setLibraryFilter] = useState<GameStatus | 'all'>('all')
@@ -457,6 +734,7 @@ function App() {
   const playing = games.find((game) => game.status === 'playing')
   const upNext = games.filter((game) => game.status === 'up-next')
   const selected = games.find((game) => game.id === selectedId)
+  const puzzleGame = games.find((game) => game.id === puzzleGameId)
   const filteredGames = useMemo(() => games.filter((game) => (libraryFilter === 'all' || game.status === libraryFilter) && game.title.toLowerCase().includes(search.toLowerCase())), [games, libraryFilter, search])
   const flash = (message: string) => setToast(message)
   function vote(gameId: string) { setGames((current) => current.map((game) => game.id !== gameId ? game : { ...game, votes: game.votes.includes(currentUser) ? game.votes.filter((id) => id !== currentUser) : [...game.votes, currentUser] })) }
@@ -569,7 +847,8 @@ function App() {
       </main>
       {showAdd && <AddGameModal onClose={closeAddGame} onAdd={addGame} games={games} defaultParentId={addParentId} />}
       {showCrew && <CrewModal members={groupMembers} currentUserId={currentUser} googlePhotoUrl={user?.photoURL} onClose={() => setShowCrew(false)} onSavePhoto={saveProfileImage} />}
-      {selected && <GameDetailsModal game={selected} onClose={() => setSelectedId(null)} onVote={() => vote(selected.id)} onSave={(updates) => updateGame(selected.id, updates)} onRemove={() => removeGame(selected)} onAddDlc={() => openAddGame(selected)} />}
+      {selected && <GameDetailsModal game={selected} onClose={() => setSelectedId(null)} onVote={() => vote(selected.id)} onSave={(updates) => updateGame(selected.id, updates)} onRemove={() => removeGame(selected)} onAddDlc={() => openAddGame(selected)} onOpenPuzzle={() => { setPuzzleGameId(selected.id); setSelectedId(null) }} />}
+      {puzzleGame && <PuzzleBoardModal game={puzzleGame} boardId={boardId} currentUserId={currentUser} onClose={() => setPuzzleGameId(null)} />}
       {toast && <div className="toast"><Check size={17} /> {toast}</div>}
     </div>
     </GamesContext.Provider>

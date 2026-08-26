@@ -47,6 +47,33 @@ service cloud.firestore {
         && ((isMember() && validBoard()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['games', 'updatedAt']))
           || joiningOnlyAsSelf());
+
+      match /puzzles/{gameId} {
+        function isBoardMember() {
+          return request.auth != null
+            && get(/databases/$(database)/documents/boards/$(boardId)).data.members[request.auth.uid] != null;
+        }
+
+        function validPuzzle() {
+          return request.resource.data.keys().hasOnly([
+              'imageDataUrl', 'imageName', 'note', 'strokes', 'updatedBy', 'updatedAt'
+            ])
+            && request.resource.data.imageDataUrl is string
+            && request.resource.data.imageDataUrl.size() <= 650000
+            && request.resource.data.imageName is string
+            && request.resource.data.imageName.size() <= 200
+            && request.resource.data.note is string
+            && request.resource.data.note.size() <= 20000
+            && request.resource.data.strokes is list
+            && request.resource.data.strokes.size() <= 500
+            && request.resource.data.updatedBy == request.auth.uid;
+        }
+
+        allow get: if isBoardMember();
+        allow list: if false;
+        allow create, update: if isBoardMember() && validPuzzle();
+        allow delete: if isBoardMember();
+      }
     }
   }
 }

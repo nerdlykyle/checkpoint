@@ -2,6 +2,27 @@ export type GameStatus = 'playing' | 'up-next' | 'maybe' | 'wishlist' | 'complet
 export type Persona = 'Nern' | 'Jern' | 'Vern'
 export type ContentType = 'game' | 'dlc'
 
+export type PuzzlePoint = {
+  x: number
+  y: number
+}
+
+export type PuzzleStroke = {
+  id: string
+  color: string
+  width: number
+  points: PuzzlePoint[]
+  authorId: string
+}
+
+export type PuzzleBoard = {
+  imageDataUrl: string
+  imageName: string
+  note: string
+  strokes: PuzzleStroke[]
+  updatedBy: string
+}
+
 export type Game = {
   id: string
   title: string
