@@ -10,12 +10,18 @@ import {
 import type { User } from 'firebase/auth'
 import './App.css'
 import { initialGames, members, statusLabels } from './data'
-import type { Game, GameStatus, Member } from './types'
+import type { Game, GameStatus, Member, Persona } from './types'
 import { firebaseConfigured, signInWithGoogle, signOut, watchAuth } from './lib/firebase'
-import { connectBoard, getBoardId, type BoardConnection } from './lib/sharedBoard'
+import { searchGames, type GameSearchResult } from './lib/gameSearch'
+import { connectBoard, getBoardId, getExistingPersona, type BoardConnection } from './lib/sharedBoard'
 
 const STORAGE_KEY = 'checkpoint-games-v1'
-const DEMO_USER = 'kp'
+const DEMO_USER = 'local-player'
+const NERN_EMAIL = 'kjsparsons@gmail.com'
+const LEGACY_PLACEHOLDER_IDS = new Set([
+  'split-fiction', 'clair-obscur', 'monster-hunter', 'remnant-ii', 'sea-of-stars',
+  'hades-ii', 'blue-prince', 'silksong', 'it-takes-two',
+])
 type View = 'dashboard' | 'library'
 type SyncStatus = 'local' | 'connecting' | 'live' | 'error'
 
@@ -25,7 +31,8 @@ const MembersContext = createContext<Member[]>(members)
 function getStoredGames() {
   try {
     const value = localStorage.getItem(STORAGE_KEY)
-    return value ? (JSON.parse(value) as Game[]) : initialGames
+    const stored = value ? (JSON.parse(value) as Game[]) : initialGames
+    return stored.filter((game) => !LEGACY_PLACEHOLDER_IDS.has(game.id))
   } catch {
     return initialGames
   }
@@ -35,14 +42,16 @@ function Cover({ game, size = 'medium' }: { game: Game; size?: 'small' | 'medium
   const style = { '--cover-color': game.color, '--cover-accent': game.accent } as CSSProperties
   return (
     <div className={`game-cover cover-${size}`} style={style} aria-hidden="true">
-      <span className="cover-orbit" /><span className="cover-mark">{game.coverMark}</span><span className="cover-year">{game.year}</span>
+      <span className="cover-orbit" /><span className="cover-mark">{game.coverMark}</span>
+      {game.coverUrl && <img className="game-cover-image" src={game.coverUrl} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} />}
+      {game.year && <span className="cover-year">{game.year}</span>}
     </div>
   )
 }
 
 function Avatar({ id, small = false }: { id: string; small?: boolean }) {
   const activeMembers = useContext(MembersContext)
-  const member = activeMembers.find((item) => item.id === id) ?? members.find((item) => item.id === id) ?? members[0]
+  const member = activeMembers.find((item) => item.id === id) ?? members.find((item) => item.id === id) ?? { id, name: 'Player', initials: '?', color: '#7568e8', photoUrl: undefined }
   return <span className={`avatar ${small ? 'avatar-small' : ''}`} style={{ background: member.color }} title={member.name}>{member.photoUrl ? <img src={member.photoUrl} alt="" /> : member.initials}</span>
 }
 
@@ -61,20 +70,57 @@ function AddGameModal({ onClose, onAdd }: { onClose: () => void; onAdd: (game: G
   const currentUser = useContext(CurrentUserContext)
   const [status, setStatus] = useState<GameStatus>('up-next')
   const [color, setColor] = useState('#5d51c8')
+  const [title, setTitle] = useState('')
+  const [selectedGame, setSelectedGame] = useState<GameSearchResult | null>(null)
+  const [results, setResults] = useState<GameSearchResult[]>([])
+  const [searching, setSearching] = useState(false)
+  const [searchFailed, setSearchFailed] = useState(false)
+  const [showResults, setShowResults] = useState(false)
   const colors = ['#5d51c8', '#176e87', '#b65f3e', '#486a55', '#8a3556', '#25324f']
+
+  useEffect(() => {
+    const query = title.trim()
+    if (query.length < 2 || selectedGame?.title === query) {
+      setResults([])
+      setSearching(false)
+      setSearchFailed(false)
+      return
+    }
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => {
+      setSearching(true)
+      setSearchFailed(false)
+      searchGames(query, controller.signal)
+        .then((matches) => { setResults(matches); setShowResults(true) })
+        .catch((error: unknown) => {
+          if (error instanceof DOMException && error.name === 'AbortError') return
+          setSearchFailed(true)
+        })
+        .finally(() => setSearching(false))
+    }, 320)
+    return () => { window.clearTimeout(timer); controller.abort() }
+  }, [title, selectedGame])
+
+  function chooseGame(game: GameSearchResult) {
+    setSelectedGame(game)
+    setTitle(game.title)
+    setShowResults(false)
+  }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    const title = String(form.get('title') ?? '').trim()
-    if (!title) return
-    const words = title.split(/\s+/)
-    const mark = words.length > 1 ? words.slice(0, 2).map((word) => word[0]).join('') : title.slice(0, 2)
+    const cleanTitle = title.trim()
+    if (!cleanTitle) return
+    const words = cleanTitle.split(/\s+/)
+    const mark = words.length > 1 ? words.slice(0, 2).map((word) => word[0]).join('') : cleanTitle.slice(0, 2)
     onAdd({
-      id: crypto.randomUUID(), title, year: Number(form.get('year')) || new Date().getFullYear(), status,
+      id: crypto.randomUUID(), title: cleanTitle, year: Number(form.get('year')) || undefined, status,
       progress: status === 'completed' ? 100 : 0, note: String(form.get('note') ?? '').trim(), votes: [],
       color, accent: '#f1c879', platform: String(form.get('platform') ?? 'PC'), addedBy: currentUser,
-      genre: String(form.get('genre') ?? '').trim() || 'Game', coverMark: mark.toUpperCase(),
+      genre: String(form.get('genre') ?? '').trim() || 'Game', coverMark: mark.toUpperCase(), coverUrl: selectedGame?.coverUrl,
+      steamAppId: selectedGame?.steamAppId, catalogId: selectedGame?.catalogId,
+      catalogSource: selectedGame ? 'steam' : undefined,
       completedAt: status === 'completed' ? new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined,
     })
   }
@@ -87,11 +133,19 @@ function AddGameModal({ onClose, onAdd }: { onClose: () => void; onAdd: (game: G
           <button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button>
         </div>
         <form onSubmit={submit}>
-          <label className="field field-full"><span>Game title</span><input name="title" placeholder="Search or enter a title" autoFocus required /></label>
+          <label className="field field-full game-search-field"><span>Game title</span><input name="title" value={title} onChange={(event) => { setTitle(event.target.value); setSelectedGame(null); setShowResults(true) }} onFocus={() => setShowResults(true)} placeholder="Start typing a Steam game" autoComplete="off" autoFocus required />
+            {showResults && title.trim().length >= 2 && <div className="game-search-results">
+              {searching && <div className="game-search-message">Searching the game catalog…</div>}
+              {!searching && searchFailed && <div className="game-search-message">Search is unavailable. You can still enter the title manually.</div>}
+              {!searching && !searchFailed && results.map((game) => <button className="game-search-result" type="button" key={game.catalogId} onClick={() => chooseGame(game)}><span className="result-cover"><Gamepad2 size={16} /><img src={game.coverUrl} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} /></span><span><strong>{game.title}</strong><small>Steam game</small></span><Plus size={16} /></button>)}
+              {!searching && !searchFailed && !results.length && <div className="game-search-message">No catalog match yet. You can add this title manually.</div>}
+            </div>}
+            <small className="catalog-credit">Search uses the <a href="https://github.com/jsnli/SteamAppIDList" target="_blank" rel="noreferrer">Steam AppID catalog</a></small>
+          </label>
           <div className="form-grid">
             <label className="field"><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value as GameStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
             <label className="field"><span>Platform</span><select name="platform" defaultValue="PC"><option>PC</option><option>PlayStation</option><option>Xbox</option><option>Switch</option><option>Other</option></select></label>
-            <label className="field"><span>Release year</span><input name="year" inputMode="numeric" defaultValue={new Date().getFullYear()} /></label>
+            <label className="field"><span>Release year <em>optional</em></span><input name="year" inputMode="numeric" placeholder="2026" /></label>
             <label className="field"><span>Genre</span><input name="genre" placeholder="Co-op adventure" /></label>
           </div>
           <label className="field field-full"><span>Group note <em>optional</em></span><textarea name="note" placeholder="Why should this be on the list?" rows={3} /></label>
@@ -117,7 +171,7 @@ function GameDetailsModal({ game, onClose, onSave, onVote }: { game: Game; onClo
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <section className="modal details-modal" onMouseDown={(event) => event.stopPropagation()} aria-modal="true" role="dialog">
-        <div className="details-hero"><Cover game={game} size="large" /><div className="details-title"><span className="status-pill">{statusLabels[game.status]}</span><h2>{game.title}</h2><p>{game.year} · {game.genre} · {game.platform}</p><VoteButton game={game} onVote={onVote} /></div><button className="icon-button details-close" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
+        <div className="details-hero"><Cover game={game} size="large" /><div className="details-title"><span className="status-pill">{statusLabels[game.status]}</span><h2>{game.title}</h2><p>{[game.year, game.genre, game.platform].filter(Boolean).join(' · ')}</p><VoteButton game={game} onVote={onVote} /></div><button className="icon-button details-close" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
         <form onSubmit={save} className="details-form">
           <div className="form-grid">
             <label className="field"><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value as GameStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
@@ -166,9 +220,24 @@ function SignInScreen({ loading, error, onSignIn }: { loading: boolean; error: s
         {error && <p className="sign-in-error">{error}</p>}
         <small>Only people with this private Checkpoint link can join the board.</small>
       </section>
-      <div className="sign-in-preview" aria-hidden="true">
-        <span className="preview-rank">1</span><div className="preview-cover">33</div><div><strong>Clair Obscur</strong><span>Up next · 4 votes</span></div>
-      </div>
+    </main>
+  )
+}
+
+function PersonaScreen({ user, onChoose }: { user: User; onChoose: (persona: Persona) => void }) {
+  return (
+    <main className="sign-in-screen identity-screen">
+      <div className="sign-in-glow" />
+      <section className="sign-in-card identity-card">
+        <div className="sign-in-brand"><span className="brand-mark"><Flag size={22} fill="currentColor" /></span><strong>checkpoint</strong></div>
+        <span className="eyebrow">One last checkpoint</span>
+        <h1>Who are you?</h1>
+        <p>You’re signed in as {user.email}. Pick your crew name so votes and games stay attached to you.</p>
+        <div className="identity-options">
+          {(['Jern', 'Vern'] as Persona[]).map((name) => <button key={name} type="button" onClick={() => onChoose(name)}><span>{name[0]}</span><strong>{name}</strong><small>Play as {name}</small></button>)}
+        </div>
+        <button className="identity-sign-out" type="button" onClick={() => signOut()}>Use a different Google account</button>
+      </section>
     </main>
   )
 }
@@ -181,6 +250,8 @@ function App() {
   const [games, setGames] = useState<Game[]>(getStoredGames)
   const [user, setUser] = useState<User | null>(null)
   const [authReady, setAuthReady] = useState(!firebaseConfigured)
+  const [persona, setPersona] = useState<Persona | null>(firebaseConfigured ? null : 'Nern')
+  const [personaReady, setPersonaReady] = useState(!firebaseConfigured)
   const [authBusy, setAuthBusy] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
   const [groupMembers, setGroupMembers] = useState<Member[]>(members)
@@ -200,12 +271,41 @@ function App() {
   useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(null), 2200); return () => window.clearTimeout(timer) }, [toast])
   useEffect(() => watchAuth((nextUser) => { setUser(nextUser); setAuthReady(true) }), [])
   useEffect(() => {
-    if (!firebaseConfigured || !user) return
     let active = true
-    connectBoard(boardId, user, initialGamesRef.current, (remoteGames, remoteMembers) => {
+    if (!firebaseConfigured) {
+      setPersona('Nern')
+      setPersonaReady(true)
+      return
+    }
+    if (!user) {
+      setPersona(null)
+      setPersonaReady(true)
+      return
+    }
+    setPersonaReady(false)
+    if (user.email?.toLowerCase() === NERN_EMAIL) {
+      setPersona('Nern')
+      localStorage.setItem(`checkpoint-persona:${user.uid}`, 'Nern')
+      setPersonaReady(true)
+      return
+    }
+    const stored = localStorage.getItem(`checkpoint-persona:${user.uid}`)
+    getExistingPersona(boardId, user).then((existing) => {
+      if (!active) return
+      const resolved = existing ?? (stored === 'Jern' || stored === 'Vern' ? stored : null)
+      setPersona(resolved)
+      setPersonaReady(true)
+    })
+    return () => { active = false }
+  }, [boardId, user])
+  useEffect(() => {
+    if (!firebaseConfigured || !user || !persona) return
+    let active = true
+    setSyncStatus('connecting')
+    connectBoard(boardId, user, persona, initialGamesRef.current, (remoteGames, remoteMembers) => {
       if (!active) return
       lastSyncedRef.current = JSON.stringify(remoteGames)
-      setGames(remoteGames)
+      setGames(remoteGames.filter((game) => !LEGACY_PLACEHOLDER_IDS.has(game.id)))
       setGroupMembers(remoteMembers)
     }).then((connection) => {
       if (!active) { connection?.close(); return }
@@ -213,7 +313,7 @@ function App() {
       setSyncStatus(connection ? 'live' : 'local')
     }).catch(() => { if (active) setSyncStatus('error') })
     return () => { active = false; connectionRef.current?.close(); connectionRef.current = null }
-  }, [boardId, user])
+  }, [boardId, persona, user])
   useEffect(() => {
     if (syncStatus !== 'live' || !connectionRef.current) return
     const serialized = JSON.stringify(games)
@@ -240,7 +340,7 @@ function App() {
     setGames((current) => { const queue = current.filter((game) => game.status === 'up-next'); const from = queue.findIndex((game) => game.id === sourceId); const to = queue.findIndex((game) => game.id === targetId); if (from < 0 || to < 0) return current; const [moved] = queue.splice(from, 1); queue.splice(to, 0, moved); let index = 0; return current.map((game) => game.status === 'up-next' ? queue[index++] : game) })
     flash('Queue reordered')
   }
-  function resetDemo() { if (!window.confirm('Reset Checkpoint to the original demo games?')) return; setGames(initialGames); localStorage.removeItem(STORAGE_KEY); flash('Demo data restored') }
+  function resetLocalBoard() { if (!window.confirm('Clear every game saved on this device?')) return; setGames([]); localStorage.removeItem(STORAGE_KEY); flash('Local board cleared') }
   async function handleSignIn() {
     setAuthBusy(true)
     setAuthError(null)
@@ -253,10 +353,20 @@ function App() {
     catch { flash('Copy the current address to invite your group') }
   }
 
+  function choosePersona(nextPersona: Persona) {
+    if (!user) return
+    localStorage.setItem(`checkpoint-persona:${user.uid}`, nextPersona)
+    setPersona(nextPersona)
+  }
+
   if (firebaseConfigured && !authReady) return <LoadingScreen />
   if (firebaseConfigured && !user) return <SignInScreen loading={authBusy} error={authError} onSignIn={handleSignIn} />
+  if (firebaseConfigured && user && !personaReady) return <LoadingScreen />
+  if (firebaseConfigured && user && !persona) return <PersonaScreen user={user} onChoose={choosePersona} />
 
   const syncLabel = syncStatus === 'live' ? 'Shared live' : syncStatus === 'connecting' ? 'Connecting…' : syncStatus === 'error' ? 'Sync needs attention' : 'Saved on this device'
+  const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  const dashboardSummary = playing ? 'Your current campaign and the crew’s ranked queue.' : 'Start with a game, then build the crew’s ranked queue.'
 
   return (
     <CurrentUserContext.Provider value={currentUser}>
@@ -264,7 +374,7 @@ function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <button className="brand" type="button" onClick={() => setView('dashboard')}><span className="brand-mark"><Flag size={21} fill="currentColor" /></span><span>checkpoint</span></button>
-        <div className="server-switcher"><div className="server-icon"><Gamepad2 size={18} /></div><div><strong>Friday Night Crew</strong><span>{groupMembers.length} {groupMembers.length === 1 ? 'player' : 'players'}</span></div><ChevronDown size={16} /></div>
+        <div className="server-switcher"><div className="server-icon"><Gamepad2 size={18} /></div><div><strong>Checkpoint Crew</strong><span>{groupMembers.length} {groupMembers.length === 1 ? 'player' : 'players'}</span></div><ChevronDown size={16} /></div>
         <nav className="main-nav" aria-label="Main navigation">
           <button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={19} /><span>Home</span></button>
           <button className={view === 'library' ? 'active' : ''} onClick={() => setView('library')}><Library size={19} /><span>Game library</span><b>{games.length}</b></button>
@@ -277,7 +387,7 @@ function App() {
           <button onClick={() => { setView('library'); setLibraryFilter('wishlist') }}><span className="nav-dot pink" />Wishlist</button>
           <button onClick={() => { setView('library'); setLibraryFilter('completed') }}><span className="nav-dot green" />Completed</button>
         </div>
-        <div className="sidebar-bottom">{firebaseConfigured ? <button onClick={() => signOut()}><LogOut size={18} /><span>Sign out</span></button> : <button onClick={resetDemo}><Settings size={18} /><span>Reset demo</span></button>}<button onClick={() => flash('Tip: drag games in Up next to reorder them')}><CircleHelp size={18} /><span>Help & tips</span></button><div className="profile-row"><Avatar id={currentUser} /><div><strong>{user?.displayName?.split(' ')[0] ?? 'Kyle'}</strong><span>Online</span></div><MoreHorizontal size={17} /></div></div>
+        <div className="sidebar-bottom">{firebaseConfigured ? <button onClick={() => signOut()}><LogOut size={18} /><span>Sign out</span></button> : <button onClick={resetLocalBoard}><Settings size={18} /><span>Clear board</span></button>}<button onClick={() => flash('Tip: drag games in Up next to reorder them')}><CircleHelp size={18} /><span>Help & tips</span></button><div className="profile-row"><Avatar id={currentUser} /><div><strong>{persona ?? 'Player'}</strong><span>Online</span></div><MoreHorizontal size={17} /></div></div>
       </aside>
 
       <main className="main-area">
@@ -287,15 +397,15 @@ function App() {
         </header>
 
         {view === 'dashboard' ? <div className="page dashboard-page">
-          <div className="page-title-row"><div><span className="eyebrow">Wednesday, August 26</span><h1>Good evening, crew.</h1><p>One campaign in progress, and a very competitive queue.</p></div><button className={`sync-chip sync-${syncStatus}`} onClick={copyBoardLink} type="button"><span /><strong>{syncLabel}</strong>{syncStatus === 'live' && <Share2 size={13} />}</button></div>
+          <div className="page-title-row"><div><span className="eyebrow">{todayLabel}</span><h1>Good evening, crew.</h1><p>{dashboardSummary}</p></div><button className={`sync-chip sync-${syncStatus}`} onClick={copyBoardLink} type="button"><span /><strong>{syncLabel}</strong>{syncStatus === 'live' && <Share2 size={13} />}</button></div>
           <section className="dashboard-grid">
             <div className="now-playing-panel"><div className="section-heading inverse"><div><span className="eyebrow">Continue playing</span><h2>Current campaign</h2></div><button className="ghost-icon" onClick={() => playing && setSelectedId(playing.id)}><MoreHorizontal size={20} /></button></div>
-              {playing ? <div className="playing-content"><Cover game={playing} size="large" /><div className="playing-copy"><div className="live-pill"><span /> In progress</div><h2>{playing.title}</h2><p className="playing-meta">{playing.genre} <i /> {playing.platform} <i /> {playing.year}</p>
+              {playing ? <div className="playing-content"><Cover game={playing} size="large" /><div className="playing-copy"><div className="live-pill"><span /> In progress</div><h2>{playing.title}</h2><p className="playing-meta">{[playing.genre, playing.platform, playing.year].filter(Boolean).join(' · ')}</p>
                 <div className="progress-block"><div><span>Group progress</span><strong>{playing.progress}%</strong></div><div className="progress-track"><span style={{ width: `${playing.progress}%` }} /></div></div>
                 <div className="session-note"><NotebookPen size={18} /><div><span>Last session note</span><p>{playing.note}</p></div></div>
                 <div className="playing-actions"><button className="button button-light" onClick={() => setSelectedId(playing.id)}><Sparkles size={17} /> Update progress</button><button className="button button-dark-ghost" onClick={() => setSelectedId(playing.id)}>View details</button></div>
               </div></div> : <button className="empty-playing" onClick={() => setShowAdd(true)}><Plus size={24} /> Choose a game to start</button>}
-              <div className="playing-footer"><div className="member-stack inverse-stack">{groupMembers.map((member) => <Avatar id={member.id} small key={member.id} />)}</div><span>Everyone is playing</span><div className="footer-spacer" /><Clock3 size={16} /><span>{playing?.hours ?? 0} hours logged</span></div>
+              <div className="playing-footer"><div className="member-stack inverse-stack">{groupMembers.map((member) => <Avatar id={member.id} small key={member.id} />)}</div><span>{playing ? 'Crew campaign' : 'Ready when you are'}</span><div className="footer-spacer" />{playing && <><Clock3 size={16} /><span>{playing.hours ?? 0} hours logged</span></>}</div>
             </div>
             <div className="queue-panel"><div className="section-heading"><div><span className="eyebrow">The shortlist</span><h2>Up next</h2></div><button className="text-button" onClick={() => { setView('library'); setLibraryFilter('up-next') }}>View all</button></div><p className="queue-hint"><GripVertical size={14} /> Drag to set the official play order. Votes stay separate.</p><div className="queue-list">
               {upNext.slice(0, 4).map((game, index) => <QueueItem game={game} rank={index + 1} key={game.id} onVote={() => vote(game.id)} onOpen={() => setSelectedId(game.id)} onDragStart={(event) => event.dataTransfer.setData('text/plain', game.id)} onDrop={(event) => reorderQueue(event.dataTransfer.getData('text/plain'), game.id)} />)}

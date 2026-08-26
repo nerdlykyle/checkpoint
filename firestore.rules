@@ -22,12 +22,20 @@ service cloud.firestore {
           && request.resource.data.members is map;
       }
 
+      function validSelfProfile() {
+        let profile = request.resource.data.members[request.auth.uid];
+        return profile.email == request.auth.token.email
+          && (profile.persona == 'Jern'
+            || profile.persona == 'Vern'
+            || (profile.persona == 'Nern' && request.auth.token.email == 'kjsparsons@gmail.com'));
+      }
+
       function joiningOnlyAsSelf() {
         return signedIn()
           && validBoard()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'updatedAt'])
           && request.resource.data.members.diff(resource.data.members).affectedKeys().hasOnly([request.auth.uid])
-          && request.resource.data.members[request.auth.uid].email == request.auth.token.email;
+          && validSelfProfile();
       }
 
       allow get: if validBoardId() && isMember();
@@ -36,7 +44,7 @@ service cloud.firestore {
         && signedIn()
         && validBoard()
         && request.resource.data.ownerUid == request.auth.uid
-        && request.resource.data.members[request.auth.uid].email == request.auth.token.email;
+        && validSelfProfile();
       allow update: if validBoardId()
         && ((isMember() && validBoard()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['games', 'updatedAt']))
@@ -44,4 +52,3 @@ service cloud.firestore {
     }
   }
 }
-

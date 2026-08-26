@@ -1,9 +1,10 @@
 export type GameStatus = 'playing' | 'up-next' | 'maybe' | 'wishlist' | 'completed'
+export type Persona = 'Nern' | 'Jern' | 'Vern'
 
 export type Game = {
   id: string
   title: string
-  year: number
+  year?: number
   status: GameStatus
   progress: number
   note: string
@@ -15,6 +16,10 @@ export type Game = {
   hours?: number
   genre?: string
   coverMark: string
+  coverUrl?: string
+  steamAppId?: string
+  catalogId?: string
+  catalogSource?: 'steam'
   completedAt?: string
 }
 
@@ -24,4 +29,5 @@ export type Member = {
   initials: string
   color: string
   photoUrl?: string
+  persona?: Persona
 }

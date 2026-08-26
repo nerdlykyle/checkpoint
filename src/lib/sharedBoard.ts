@@ -9,7 +9,7 @@ import {
   updateDoc,
   type Unsubscribe,
 } from 'firebase/firestore'
-import type { Game, Member } from '../types'
+import type { Game, Member, Persona } from '../types'
 import { database } from './firebase'
 
 export type BoardConnection = {
@@ -19,6 +19,7 @@ export type BoardConnection = {
 
 type StoredMember = {
   name: string
+  persona?: Persona
   email: string
   photoUrl: string
   joinedAt: string
@@ -50,9 +51,10 @@ function isGameList(value: unknown): value is Game[] {
   })
 }
 
-function memberFromUser(user: User): StoredMember {
+function memberFromUser(user: User, persona: Persona): StoredMember {
   return {
-    name: user.displayName || 'Checkpoint player',
+    name: persona,
+    persona,
     email: user.email || '',
     photoUrl: user.photoURL || '',
     joinedAt: new Date().toISOString(),
@@ -66,12 +68,29 @@ function membersFromData(data: BoardData): Member[] {
     initials: member.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase(),
     color: ['#f6a44b', '#ec6f8f', '#69b8ff', '#7bd99a', '#a990e8'][index % 5],
     photoUrl: member.photoUrl,
+    persona: member.persona,
   }))
+}
+
+function isPersona(value: unknown): value is Persona {
+  return value === 'Nern' || value === 'Jern' || value === 'Vern'
+}
+
+export async function getExistingPersona(boardId: string, user: User): Promise<Persona | null> {
+  if (!database) return null
+  try {
+    const snapshot = await getDoc(doc(database, 'boards', boardId))
+    const persona = (snapshot.data() as BoardData | undefined)?.members?.[user.uid]?.persona
+    return isPersona(persona) ? persona : null
+  } catch {
+    return null
+  }
 }
 
 export async function connectBoard(
   boardId: string,
   user: User,
+  persona: Persona,
   fallbackGames: Game[],
   onRemoteState: (games: Game[], members: Member[]) => void,
 ): Promise<BoardConnection | null> {
@@ -87,7 +106,7 @@ export async function connectBoard(
       await setDoc(boardRef, {
         games: fallbackGames,
         ownerUid: user.uid,
-        members: { [user.uid]: memberFromUser(user) },
+        members: { [user.uid]: memberFromUser(user, persona) },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
@@ -96,7 +115,7 @@ export async function connectBoard(
       await updateDoc(
         boardRef,
         new FieldPath('members', user.uid),
-        memberFromUser(user),
+        memberFromUser(user, persona),
         'updatedAt',
         serverTimestamp(),
       )
@@ -108,17 +127,17 @@ export async function connectBoard(
     await setDoc(boardRef, {
       games: fallbackGames,
       ownerUid: user.uid,
-      members: { [user.uid]: memberFromUser(user) },
+      members: { [user.uid]: memberFromUser(user, persona) },
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
   } else {
     const data = snapshot.data() as BoardData
-    if (!data.members?.[user.uid]) {
+    if (!data.members?.[user.uid] || data.members[user.uid].persona !== persona) {
       await updateDoc(
         boardRef,
         new FieldPath('members', user.uid),
-        memberFromUser(user),
+        memberFromUser(user, persona),
         'updatedAt',
         serverTimestamp(),
       )
