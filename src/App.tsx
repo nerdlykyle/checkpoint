@@ -1,7 +1,7 @@
 import {
   Bell, BookOpen, Check, ChevronDown, CircleHelp, Clock3, Flag, Gamepad2,
   GripVertical, Heart, LayoutDashboard, Library, ListFilter, MoreHorizontal,
-  LogOut, NotebookPen, Plus, Search, Settings, Share2, Sparkles, Trophy, Users, X,
+  LogOut, NotebookPen, Plus, Search, Settings, Share2, Sparkles, Trash2, Trophy, Users, X,
 } from 'lucide-react'
 import {
   createContext, useContext, useEffect, useMemo, useRef, useState,
@@ -159,7 +159,7 @@ function AddGameModal({ onClose, onAdd }: { onClose: () => void; onAdd: (game: G
   )
 }
 
-function GameDetailsModal({ game, onClose, onSave, onVote }: { game: Game; onClose: () => void; onSave: (updates: Partial<Game>) => void; onVote: () => void }) {
+function GameDetailsModal({ game, onClose, onSave, onVote, onRemove }: { game: Game; onClose: () => void; onSave: (updates: Partial<Game>) => void; onVote: () => void; onRemove: () => void }) {
   const [progress, setProgress] = useState(game.progress)
   const [status, setStatus] = useState(game.status)
   const [note, setNote] = useState(game.note)
@@ -178,7 +178,7 @@ function GameDetailsModal({ game, onClose, onSave, onVote }: { game: Game; onClo
             <label className="field"><span>Progress · {progress}%</span><input className="range" type="range" min="0" max="100" value={progress} onChange={(event) => setProgress(Number(event.target.value))} /></label>
           </div>
           <label className="field field-full"><span>Shared notes</span><textarea value={note} onChange={(event) => setNote(event.target.value)} rows={4} placeholder="Where did we leave off?" /></label>
-          <div className="modal-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit">Save changes</button></div>
+          <div className="modal-actions"><button className="button button-danger" type="button" onClick={onRemove}><Trash2 size={16} /> Remove game</button><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit">Save changes</button></div>
         </form>
       </section>
     </div>
@@ -335,6 +335,12 @@ function App() {
   function vote(gameId: string) { setGames((current) => current.map((game) => game.id !== gameId ? game : { ...game, votes: game.votes.includes(currentUser) ? game.votes.filter((id) => id !== currentUser) : [...game.votes, currentUser] })) }
   function addGame(game: Game) { setGames((current) => [...current, game]); setShowAdd(false); flash(`${game.title} added to ${statusLabels[game.status]}`) }
   function updateGame(gameId: string, updates: Partial<Game>) { setGames((current) => current.map((game) => game.id === gameId ? { ...game, ...updates } : game)); setSelectedId(null); flash('Checkpoint updated') }
+  function removeGame(game: Game) {
+    if (!window.confirm(`Remove ${game.title} from the shared library? This cannot be undone.`)) return
+    setGames((current) => current.filter((item) => item.id !== game.id))
+    setSelectedId(null)
+    flash(`${game.title} removed`)
+  }
   function reorderQueue(sourceId: string, targetId: string) {
     if (sourceId === targetId) return
     setGames((current) => { const queue = current.filter((game) => game.status === 'up-next'); const from = queue.findIndex((game) => game.id === sourceId); const to = queue.findIndex((game) => game.id === targetId); if (from < 0 || to < 0) return current; const [moved] = queue.splice(from, 1); queue.splice(to, 0, moved); let index = 0; return current.map((game) => game.status === 'up-next' ? queue[index++] : game) })
@@ -424,7 +430,7 @@ function App() {
         <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={20} /><span>Home</span></button><button className={view === 'library' ? 'active' : ''} onClick={() => setView('library')}><Library size={20} /><span>Library</span></button><button className="mobile-add" onClick={() => setShowAdd(true)}><Plus size={23} /></button><button onClick={() => { setView('library'); setLibraryFilter('up-next') }}><BookOpen size={20} /><span>Queue</span></button><button onClick={() => flash(`${groupMembers.length} players have joined this board`)}><Users size={20} /><span>Players</span></button></nav>
       </main>
       {showAdd && <AddGameModal onClose={() => setShowAdd(false)} onAdd={addGame} />}
-      {selected && <GameDetailsModal game={selected} onClose={() => setSelectedId(null)} onVote={() => vote(selected.id)} onSave={(updates) => updateGame(selected.id, updates)} />}
+      {selected && <GameDetailsModal game={selected} onClose={() => setSelectedId(null)} onVote={() => vote(selected.id)} onSave={(updates) => updateGame(selected.id, updates)} onRemove={() => removeGame(selected)} />}
       {toast && <div className="toast"><Check size={17} /> {toast}</div>}
     </div>
     </MembersContext.Provider>
