@@ -18,10 +18,12 @@ import { connectBoard, getBoardId, getExistingPersona, type BoardConnection } fr
 const STORAGE_KEY = 'checkpoint-games-v1'
 const DEMO_USER = 'local-player'
 const NERN_EMAIL = 'kjsparsons@gmail.com'
+const REMNANT_CLEANUP_KEY = 'checkpoint-cleanup-remnant-v1'
 const LEGACY_PLACEHOLDER_IDS = new Set([
   'split-fiction', 'clair-obscur', 'monster-hunter', 'remnant-ii', 'sea-of-stars',
   'hades-ii', 'blue-prince', 'silksong', 'it-takes-two',
 ])
+const LEGACY_REMNANT_TITLES = new Set(['remnant', 'remnant ii', 'remnant 2'])
 type View = 'dashboard' | 'library'
 type SyncStatus = 'local' | 'connecting' | 'live' | 'error'
 
@@ -36,6 +38,17 @@ function getStoredGames() {
   } catch {
     return initialGames
   }
+}
+
+function cleanRemoteGames(games: Game[]) {
+  const withoutPlaceholders = games.filter((game) => !LEGACY_PLACEHOLDER_IDS.has(game.id))
+  if (localStorage.getItem(REMNANT_CLEANUP_KEY)) return withoutPlaceholders
+  const cleaned = withoutPlaceholders.filter((game) => {
+    const normalizedTitle = game.title.trim().toLowerCase()
+    return game.catalogSource === 'steam' || !LEGACY_REMNANT_TITLES.has(normalizedTitle)
+  })
+  localStorage.setItem(REMNANT_CLEANUP_KEY, 'done')
+  return cleaned
 }
 
 function Cover({ game, size = 'medium' }: { game: Game; size?: 'small' | 'medium' | 'large' }) {
@@ -305,7 +318,7 @@ function App() {
     connectBoard(boardId, user, persona, initialGamesRef.current, (remoteGames, remoteMembers) => {
       if (!active) return
       lastSyncedRef.current = JSON.stringify(remoteGames)
-      setGames(remoteGames.filter((game) => !LEGACY_PLACEHOLDER_IDS.has(game.id)))
+      setGames(cleanRemoteGames(remoteGames))
       setGroupMembers(remoteMembers)
     }).then((connection) => {
       if (!active) { connection?.close(); return }
