@@ -196,7 +196,7 @@ function AddGameModal({ onClose, onAdd, games, defaultParentId }: { onClose: () 
       setSearchFailed(false)
       const parentGame = contentType === 'dlc' ? games.find((game) => game.id === parentGameId) : undefined
       const catalogQuery = parentGame ? `${parentGame.title}: ${query}` : query
-      searchGames(catalogQuery, controller.signal)
+      searchGames(catalogQuery, controller.signal, contentType)
         .then((matches) => { setResults(matches); setShowResults(true) })
         .catch((error: unknown) => {
           if (error instanceof DOMException && error.name === 'AbortError') return
@@ -248,7 +248,7 @@ function AddGameModal({ onClose, onAdd, games, defaultParentId }: { onClose: () 
             {showResults && title.trim().length >= 2 && <div className="game-search-results">
               {searching && <div className="game-search-message">Searching the game catalog…</div>}
               {!searching && searchFailed && <div className="game-search-message">Search is unavailable. You can still enter the title manually.</div>}
-              {!searching && !searchFailed && results.map((game) => <button className="game-search-result" type="button" key={game.catalogId} onClick={() => chooseGame(game)}><span className="result-cover"><Gamepad2 size={16} /><img src={game.thumbnailUrl} alt="" data-fallback={game.coverUrl} onError={(event) => { const fallback = event.currentTarget.dataset.fallback; if (fallback && event.currentTarget.src !== fallback) { event.currentTarget.src = fallback; return } event.currentTarget.style.display = 'none' }} /></span><span><strong>{game.title}</strong><small>Steam catalog · artwork included</small></span><Plus size={16} /></button>)}
+              {!searching && !searchFailed && results.map((game) => <button className="game-search-result" type="button" key={game.catalogId} onClick={() => chooseGame(game)}><span className="result-cover"><Gamepad2 size={16} /><img src={game.thumbnailUrl} alt="" data-fallback={game.coverUrl} onError={(event) => { const fallback = event.currentTarget.dataset.fallback; if (fallback && event.currentTarget.src !== fallback) { event.currentTarget.src = fallback; return } event.currentTarget.style.display = 'none' }} /></span><span><strong>{game.title}</strong><small>Steam {game.contentType === 'dlc' ? 'DLC' : 'game'} · artwork included</small></span><Plus size={16} /></button>)}
               {!searching && !searchFailed && !results.length && <div className="game-search-message">No catalog match yet. You can add this title manually.</div>}
             </div>}
             <small className={`catalog-credit ${selectedGame ? 'catalog-selected' : ''}`}>{selectedGame ? <><Check size={11} /> Steam artwork connected</> : <>Search uses the <a href="https://github.com/jsnli/SteamAppIDList" target="_blank" rel="noreferrer">Steam AppID catalog</a></>}</small>

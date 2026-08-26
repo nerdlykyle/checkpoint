@@ -30,9 +30,9 @@ try {
 }
 
 const catalogs = await Promise.all(responses.map((response) => response.json()))
-const compact = catalogs.flat()
+const compact = catalogs.flatMap((catalog, catalogIndex) => catalog
   .filter((game) => Number.isInteger(game.appid) && typeof game.name === 'string' && game.name.trim())
-  .map((game) => [game.appid, game.name])
+  .map((game) => [game.appid, game.name, catalogIndex === 1 ? 1 : 0]))
 
 const buckets = new Map()
 for (const game of compact) {

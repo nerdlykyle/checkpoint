@@ -4,9 +4,10 @@ export type GameSearchResult = {
   title: string
   coverUrl: string
   thumbnailUrl: string
+  contentType: 'game' | 'dlc'
 }
 
-type SteamCatalogEntry = [number, string]
+type SteamCatalogEntry = [number, string, (0 | 1)?]
 
 const REMOTE_CATALOGS = [
   'https://raw.githubusercontent.com/jsnli/SteamAppIDList/master/data/games_appid.json',
@@ -15,7 +16,15 @@ const REMOTE_CATALOGS = [
 const catalogPromises = new Map<string, Promise<SteamCatalogEntry[]>>()
 
 function normalize(value: string) {
-  return value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().trim().replace(/^(the|an|a)\s+/, '')
+  return value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase()
+    .replace(/\bgoty\b/g, 'game of the year')
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/^(the|an|a)\s+/, '')
 }
 
 function bucketFor(value: string) {
@@ -24,7 +33,10 @@ function bucketFor(value: string) {
 }
 
 function isCompactCatalog(value: unknown): value is SteamCatalogEntry[] {
-  return Array.isArray(value) && value.every((entry) => Array.isArray(entry) && typeof entry[0] === 'number' && typeof entry[1] === 'string')
+  return Array.isArray(value) && value.every((entry) => Array.isArray(entry)
+    && typeof entry[0] === 'number'
+    && typeof entry[1] === 'string'
+    && (entry[2] === undefined || entry[2] === 0 || entry[2] === 1))
 }
 
 function isFullCatalog(value: unknown): value is { appid: number; name: string }[] {
@@ -49,7 +61,9 @@ async function loadCatalog(query: string, signal?: AbortSignal) {
       if (remoteResponses.some((response) => !response.ok)) throw new Error('Steam catalog is unavailable')
       const remoteCatalogs = await Promise.all(remoteResponses.map((response) => response.json() as Promise<unknown>))
       if (!remoteCatalogs.every(isFullCatalog)) throw new Error('Steam catalog format changed')
-      return remoteCatalogs.flat().filter((game) => bucketFor(game.name) === bucket).map((game) => [game.appid, game.name] as SteamCatalogEntry)
+      return remoteCatalogs.flatMap((catalog, catalogIndex) => catalog
+        .filter((game) => bucketFor(game.name) === bucket)
+        .map((game) => [game.appid, game.name, catalogIndex === 1 ? 1 : 0] as SteamCatalogEntry))
     })().catch((error) => {
       catalogPromises.delete(bucket)
       throw error
@@ -59,26 +73,55 @@ async function loadCatalog(query: string, signal?: AbortSignal) {
   return catalogPromises.get(bucket)!
 }
 
-export async function searchGames(query: string, signal?: AbortSignal): Promise<GameSearchResult[]> {
-  const games = await loadCatalog(query, signal)
+function searchNeedles(query: string) {
   const needle = normalize(query)
-  if (!needle) return []
+  const firstGameMatch = needle.match(/^(.*) 1$/)
+  if (!firstGameMatch) return [needle]
+  return [`${firstGameMatch[1]} game of the year`, firstGameMatch[1]]
+}
+
+function matchScore(title: string, needles: string[]) {
+  const normalizedTitle = normalize(title)
+  let bestScore = Number.POSITIVE_INFINITY
+  for (const [variantIndex, needle] of needles.entries()) {
+    if (!needle) continue
+    const position = normalizedTitle.indexOf(needle)
+    if (position < 0) continue
+    const baseScore = normalizedTitle === needle
+      ? 0
+      : normalizedTitle.startsWith(`${needle} `)
+        ? 1
+        : position === 0
+          ? 3
+          : normalizedTitle.includes(` ${needle} `) || normalizedTitle.endsWith(` ${needle}`)
+            ? 4
+            : 5
+    bestScore = Math.min(bestScore, baseScore + variantIndex * 10)
+  }
+  return bestScore
+}
+
+export async function searchGames(query: string, signal?: AbortSignal, contentType?: 'game' | 'dlc'): Promise<GameSearchResult[]> {
+  const games = await loadCatalog(query, signal)
+  const needles = searchNeedles(query)
+  if (!needles[0]) return []
 
   return games
-    .flatMap(([appId, title]) => {
-      const normalizedTitle = normalize(title)
-      const position = normalizedTitle.indexOf(needle)
-      if (position < 0) return []
-      const score = normalizedTitle === needle ? 0 : position === 0 ? 1 : 2
-      return [{ appId, title, score }]
+    .flatMap(([appId, title, catalogKind = 0]) => {
+      const resultType: 'game' | 'dlc' = catalogKind === 1 ? 'dlc' : 'game'
+      if (contentType && resultType !== contentType) return []
+      const score = matchScore(title, needles)
+      if (!Number.isFinite(score)) return []
+      return [{ appId, title, score, resultType }]
     })
-    .sort((left, right) => left.score - right.score || left.title.length - right.title.length || left.title.localeCompare(right.title))
-    .slice(0, 8)
-    .map(({ appId, title }) => ({
+    .sort((left, right) => left.score - right.score || left.appId - right.appId || left.title.localeCompare(right.title))
+    .slice(0, 20)
+    .map(({ appId, title, resultType }) => ({
       catalogId: String(appId),
       steamAppId: String(appId),
       title,
       coverUrl: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${appId}/library_600x900_2x.jpg`,
       thumbnailUrl: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg`,
+      contentType: resultType,
     }))
 }
