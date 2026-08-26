@@ -309,7 +309,7 @@ function renderPuzzleCanvas(canvas: HTMLCanvasElement, strokes: PuzzleStroke[], 
   }
 }
 
-function PuzzleCanvas({ strokes, tool, color, width, authorId, onAddStroke, onErase }: {
+function PuzzleCanvas({ strokes, tool, color, width, authorId, onAddStroke, onErase, onInteract }: {
   strokes: PuzzleStroke[]
   tool: 'draw' | 'erase'
   color: string
@@ -317,6 +317,7 @@ function PuzzleCanvas({ strokes, tool, color, width, authorId, onAddStroke, onEr
   authorId: string
   onAddStroke: (stroke: PuzzleStroke) => void
   onErase: (point: PuzzlePoint) => void
+  onInteract: () => void
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const drawingRef = useRef(false)
@@ -349,6 +350,7 @@ function PuzzleCanvas({ strokes, tool, color, width, authorId, onAddStroke, onEr
   }
 
   function startStroke(event: ReactPointerEvent<HTMLCanvasElement>) {
+    onInteract()
     drawingRef.current = true
     try { event.currentTarget.setPointerCapture(event.pointerId) } catch { /* Synthetic pointers may not support capture. */ }
     const point = pointFromEvent(event)
@@ -407,6 +409,7 @@ function PuzzleBoardModal({ game, boardId, currentUserId, onClose }: {
   const [color, setColor] = useState(PUZZLE_COLORS[1])
   const [brushWidth, setBrushWidth] = useState(4)
   const [aspectRatio, setAspectRatio] = useState(16 / 9)
+  const [hasUsedCanvas, setHasUsedCanvas] = useState(false)
   const [sync, setSync] = useState<'connecting' | 'live' | 'saving' | 'local' | 'error'>(firebaseConfigured ? 'connecting' : 'local')
   const [error, setError] = useState<string | null>(null)
   const connectionRef = useRef<PuzzleConnection | null>(null)
@@ -508,10 +511,10 @@ function PuzzleBoardModal({ game, boardId, currentUserId, onClose }: {
               <button className="puzzle-icon-tool danger" type="button" onClick={() => { if (board.strokes.length && window.confirm('Clear the shared drawing?')) editBoard((current) => ({ ...current, strokes: [] })) }} disabled={!board.strokes.length} aria-label="Clear drawing"><Trash2 size={16} /></button>
             </div>
             <div className={`puzzle-stage ${board.imageDataUrl ? 'has-image' : ''}`} style={{ aspectRatio }}>
-              {board.imageDataUrl ? <img src={board.imageDataUrl} alt="Puzzle reference" draggable={false} onLoad={(event) => setAspectRatio(event.currentTarget.naturalWidth / event.currentTarget.naturalHeight)} /> : <div className="puzzle-empty"><ImagePlus size={28} /><strong>Add or paste a puzzle screenshot</strong><span>You can also draw on the blank board.</span></div>}
+              {board.imageDataUrl ? <img src={board.imageDataUrl} alt="Puzzle reference" draggable={false} onLoad={(event) => setAspectRatio(event.currentTarget.naturalWidth / event.currentTarget.naturalHeight)} /> : !board.strokes.length && !hasUsedCanvas ? <div className="puzzle-empty"><ImagePlus size={28} /><strong>Add or paste a puzzle screenshot</strong><span>You can also draw on the blank board.</span></div> : null}
               <PuzzleCanvas strokes={board.strokes} tool={tool} color={color} width={brushWidth} authorId={currentUserId}
                 onAddStroke={(stroke) => editBoard((current) => ({ ...current, strokes: [...current.strokes.slice(-499), stroke] }))}
-                onErase={eraseAt} />
+                onErase={eraseAt} onInteract={() => setHasUsedCanvas(true)} />
             </div>
             <div className="puzzle-image-footer"><span>{board.imageName || 'Blank shared canvas'}</span><span>{board.strokes.length} {board.strokes.length === 1 ? 'stroke' : 'strokes'}</span>{board.imageDataUrl && <button type="button" onClick={removeImage}>Remove image</button>}</div>
           </div>
@@ -997,8 +1000,8 @@ function App() {
         <button className="server-switcher" type="button" onClick={() => setShowCrew(true)}><div className="server-icon"><Gamepad2 size={18} /></div><div><strong>Checkpoint Crew</strong><span>{groupMembers.length} {groupMembers.length === 1 ? 'player' : 'players'}</span></div><ChevronDown size={16} /></button>
         <nav className="main-nav" aria-label="Main navigation">
           <button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={19} /><span>Home</span></button>
-          <button className={view === 'library' ? 'active' : ''} onClick={() => setView('library')}><Library size={19} /><span>Game library</span><b>{games.length}</b></button>
-          <button onClick={() => { setView('library'); setLibraryFilter('up-next') }}><BookOpen size={19} /><span>Up next</span><b>{upNext.length}</b></button>
+          <button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('all') }}><Library size={19} /><span>Game library</span><b>{games.length}</b></button>
+          <button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('up-next') }}><BookOpen size={19} /><span>Up next</span><b>{upNext.length}</b></button>
           <button onClick={() => setShowCrew(true)}><Users size={19} /><span>Players</span></button>
         </nav>
         <div className="sidebar-section"><span className="sidebar-label">Quick filters</span>
@@ -1042,7 +1045,7 @@ function App() {
           <div className="smart-filters"><span><ListFilter size={14} /> Steam & prices</span>{([['any', 'Any ownership'], ['everyone-owns', 'Everyone owns'], ['needs-copy', 'Someone needs it'], ['on-sale', 'On sale']] as [SmartFilter, string][]).map(([value, label]) => <button type="button" key={value} className={smartFilter === value ? 'active' : ''} onClick={() => setSmartFilter(value)}>{label}</button>)}{integrationsLoading && <RefreshCw className="spin" size={14} />}</div>
           {filteredGames.length ? <div className="library-grid">{filteredGames.map((game) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} onVote={() => vote(game.id)} />)}</div> : <div className="empty-state"><Search size={28} /><h2>No games found</h2><p>Try another search or add a new game.</p><button className="button button-primary" onClick={() => openAddGame()}>Add game</button></div>}
         </div>}
-        <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={20} /><span>Home</span></button><button className={view === 'library' ? 'active' : ''} onClick={() => setView('library')}><Library size={20} /><span>Library</span></button><button className="mobile-add" onClick={() => openAddGame()}><Plus size={23} /></button><button onClick={() => { setView('library'); setLibraryFilter('up-next') }}><BookOpen size={20} /><span>Queue</span></button><button onClick={() => setShowCrew(true)}><Users size={20} /><span>Players</span></button></nav>
+        <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={20} /><span>Home</span></button><button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('all') }}><Library size={20} /><span>Library</span></button><button className="mobile-add" onClick={() => openAddGame()}><Plus size={23} /></button><button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('up-next') }}><BookOpen size={20} /><span>Queue</span></button><button onClick={() => setShowCrew(true)}><Users size={20} /><span>Players</span></button></nav>
       </main>
       {showAdd && <AddGameModal onClose={closeAddGame} onAdd={addGame} games={games} defaultParentId={addParentId} />}
       {showCrew && <CrewModal members={groupMembers} currentUserId={currentUser} googlePhotoUrl={user?.photoURL} integrationError={integrationError} onClose={() => setShowCrew(false)} onSavePhoto={saveProfileImage} onResolveSteam={resolveSteamLink} onSaveSteam={saveSteamProfile} />}
