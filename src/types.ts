@@ -57,4 +57,48 @@ export type Member = {
   googlePhotoUrl?: string
   customPhotoUrl?: string
   persona?: Persona
+  steamId?: string
+  steamName?: string
+  steamProfileUrl?: string
+  steamAvatarUrl?: string
+}
+
+export type SteamOwnership = {
+  owned: boolean
+  playtimeMinutes: number
+  lastPlayedAt?: number
+}
+
+export type SteamPlayerSnapshot = {
+  steamId: string
+  name: string
+  avatarUrl: string
+  profileUrl: string
+  currentGameAppId?: string
+  currentGameName?: string
+}
+
+export type SteamCrewSnapshot = {
+  players: SteamPlayerSnapshot[]
+  ownership: Record<string, Record<string, SteamOwnership>>
+  privateSteamIds: string[]
+  updatedAt: string
+}
+
+export type SteamAchievementSnapshot = {
+  steamId: string
+  unlocked: number
+  total: number
+}
+
+export type GameDeal = {
+  steamAppId: string
+  title: string
+  price: number
+  retailPrice: number
+  savingsPercent: number
+  storeName: string
+  dealUrl: string
+  historicalLow?: number
+  updatedAt: string
 }

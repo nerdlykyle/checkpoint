@@ -23,7 +23,25 @@ service cloud.firestore {
 
       function validSelfProfile() {
         let profile = request.resource.data.members[request.auth.uid];
-        return profile.email == request.auth.token.email
+        return profile.keys().hasOnly([
+            'name', 'persona', 'email', 'photoUrl', 'googlePhotoUrl', 'customPhotoUrl',
+            'joinedAt', 'steamId', 'steamName', 'steamProfileUrl', 'steamAvatarUrl'
+          ])
+          && profile.email == request.auth.token.email
+          && profile.email is string
+          && profile.email.size() <= 320
+          && profile.name is string
+          && profile.name.size() <= 40
+          && profile.photoUrl is string
+          && profile.photoUrl.size() <= 180000
+          && profile.joinedAt is string
+          && profile.joinedAt.size() <= 40
+          && (!profile.keys().hasAny(['googlePhotoUrl']) || (profile.googlePhotoUrl is string && profile.googlePhotoUrl.size() <= 2000))
+          && (!profile.keys().hasAny(['customPhotoUrl']) || (profile.customPhotoUrl is string && profile.customPhotoUrl.size() <= 180000))
+          && (!profile.keys().hasAny(['steamId']) || (profile.steamId is string && profile.steamId.matches('^7656[0-9]{13}$')))
+          && (!profile.keys().hasAny(['steamName']) || (profile.steamName is string && profile.steamName.size() <= 100))
+          && (!profile.keys().hasAny(['steamProfileUrl']) || (profile.steamProfileUrl is string && profile.steamProfileUrl.size() <= 500))
+          && (!profile.keys().hasAny(['steamAvatarUrl']) || (profile.steamAvatarUrl is string && profile.steamAvatarUrl.size() <= 500))
           && (profile.persona == 'Jern'
             || profile.persona == 'Vern'
             || (profile.persona == 'Nern' && request.auth.token.email == 'kjsparsons@gmail.com'));

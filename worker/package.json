@@ -1,0 +1,15 @@
+{
+  "name": "checkpoint-game-data",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260826.1",
+    "typescript": "~6.0.2",
+    "wrangler": "^4.126.0"
+  }
+}

@@ -29,6 +29,10 @@ Open the local address shown in the terminal.
 - Live Firestore syncing across devices
 - Empty first-run board with no placeholder players or games
 - Crew identities for Nern, Jern, and Vern
+- Per-game live puzzle drawing boards and notes
+- Optional Steam profile linking, ownership, playtime, and achievements
+- CheapShark price cards for Steam-redeemable copies the crew still needs
+- Morning, afternoon, and evening price-cache windows in Central Time
 
 ## Commands
 
@@ -51,10 +55,16 @@ The private `#board=...` portion of the Checkpoint URL identifies the board. A v
 
 The prebuild step refreshes a compact, letter-bucketed title index from the daily-updated [Steam AppID List](https://github.com/jsnli/SteamAppIDList). The deployed browser searches the local index, so no Steam API credential is exposed and only a small catalog slice loads for each search. Steam cover images are loaded from Steam's public asset CDN.
 
+## Steam profiles and prices
+
+The optional Worker in `worker/` is a narrow, read-only proxy for the Steam Web API. Set `VITE_CHECKPOINT_API_URL` to its deployed address and keep `STEAM_WEB_API_KEY` only in the Worker secret store. Each signed-in crew member links their own public Steam profile from the Players screen.
+
+CheapShark does not use the Worker. Its public API is called directly from the browser and cached by morning, afternoon, and evening Central Time windows. Deal links use CheapShark's required redirect URL, and Checkpoint requests Steam-redeemable offers matched by exact Steam AppID.
+
 ## Publish from GitHub
 
 The included workflow builds and deploys Checkpoint to GitHub Pages whenever `main` is updated.
 
-1. Add the six values from `.env.example` as GitHub repository secrets.
+1. Add the Firebase values and optional `VITE_CHECKPOINT_API_URL` from `.env.example` as GitHub repository secrets.
 2. In **Settings → Pages**, choose **GitHub Actions** as the source.
 3. Push to `main`, then share the resulting Checkpoint URL with the group.

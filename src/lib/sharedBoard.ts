@@ -15,7 +15,15 @@ import { database } from './firebase'
 export type BoardConnection = {
   save: (games: Game[]) => Promise<void>
   saveProfileImage: (customPhotoUrl: string | null) => Promise<void>
+  saveSteamProfile: (profile: SteamProfile | null) => Promise<void>
   close: Unsubscribe
+}
+
+export type SteamProfile = {
+  steamId: string
+  steamName: string
+  steamProfileUrl: string
+  steamAvatarUrl: string
 }
 
 type StoredMember = {
@@ -25,6 +33,10 @@ type StoredMember = {
   photoUrl: string
   googlePhotoUrl?: string
   customPhotoUrl?: string
+  steamId?: string
+  steamName?: string
+  steamProfileUrl?: string
+  steamAvatarUrl?: string
   joinedAt: string
 }
 
@@ -63,6 +75,10 @@ function memberFromUser(user: User, persona: Persona, existing?: StoredMember, c
     photoUrl: customPhotoUrl || googlePhotoUrl,
     googlePhotoUrl,
     customPhotoUrl,
+    steamId: existing?.steamId,
+    steamName: existing?.steamName,
+    steamProfileUrl: existing?.steamProfileUrl,
+    steamAvatarUrl: existing?.steamAvatarUrl,
     joinedAt: existing?.joinedAt || new Date().toISOString(),
   }
 }
@@ -77,6 +93,10 @@ function membersFromData(data: BoardData): Member[] {
     googlePhotoUrl: member.googlePhotoUrl || member.photoUrl,
     customPhotoUrl: member.customPhotoUrl,
     persona: member.persona,
+    steamId: member.steamId,
+    steamName: member.steamName,
+    steamProfileUrl: member.steamProfileUrl,
+    steamAvatarUrl: member.steamAvatarUrl,
   }))
 }
 
@@ -172,6 +192,21 @@ export async function connectBoard(
     },
     async saveProfileImage(customPhotoUrl) {
       const nextMember = memberFromUser(user, persona, latestMember, customPhotoUrl ?? '')
+      await updateDoc(
+        boardRef,
+        new FieldPath('members', user.uid),
+        nextMember,
+        'updatedAt',
+        serverTimestamp(),
+      )
+      latestMember = nextMember
+    },
+    async saveSteamProfile(profile) {
+      const nextMember = memberFromUser(user, persona, latestMember)
+      nextMember.steamId = profile?.steamId
+      nextMember.steamName = profile?.steamName
+      nextMember.steamProfileUrl = profile?.steamProfileUrl
+      nextMember.steamAvatarUrl = profile?.steamAvatarUrl
       await updateDoc(
         boardRef,
         new FieldPath('members', user.uid),

@@ -138,6 +138,96 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
   .sign-in-screen { padding: 18px; }.sign-in-card { padding: 30px 22px; }.sign-in-card h1 { font-size: 32px; }.sign-in-preview { display: none; }
 }
 
+/* Steam ownership and CheapShark deals */
+.spin { animation: checkpoint-spin .9s linear infinite; }
+@keyframes checkpoint-spin { to { transform: rotate(360deg); } }
+
+.card-integrations { display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px; margin-top: 10px; align-items: center; }
+.ownership-badge { display: inline-flex; align-items: center; gap: 7px; min-height: 27px; color: #aab7b3; font-size: 11px; font-weight: 700; }
+.ownership-badge.is-complete { color: #7ee4aa; }
+.ownership-badge .owner-avatars { display: inline-flex; }
+.ownership-badge .owner-avatars .avatar { width: 21px; height: 21px; margin-right: -5px; border: 2px solid #18201f; font-size: 7px; }
+.deal-badge { display: inline-flex; align-items: center; gap: 5px; min-height: 29px; max-width: 100%; padding: 5px 8px; border: 1px solid rgba(239, 194, 87, .26); border-radius: 9px; background: rgba(239, 194, 87, .09); color: #f3d47e; text-decoration: none; font-size: 11px; }
+.deal-badge strong { color: #fff4c6; font-size: 12px; }
+.deal-badge span { max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #d7c995; }
+.deal-badge em { padding: 2px 4px; border-radius: 5px; background: rgba(105, 217, 154, .13); color: #83e5ab; font-size: 9px; font-style: normal; font-weight: 800; }
+.deal-badge:hover { border-color: rgba(239, 194, 87, .5); background: rgba(239, 194, 87, .15); }
+.deal-badge.is-compact { min-height: 25px; padding: 3px 6px; }
+.queue-integrations { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.queue-integrations .ownership-badge { min-height: 20px; }
+.queue-integrations .deal-badge span, .queue-integrations .deal-badge em { display: none; }
+
+.steam-link-panel { margin-top: 18px; padding: 18px; border: 1px solid #34403e; border-radius: 16px; background: #18211f; }
+.steam-panel-heading { display: flex; align-items: center; gap: 11px; margin-bottom: 15px; }
+.steam-panel-heading .steam-mark { display: grid; place-items: center; width: 37px; height: 37px; border-radius: 11px; background: linear-gradient(145deg, #315868, #182d38); color: #8bd6f1; }
+.steam-panel-heading div { display: flex; flex-direction: column; gap: 3px; }
+.steam-panel-heading strong { color: #f4f6f3; font-size: 14px; }
+.steam-panel-heading span { color: #8e9d99; font-size: 11px; }
+.steam-link-form { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
+.steam-link-form label > span { display: block; margin-bottom: 7px; color: #aeb9b5; font-size: 11px; font-weight: 700; }
+.steam-link-form label > div { display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 12px; border: 1px solid #3b4845; border-radius: 10px; background: #111817; color: #758580; }
+.steam-link-form input { width: 100%; border: 0; outline: 0; background: transparent; color: #f1f4f1; font: inherit; font-size: 13px; }
+.steam-privacy-note { margin: 11px 0 0; color: #71817d; font-size: 10px; line-height: 1.45; }
+.linked-steam-profile { display: grid; grid-template-columns: 43px 1fr auto; gap: 11px; align-items: center; }
+.linked-steam-profile > img, .linked-steam-profile > span { width: 43px; height: 43px; border-radius: 10px; object-fit: cover; }
+.linked-steam-profile > span { display: grid; place-items: center; background: #243331; color: #93a9a3; }
+.linked-steam-profile > div { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
+.linked-steam-profile strong { overflow: hidden; color: #f4f6f3; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.linked-steam-profile a { display: inline-flex; align-items: center; gap: 4px; color: #82cbe8; text-decoration: none; font-size: 11px; }
+.linked-steam-profile button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px; border: 1px solid #4b3c3e; border-radius: 8px; background: transparent; color: #d99ca3; font-size: 10px; }
+
+.steam-game-panel { margin: 4px 0 8px; padding: 16px; border: 1px solid #dfe5e1; border-radius: 15px; background: #f8faf8; }
+.steam-game-panel.is-empty { color: #66736f; }
+.steam-game-heading { display: flex; align-items: center; gap: 10px; color: #33423f; }
+.steam-game-heading > div { display: flex; flex: 1; flex-direction: column; gap: 2px; }
+.steam-game-heading strong { font-size: 13px; }
+.steam-game-heading span { color: #7c8985; font-size: 10px; }
+.everyone-owns-pill { display: inline-flex; align-items: center; gap: 4px; padding: 5px 7px; border-radius: 999px; background: #def5e8; color: #24744a !important; font-weight: 800; }
+.steam-crew-rows { display: grid; gap: 7px; margin-top: 13px; }
+.steam-crew-row { display: grid; grid-template-columns: 35px 1fr auto; gap: 9px; align-items: center; min-height: 47px; padding: 6px 8px; border: 1px solid #e7ebe8; border-radius: 10px; background: #fff; }
+.steam-crew-row > .avatar { width: 34px; height: 34px; }
+.steam-crew-row > div:nth-child(2) { display: flex; flex-direction: column; gap: 2px; }
+.steam-crew-row strong { color: #273532; font-size: 12px; }
+.steam-crew-row span { color: #7b8783; font-size: 10px; }
+.steam-crew-row em { display: inline-flex; align-items: center; gap: 4px; color: #397e58; font-size: 9px; font-style: normal; font-weight: 800; }
+.steam-crew-row em span { width: 6px; height: 6px; border-radius: 50%; background: #53bd7b; box-shadow: 0 0 0 3px rgba(83, 189, 123, .14); }
+.steam-row-stat { color: #66736f; font-size: 10px; font-weight: 700; text-align: right; }
+.details-deal { display: grid; grid-template-columns: 40px 1fr auto; gap: 11px; align-items: center; margin-top: 12px; padding: 11px; border: 1px solid #eadcae; border-radius: 11px; background: #fffaf0; color: inherit; text-decoration: none; }
+.details-deal .deal-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: #f5e7b8; color: #82610a; }
+.details-deal > div { display: flex; flex-direction: column; gap: 2px; }
+.details-deal span { color: #8f7a40; font-size: 9px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+.details-deal strong { color: #3e351e; font-size: 13px; }
+.details-deal small { color: #8a8064; font-size: 9px; }
+.steam-panel-message { margin: 12px 0 0; color: #77837f; font-size: 10px; }
+.steam-panel-message.is-error { color: #b74f5b; }
+
+.smart-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin: -2px 0 20px; }
+.smart-filters > span { display: inline-flex; align-items: center; gap: 5px; margin-right: 3px; color: #75817d; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.smart-filters button { padding: 7px 10px; border: 1px solid #dfe5e1; border-radius: 999px; background: #fff; color: #66736f; font-size: 10px; font-weight: 700; }
+.smart-filters button:hover, .smart-filters button.active { border-color: #776bd8; background: #eeeafd; color: #5448b6; }
+
+@media (max-width: 1080px) {
+  .queue-integrations { display: none; }
+}
+
+@media (max-width: 620px) {
+  .steam-link-form { grid-template-columns: 1fr; }
+  .linked-steam-profile { grid-template-columns: 42px 1fr; }
+  .linked-steam-profile button { grid-column: 1 / -1; justify-content: center; }
+  .steam-game-panel { padding: 12px; }
+  .steam-game-heading { align-items: flex-start; }
+  .everyone-owns-pill { display: none; }
+  .steam-crew-row { grid-template-columns: 34px 1fr; }
+  .steam-row-stat { grid-column: 2; text-align: left; }
+  .details-deal { grid-template-columns: 36px 1fr auto; }
+  .details-deal .deal-icon { width: 36px; height: 36px; }
+  .smart-filters { flex-wrap: nowrap; margin-bottom: 14px; padding-bottom: 5px; overflow-x: auto; scrollbar-width: none; }
+  .smart-filters > span { display: none; }
+  .smart-filters button { flex: 0 0 auto; }
+  .card-integrations { min-height: 20px; }
+  .deal-badge span { max-width: 70px; }
+}
+
 /* Dark-first application theme */
 .sidebar { background: #0a0f11; }
 .topbar { border-color: var(--line); background: rgba(13,18,20,.9); }

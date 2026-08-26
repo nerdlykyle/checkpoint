@@ -1,7 +1,7 @@
 import {
-  Bell, BookOpen, Camera, Check, ChevronDown, CircleHelp, Clock3, Eraser, Flag, Gamepad2,
-  GripVertical, Heart, ImagePlus, LayoutDashboard, Library, ListFilter, MoreHorizontal,
-  LogOut, NotebookPen, Pencil, Plus, Puzzle, RotateCcw, Search, Settings, Share2, Sparkles, Trash2, Trophy, Users, X,
+  BadgeDollarSign, Bell, BookOpen, Camera, Check, ChevronDown, CircleHelp, Clock3, Eraser, ExternalLink, Flag, Gamepad2,
+  GripVertical, Heart, ImagePlus, LayoutDashboard, Library, Link2, ListFilter, MoreHorizontal,
+  LogOut, NotebookPen, Pencil, Plus, Puzzle, RefreshCw, RotateCcw, Search, Settings, Share2, Sparkles, Trash2, Trophy, Unlink, Users, X,
 } from 'lucide-react'
 import {
   createContext, useContext, useEffect, useMemo, useRef, useState,
@@ -10,11 +10,13 @@ import {
 import type { User } from 'firebase/auth'
 import './App.css'
 import { initialGames, members, statusLabels } from './data'
-import type { ContentType, Game, GameStatus, Member, Persona, PuzzleBoard, PuzzlePoint, PuzzleStroke } from './types'
+import type { ContentType, Game, GameDeal, GameStatus, Member, Persona, PuzzleBoard, PuzzlePoint, PuzzleStroke, SteamAchievementSnapshot, SteamCrewSnapshot } from './types'
 import { firebaseConfigured, signInWithGoogle, signOut, watchAuth } from './lib/firebase'
 import { searchGames, type GameSearchResult } from './lib/gameSearch'
-import { connectBoard, getBoardId, getExistingPersona, type BoardConnection } from './lib/sharedBoard'
+import { connectBoard, getBoardId, getExistingPersona, type BoardConnection, type SteamProfile } from './lib/sharedBoard'
 import { connectPuzzle, type PuzzleConnection } from './lib/sharedPuzzle'
+import { gameIntegrationsConfigured, loadGameAchievements, loadSteamCrew, resolveSteamProfile } from './lib/gameIntegrations'
+import { loadCheapSharkDeals } from './lib/cheapShark'
 
 const STORAGE_KEY = 'checkpoint-games-v1'
 const DEMO_USER = 'local-player'
@@ -27,10 +29,18 @@ const LEGACY_PLACEHOLDER_IDS = new Set([
 const LEGACY_REMNANT_TITLES = new Set(['remnant', 'remnant ii', 'remnant 2'])
 type View = 'dashboard' | 'library'
 type SyncStatus = 'local' | 'connecting' | 'live' | 'error'
+type SmartFilter = 'any' | 'everyone-owns' | 'needs-copy' | 'on-sale'
 
 const CurrentUserContext = createContext(DEMO_USER)
 const MembersContext = createContext<Member[]>(members)
 const GamesContext = createContext<Game[]>([])
+const IntegrationsContext = createContext<{
+  boardId: string
+  steam: SteamCrewSnapshot | null
+  deals: Record<string, GameDeal>
+  loading: boolean
+  error: string | null
+}>({ boardId: '', steam: null, deals: {}, loading: false, error: null })
 
 function getStoredGames() {
   try {
@@ -151,15 +161,55 @@ function Avatar({ id, small = false }: { id: string; small?: boolean }) {
   return <span className={`avatar ${small ? 'avatar-small' : ''}`} style={{ background: member.color }} title={member.name}>{member.photoUrl ? <img src={member.photoUrl} alt="" /> : member.initials}</span>
 }
 
-function CrewModal({ members: crew, currentUserId, googlePhotoUrl, onClose, onSavePhoto }: {
+function formatPlaytime(minutes: number) {
+  if (minutes < 60) return minutes ? `${minutes}m` : 'Not played'
+  const hours = minutes / 60
+  return `${hours >= 10 ? Math.round(hours) : hours.toFixed(1)}h`
+}
+
+function ownershipForGame(game: Game, crew: Member[], steam: SteamCrewSnapshot | null) {
+  const linked = crew.filter((member) => member.steamId)
+  const rows = game.steamAppId ? steam?.ownership[game.steamAppId] : undefined
+  const owners = linked.filter((member) => member.steamId && rows?.[member.steamId]?.owned)
+  const missing = linked.filter((member) => member.steamId && rows?.[member.steamId] && !rows[member.steamId].owned)
+  const complete = crew.length >= 3 && linked.length === crew.length && Boolean(rows) && linked.every((member) => member.steamId && rows?.[member.steamId])
+  return { linked, owners, missing, everyoneOwns: complete && owners.length === crew.length }
+}
+
+function DealBadge({ game, compact = false }: { game: Game; compact?: boolean }) {
+  const crew = useContext(MembersContext)
+  const { deals, steam } = useContext(IntegrationsContext)
+  const deal = game.steamAppId ? deals[game.steamAppId] : undefined
+  const ownership = ownershipForGame(game, crew, steam)
+  if (!deal || ownership.everyoneOwns) return null
+  return <a className={`deal-badge ${compact ? 'is-compact' : ''}`} href={deal.dealUrl} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()} title={`View ${game.title} at ${deal.storeName}`}><BadgeDollarSign size={compact ? 12 : 14} /><strong>${deal.price.toFixed(2)}</strong><span>{deal.storeName}</span>{deal.savingsPercent >= 1 && <em>−{Math.round(deal.savingsPercent)}%</em>}<ExternalLink size={11} /></a>
+}
+
+function OwnershipBadge({ game, compact = false }: { game: Game; compact?: boolean }) {
+  const crew = useContext(MembersContext)
+  const { steam, loading } = useContext(IntegrationsContext)
+  if (!game.steamAppId) return null
+  const ownership = ownershipForGame(game, crew, steam)
+  if (!ownership.linked.length) return null
+  const label = loading && !steam ? 'Checking Steam…' : ownership.everyoneOwns ? 'Everyone owns it' : `${ownership.owners.length}/${Math.max(3, crew.length)} own on Steam`
+  return <span className={`ownership-badge ${ownership.everyoneOwns ? 'is-complete' : ''} ${compact ? 'is-compact' : ''}`}><span className="owner-avatars">{ownership.owners.slice(0, 3).map((member) => <Avatar id={member.id} small key={member.id} />)}</span><span>{label}</span></span>
+}
+
+function CrewModal({ members: crew, currentUserId, googlePhotoUrl, integrationError, onClose, onSavePhoto, onResolveSteam, onSaveSteam }: {
   members: Member[]
   currentUserId: string
   googlePhotoUrl?: string | null
+  integrationError: string | null
   onClose: () => void
   onSavePhoto: (photoUrl: string | null) => Promise<void>
+  onResolveSteam: (profile: string) => Promise<SteamProfile>
+  onSaveSteam: (profile: SteamProfile | null) => Promise<void>
 }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [steamInput, setSteamInput] = useState('')
+  const [steamBusy, setSteamBusy] = useState(false)
+  const [steamLinkError, setSteamLinkError] = useState<string | null>(null)
   const currentMember = crew.find((member) => member.id === currentUserId)
 
   async function saveFile(file?: File) {
@@ -183,6 +233,31 @@ function CrewModal({ members: crew, currentUserId, googlePhotoUrl, onClose, onSa
     finally { setSaving(false) }
   }
 
+  async function linkSteam(event: FormEvent) {
+    event.preventDefault()
+    if (!steamInput.trim()) return
+    setSteamBusy(true)
+    setSteamLinkError(null)
+    try {
+      const profile = await onResolveSteam(steamInput.trim())
+      await onSaveSteam(profile)
+      setSteamInput('')
+    } catch (nextError) {
+      setSteamLinkError(nextError instanceof Error ? nextError.message : 'That Steam profile could not be linked.')
+    } finally {
+      setSteamBusy(false)
+    }
+  }
+
+  async function unlinkSteam() {
+    if (!window.confirm('Disconnect your Steam profile from Checkpoint?')) return
+    setSteamBusy(true)
+    setSteamLinkError(null)
+    try { await onSaveSteam(null) }
+    catch { setSteamLinkError('Your Steam profile could not be disconnected.') }
+    finally { setSteamBusy(false) }
+  }
+
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <section className="modal crew-modal" onMouseDown={(event) => event.stopPropagation()} aria-modal="true" role="dialog">
@@ -193,6 +268,11 @@ function CrewModal({ members: crew, currentUserId, googlePhotoUrl, onClose, onSa
           <label className={`button button-secondary ${saving ? 'is-disabled' : ''}`}><Camera size={16} /> {saving ? 'Saving…' : 'Upload custom'}<input type="file" accept="image/*" disabled={saving} onChange={(event) => { void saveFile(event.target.files?.[0]); event.currentTarget.value = '' }} /></label>
           {googlePhotoUrl && currentMember.customPhotoUrl && <button className="button button-secondary" type="button" onClick={useGooglePhoto} disabled={saving}>Use Google photo</button>}
         </div>{error && <p className="profile-image-error">{error}</p>}</div>}
+        {currentMember && <div className="steam-link-panel"><div className="steam-panel-heading"><span className="steam-mark"><Gamepad2 size={18} /></span><div><strong>Steam connection</strong><span>Ownership, playtime, recent games, and achievements</span></div></div>
+          {currentMember.steamId ? <div className="linked-steam-profile">{currentMember.steamAvatarUrl ? <img src={currentMember.steamAvatarUrl} alt="" /> : <span><Gamepad2 size={18} /></span>}<div><strong>{currentMember.steamName || 'Steam profile'}</strong><a href={currentMember.steamProfileUrl} target="_blank" rel="noreferrer">View profile <ExternalLink size={11} /></a></div><button type="button" onClick={unlinkSteam} disabled={steamBusy}><Unlink size={14} /> Disconnect</button></div>
+            : <form className="steam-link-form" onSubmit={linkSteam}><label><span>Your Steam profile link</span><div><Link2 size={16} /><input value={steamInput} onChange={(event) => setSteamInput(event.target.value)} placeholder="steamcommunity.com/id/your-name" autoComplete="url" /></div></label><button className="button button-primary" type="submit" disabled={steamBusy || !steamInput.trim()}>{steamBusy ? <RefreshCw className="spin" size={16} /> : <Link2 size={16} />} {steamBusy ? 'Connecting…' : 'Link Steam'}</button></form>}
+          <p className="steam-privacy-note">Steam Profile and Game details must be set to Public. Checkpoint never receives your Steam password.</p>{(steamLinkError || integrationError) && <p className="profile-image-error">{steamLinkError || integrationError}</p>}
+        </div>}
       </section>
     </div>
   )
@@ -556,6 +636,41 @@ function AddGameModal({ onClose, onAdd, games, defaultParentId }: { onClose: () 
   )
 }
 
+function SteamGamePanel({ game }: { game: Game }) {
+  const crew = useContext(MembersContext)
+  const { boardId, steam, deals, loading, error } = useContext(IntegrationsContext)
+  const [achievements, setAchievements] = useState<SteamAchievementSnapshot[]>([])
+  const [achievementsLoading, setAchievementsLoading] = useState(false)
+  const linked = crew.filter((member) => member.steamId)
+  const ownership = ownershipForGame(game, crew, steam)
+  const deal = game.steamAppId ? deals[game.steamAppId] : undefined
+
+  useEffect(() => {
+    if (!game.steamAppId || !linked.length || !gameIntegrationsConfigured) { setAchievements([]); return }
+    const controller = new AbortController()
+    setAchievementsLoading(true)
+    loadGameAchievements(boardId, linked.flatMap((member) => member.steamId ? [member.steamId] : []), game.steamAppId, controller.signal)
+      .then(setAchievements)
+      .catch(() => setAchievements([]))
+      .finally(() => setAchievementsLoading(false))
+    return () => controller.abort()
+  }, [boardId, game.steamAppId, linked.map((member) => member.steamId).join(',')])
+
+  if (!game.steamAppId) return <section className="steam-game-panel is-empty"><div className="steam-game-heading"><Gamepad2 size={18} /><div><strong>Steam tracking unavailable</strong><span>This manually added title is not connected to a Steam AppID.</span></div></div></section>
+
+  return <section className="steam-game-panel"><div className="steam-game-heading"><Gamepad2 size={18} /><div><strong>Steam crew</strong><span>{loading ? 'Refreshing ownership and playtime…' : `${linked.length}/3 profiles linked`}</span></div>{ownership.everyoneOwns && <span className="everyone-owns-pill"><Check size={12} /> Everyone owns it</span>}</div>
+    <div className="steam-crew-rows">{crew.map((member) => {
+      const record = member.steamId ? steam?.ownership[game.steamAppId!]?.[member.steamId] : undefined
+      const achievement = member.steamId ? achievements.find((item) => item.steamId === member.steamId) : undefined
+      const player = member.steamId ? steam?.players.find((item) => item.steamId === member.steamId) : undefined
+      const isPrivate = Boolean(member.steamId && steam?.privateSteamIds.includes(member.steamId))
+      return <div className="steam-crew-row" key={member.id}><Avatar id={member.id} /><div><strong>{member.name}</strong><span>{!member.steamId ? 'Steam not linked' : isPrivate ? 'Steam Game details are private' : !record ? 'Checking library…' : record.owned ? `${formatPlaytime(record.playtimeMinutes)} played${record.lastPlayedAt ? ` · last played ${new Date(record.lastPlayedAt * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}` : 'Doesn’t own this'}</span>{player?.currentGameAppId === game.steamAppId && <em><span /> Playing now</em>}</div><div className="steam-row-stat">{record?.owned && (achievementsLoading && !achievement ? 'Achievements…' : achievement?.total ? `${achievement.unlocked}/${achievement.total} achievements` : 'No achievement data')}</div></div>
+    })}</div>
+    {deal && !ownership.everyoneOwns && <a className="details-deal" href={deal.dealUrl} target="_blank" rel="noreferrer"><span className="deal-icon"><BadgeDollarSign size={20} /></span><div><span>Lowest Steam-key price</span><strong>${deal.price.toFixed(2)} at {deal.storeName}</strong><small>{deal.savingsPercent >= 1 ? `${Math.round(deal.savingsPercent)}% off · ` : ''}Prices supplied by CheapShark</small></div><ExternalLink size={17} /></a>}
+    {!linked.length && <p className="steam-panel-message">Link Steam from Players to see who owns this game.</p>}{error && <p className="steam-panel-message is-error">{error}</p>}
+  </section>
+}
+
 function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onAddDlc, onOpenPuzzle }: { game: Game; onClose: () => void; onSave: (updates: Partial<Game>) => void; onVote: () => void; onRemove: () => void; onAddDlc: () => void; onOpenPuzzle: () => void }) {
   const [progress, setProgress] = useState(game.progress)
   const [status, setStatus] = useState(game.status)
@@ -575,6 +690,7 @@ function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onAddDlc, o
             <label className="field"><span>Progress · {progress}%</span><input className="range" type="range" min="0" max="100" value={progress} onChange={(event) => setProgress(Number(event.target.value))} /></label>
           </div>
           <label className="field field-full"><span>Shared notes</span><textarea value={note} onChange={(event) => setNote(event.target.value)} rows={4} placeholder="Where did we leave off?" /></label>
+          <SteamGamePanel game={game} />
           <div className="modal-actions"><button className="button button-danger" type="button" onClick={onRemove}><Trash2 size={16} /> Remove game</button><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit">Save changes</button></div>
         </form>
       </section>
@@ -587,7 +703,7 @@ function QueueItem({ game, rank, onVote, onOpen, onDragStart, onDrop }: { game: 
     <div className="queue-item" draggable onDragStart={onDragStart} onDragOver={(event) => event.preventDefault()} onDrop={onDrop} onClick={onOpen}>
       <button className="drag-handle" type="button" aria-label={`Drag ${game.title}`}><GripVertical size={17} /></button><span className="queue-rank">{rank}</span><Cover game={game} size="small" />
       <div className="queue-copy"><strong>{game.title}</strong><span>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle}` : game.genre} · {game.platform}</span></div>
-      <div className="queue-voters" aria-label={`${game.votes.length} votes`}>{game.votes.slice(0, 3).map((id) => <Avatar id={id} small key={id} />)}</div><VoteButton game={game} onVote={onVote} compact />
+      <div className="queue-integrations"><OwnershipBadge game={game} compact /><DealBadge game={game} compact /></div><div className="queue-voters" aria-label={`${game.votes.length} votes`}>{game.votes.slice(0, 3).map((id) => <Avatar id={id} small key={id} />)}</div><VoteButton game={game} onVote={onVote} compact />
     </div>
   )
 }
@@ -597,6 +713,7 @@ function LibraryCard({ game, onOpen, onVote }: { game: Game; onOpen: () => void;
     <article className="library-card" onClick={onOpen}><Cover game={game} size="medium" /><div className="library-card-copy">
       <div className="library-card-topline"><span className={`status-dot status-${game.status}`} /><span>{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="dlc-card-label"><Puzzle size={9} /> DLC</span>}<button className="more-button" type="button" aria-label="More options"><MoreHorizontal size={17} /></button></div>
       <h3>{game.title}</h3><p>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle}` : game.genre} · {game.platform}</p>
+      <div className="card-integrations"><OwnershipBadge game={game} compact /><DealBadge game={game} compact /></div>
       {game.status === 'playing' ? <div className="mini-progress"><span style={{ width: `${game.progress}%` }} /></div> : <div className="library-card-footer"><span>Added by <Avatar id={game.addedBy} small /></span><VoteButton game={game} onVote={onVote} compact /></div>}
     </div></article>
   )
@@ -661,6 +778,14 @@ function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [libraryFilter, setLibraryFilter] = useState<GameStatus | 'all'>('all')
+  const [smartFilter, setSmartFilter] = useState<SmartFilter>('any')
+  const [steamSnapshot, setSteamSnapshot] = useState<SteamCrewSnapshot | null>(null)
+  const [gameDeals, setGameDeals] = useState<Record<string, GameDeal>>({})
+  const [steamLoading, setSteamLoading] = useState(false)
+  const [pricesLoading, setPricesLoading] = useState(false)
+  const [steamError, setSteamError] = useState<string | null>(null)
+  const [priceError, setPriceError] = useState<string | null>(null)
+  const [priceRefreshTick, setPriceRefreshTick] = useState(0)
   const [toast, setToast] = useState<string | null>(null)
   const [boardId] = useState(getBoardId)
   const connectionRef = useRef<BoardConnection | null>(null)
@@ -730,12 +855,64 @@ function App() {
     return () => window.clearTimeout(timer)
   }, [games, syncStatus])
 
+  const trackedAppIds = useMemo(() => [...new Set(games.flatMap((game) => game.steamAppId ? [game.steamAppId] : []))], [games])
+  const priceAppIds = useMemo(() => [...new Set(games.flatMap((game) => game.steamAppId && game.status !== 'completed' ? [game.steamAppId] : []))].slice(0, 40), [games])
+  const linkedSteamIds = useMemo(() => [...new Set(groupMembers.flatMap((member) => member.steamId ? [member.steamId] : []))], [groupMembers])
+
+  useEffect(() => {
+    if (!gameIntegrationsConfigured || !linkedSteamIds.length || !trackedAppIds.length) {
+      setSteamSnapshot(null)
+      setSteamLoading(false)
+      setSteamError(null)
+      return
+    }
+    const controller = new AbortController()
+    let active = true
+    setSteamLoading(true)
+    setSteamError(null)
+    loadSteamCrew(boardId, linkedSteamIds, trackedAppIds, controller.signal).then((snapshot) => {
+      if (active) setSteamSnapshot(snapshot)
+    }).catch((error: unknown) => {
+      if (active && !(error instanceof DOMException && error.name === 'AbortError')) setSteamError(error instanceof Error ? error.message : 'Steam tracking is unavailable.')
+    }).finally(() => { if (active) setSteamLoading(false) })
+    return () => { active = false; controller.abort() }
+  }, [boardId, linkedSteamIds.join(','), trackedAppIds.join(',')])
+
+  useEffect(() => {
+    if (!priceAppIds.length) { setGameDeals({}); return }
+    const controller = new AbortController()
+    let active = true
+    setPricesLoading(true)
+    setPriceError(null)
+    loadCheapSharkDeals(priceAppIds, controller.signal).then((deals) => {
+      if (active) setGameDeals(Object.fromEntries(deals.map((deal) => [deal.steamAppId, deal])))
+    }).catch((error: unknown) => {
+      if (active && !(error instanceof DOMException && error.name === 'AbortError')) setPriceError('Current game prices could not be refreshed.')
+    }).finally(() => { if (active) setPricesLoading(false) })
+    return () => { active = false; controller.abort() }
+  }, [priceAppIds.join(','), priceRefreshTick])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setPriceRefreshTick((value) => value + 1), 5 * 60 * 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const integrationsLoading = steamLoading || pricesLoading
+  const integrationError = steamError || priceError
+
   const currentUser = user?.uid ?? DEMO_USER
   const playing = games.find((game) => game.status === 'playing')
   const upNext = games.filter((game) => game.status === 'up-next')
   const selected = games.find((game) => game.id === selectedId)
   const puzzleGame = games.find((game) => game.id === puzzleGameId)
-  const filteredGames = useMemo(() => games.filter((game) => (libraryFilter === 'all' || game.status === libraryFilter) && game.title.toLowerCase().includes(search.toLowerCase())), [games, libraryFilter, search])
+  const filteredGames = useMemo(() => games.filter((game) => {
+    if ((libraryFilter !== 'all' && game.status !== libraryFilter) || !game.title.toLowerCase().includes(search.toLowerCase())) return false
+    const ownership = ownershipForGame(game, groupMembers, steamSnapshot)
+    if (smartFilter === 'everyone-owns') return ownership.everyoneOwns
+    if (smartFilter === 'needs-copy') return ownership.missing.length > 0
+    if (smartFilter === 'on-sale') return Boolean(game.steamAppId && gameDeals[game.steamAppId]?.savingsPercent >= 1)
+    return true
+  }), [gameDeals, games, groupMembers, libraryFilter, search, smartFilter, steamSnapshot])
   const flash = (message: string) => setToast(message)
   function vote(gameId: string) { setGames((current) => current.map((game) => game.id !== gameId ? game : { ...game, votes: game.votes.includes(currentUser) ? game.votes.filter((id) => id !== currentUser) : [...game.votes, currentUser] })) }
   function openAddGame(parent?: Game) { setAddParentId(parent?.id); setSelectedId(null); setShowAdd(true) }
@@ -774,6 +951,25 @@ function App() {
     flash(customPhotoUrl ? 'Custom profile image saved' : 'Google profile image restored')
   }
 
+  async function saveSteamProfile(profile: SteamProfile | null) {
+    if (!connectionRef.current) throw new Error('The shared board is still connecting.')
+    await connectionRef.current.saveSteamProfile(profile)
+    setGroupMembers((current) => current.map((member) => member.id === currentUser ? {
+      ...member,
+      steamId: profile?.steamId,
+      steamName: profile?.steamName,
+      steamProfileUrl: profile?.steamProfileUrl,
+      steamAvatarUrl: profile?.steamAvatarUrl,
+    } : member))
+    if (!profile) setSteamSnapshot(null)
+    flash(profile ? `${profile.steamName} linked to Steam` : 'Steam profile disconnected')
+  }
+
+  async function resolveSteamLink(profile: string) {
+    if (!gameIntegrationsConfigured) throw new Error('Steam linking is not configured yet.')
+    return resolveSteamProfile(boardId, profile)
+  }
+
   function choosePersona(nextPersona: Persona) {
     if (!user) return
     localStorage.setItem(`checkpoint-persona:${user.uid}`, nextPersona)
@@ -793,6 +989,7 @@ function App() {
     <CurrentUserContext.Provider value={currentUser}>
     <MembersContext.Provider value={groupMembers}>
     <GamesContext.Provider value={games}>
+    <IntegrationsContext.Provider value={{ boardId, steam: steamSnapshot, deals: gameDeals, loading: integrationsLoading, error: integrationError }}>
     <div className="app-shell">
       <aside className="sidebar">
         <button className="brand" type="button" onClick={() => setView('dashboard')}><span className="brand-mark"><Flag size={21} fill="currentColor" /></span><span>checkpoint</span></button>
@@ -841,16 +1038,18 @@ function App() {
         </div> : <div className="page library-page">
           <div className="page-title-row library-title-row"><div><span className="eyebrow">The collection</span><h1>Game library</h1><p>Every campaign, DLC, contender, and completed adventure in one place.</p></div><button className="button button-primary" onClick={() => openAddGame()}><Plus size={18} /> Add game</button></div>
           <div className="filter-tabs">{([['all', 'All games'], ...Object.entries(statusLabels)] as [GameStatus | 'all', string][]).map(([value, label]) => <button key={value} className={libraryFilter === value ? 'active' : ''} onClick={() => setLibraryFilter(value)}>{label}<span>{value === 'all' ? games.length : games.filter((game) => game.status === value).length}</span></button>)}</div>
+          <div className="smart-filters"><span><ListFilter size={14} /> Steam & prices</span>{([['any', 'Any ownership'], ['everyone-owns', 'Everyone owns'], ['needs-copy', 'Someone needs it'], ['on-sale', 'On sale']] as [SmartFilter, string][]).map(([value, label]) => <button type="button" key={value} className={smartFilter === value ? 'active' : ''} onClick={() => setSmartFilter(value)}>{label}</button>)}{integrationsLoading && <RefreshCw className="spin" size={14} />}</div>
           {filteredGames.length ? <div className="library-grid">{filteredGames.map((game) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} onVote={() => vote(game.id)} />)}</div> : <div className="empty-state"><Search size={28} /><h2>No games found</h2><p>Try another search or add a new game.</p><button className="button button-primary" onClick={() => openAddGame()}>Add game</button></div>}
         </div>}
         <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={20} /><span>Home</span></button><button className={view === 'library' ? 'active' : ''} onClick={() => setView('library')}><Library size={20} /><span>Library</span></button><button className="mobile-add" onClick={() => openAddGame()}><Plus size={23} /></button><button onClick={() => { setView('library'); setLibraryFilter('up-next') }}><BookOpen size={20} /><span>Queue</span></button><button onClick={() => setShowCrew(true)}><Users size={20} /><span>Players</span></button></nav>
       </main>
       {showAdd && <AddGameModal onClose={closeAddGame} onAdd={addGame} games={games} defaultParentId={addParentId} />}
-      {showCrew && <CrewModal members={groupMembers} currentUserId={currentUser} googlePhotoUrl={user?.photoURL} onClose={() => setShowCrew(false)} onSavePhoto={saveProfileImage} />}
+      {showCrew && <CrewModal members={groupMembers} currentUserId={currentUser} googlePhotoUrl={user?.photoURL} integrationError={integrationError} onClose={() => setShowCrew(false)} onSavePhoto={saveProfileImage} onResolveSteam={resolveSteamLink} onSaveSteam={saveSteamProfile} />}
       {selected && <GameDetailsModal game={selected} onClose={() => setSelectedId(null)} onVote={() => vote(selected.id)} onSave={(updates) => updateGame(selected.id, updates)} onRemove={() => removeGame(selected)} onAddDlc={() => openAddGame(selected)} onOpenPuzzle={() => { setPuzzleGameId(selected.id); setSelectedId(null) }} />}
       {puzzleGame && <PuzzleBoardModal game={puzzleGame} boardId={boardId} currentUserId={currentUser} onClose={() => setPuzzleGameId(null)} />}
       {toast && <div className="toast"><Check size={17} /> {toast}</div>}
     </div>
+    </IntegrationsContext.Provider>
     </GamesContext.Provider>
     </MembersContext.Provider>
     </CurrentUserContext.Provider>

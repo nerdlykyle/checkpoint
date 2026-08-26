@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "checkpoint-game-data",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-26",
+  "vars": {
+    "ALLOWED_ORIGINS": "https://nerdlykyle.github.io,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:5175",
+    "CHECKPOINT_BOARD_ID": "23829651-55db-434a-ad9a-81f1454b8ccb"
+  }
+}
