@@ -48,15 +48,6 @@ async function steamRequest(env: Env, interfaceName: string, method: string, ver
   return response.json() as Promise<Record<string, unknown>>
 }
 
-async function steamServiceRequest(env: Env, interfaceName: string, method: string, version: string, input: Record<string, unknown>) {
-  if (!env.STEAM_WEB_API_KEY) throw new Error('steam_unconfigured')
-  const url = new URL(`${STEAM_API}/${interfaceName}/${method}/${version}/`)
-  url.searchParams.set('input_json', JSON.stringify({ key: env.STEAM_WEB_API_KEY, ...input }))
-  const response = await fetch(url, { headers: { Accept: 'application/json' } })
-  if (!response.ok) throw new Error(response.status === 401 ? 'steam_private' : 'steam_unavailable')
-  return response.json() as Promise<Record<string, unknown>>
-}
-
 async function playerSummaries(env: Env, steamIds: string[]) {
   const raw = await steamRequest(env, 'ISteamUser', 'GetPlayerSummaries', 'v2', { steamids: steamIds.join(',') })
   const response = raw.response as { players?: Array<Record<string, unknown>> } | undefined
@@ -96,12 +87,12 @@ async function resolveSteamProfile(env: Env, input: string) {
   }
 }
 
-async function loadOwnedGames(env: Env, steamId: string, appIds: string[]) {
-  const raw = await steamServiceRequest(env, 'IPlayerService', 'GetOwnedGames', 'v1', {
+async function loadOwnedGames(env: Env, steamId: string) {
+  const raw = await steamRequest(env, 'IPlayerService', 'GetOwnedGames', 'v1', {
     steamid: steamId,
     include_appinfo: false,
     include_played_free_games: true,
-    appids_filter: appIds.map(Number),
+    format: 'json',
   })
   const response = raw.response as { game_count?: number; games?: Array<{ appid: number; playtime_forever?: number; rtime_last_played?: number }> } | undefined
   return { accessible: Boolean(response && ('game_count' in response || Array.isArray(response.games))), games: response?.games || [] }
@@ -110,7 +101,7 @@ async function loadOwnedGames(env: Env, steamId: string, appIds: string[]) {
 async function crewSnapshot(env: Env, steamIds: string[], appIds: string[]) {
   const [summaries, ...ownedLists] = await Promise.all([
     playerSummaries(env, steamIds),
-    ...steamIds.map((steamId) => loadOwnedGames(env, steamId, appIds)),
+    ...steamIds.map((steamId) => loadOwnedGames(env, steamId)),
   ])
   const ownership: Record<string, Record<string, { owned: boolean; playtimeMinutes: number; lastPlayedAt?: number }>> = {}
   const privateSteamIds = steamIds.filter((_steamId, index) => !ownedLists[index].accessible)
