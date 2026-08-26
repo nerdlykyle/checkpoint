@@ -29,6 +29,7 @@ type SyncStatus = 'local' | 'connecting' | 'live' | 'error'
 
 const CurrentUserContext = createContext(DEMO_USER)
 const MembersContext = createContext<Member[]>(members)
+const GamesContext = createContext<Game[]>([])
 
 function getStoredGames() {
   try {
@@ -51,13 +52,21 @@ function cleanRemoteGames(games: Game[]) {
   return cleaned
 }
 
-function gameArtworkUrls(game: Game) {
+function directArtworkUrls(game?: Game) {
+  if (!game) return []
   const steamUrls = game.steamAppId ? [
     `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${game.steamAppId}/library_600x900_2x.jpg`,
     `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${game.steamAppId}/library_600x900.jpg`,
     `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${game.steamAppId}/header.jpg`,
   ] : []
   return [...new Set([...steamUrls, game.coverUrl].filter((url): url is string => Boolean(url)))]
+}
+
+function gameArtworkUrls(game: Game, games: Game[]) {
+  const parentGame = game.contentType === 'dlc' && game.parentGameId
+    ? games.find((candidate) => candidate.id === game.parentGameId)
+    : undefined
+  return [...new Set([...directArtworkUrls(game), ...directArtworkUrls(parentGame)])]
 }
 
 async function resizeProfileImage(file: File) {
@@ -86,8 +95,9 @@ async function resizeProfileImage(file: File) {
 }
 
 function Cover({ game, size = 'medium' }: { game: Game; size?: 'small' | 'medium' | 'large' }) {
+  const games = useContext(GamesContext)
   const style = { '--cover-color': game.color, '--cover-accent': game.accent } as CSSProperties
-  const artworkUrls = gameArtworkUrls(game)
+  const artworkUrls = gameArtworkUrls(game, games)
   return (
     <div className={`game-cover cover-${size}`} style={style} aria-hidden="true">
       <span className="cover-orbit" /><span className="cover-mark">{game.coverMark}</span>
@@ -504,6 +514,7 @@ function App() {
   return (
     <CurrentUserContext.Provider value={currentUser}>
     <MembersContext.Provider value={groupMembers}>
+    <GamesContext.Provider value={games}>
     <div className="app-shell">
       <aside className="sidebar">
         <button className="brand" type="button" onClick={() => setView('dashboard')}><span className="brand-mark"><Flag size={21} fill="currentColor" /></span><span>checkpoint</span></button>
@@ -561,6 +572,7 @@ function App() {
       {selected && <GameDetailsModal game={selected} onClose={() => setSelectedId(null)} onVote={() => vote(selected.id)} onSave={(updates) => updateGame(selected.id, updates)} onRemove={() => removeGame(selected)} onAddDlc={() => openAddGame(selected)} />}
       {toast && <div className="toast"><Check size={17} /> {toast}</div>}
     </div>
+    </GamesContext.Provider>
     </MembersContext.Provider>
     </CurrentUserContext.Provider>
   )
