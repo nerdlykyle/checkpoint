@@ -4,3 +4,4 @@ public/steam-games/
 .env
 .env.local
 .DS_Store
+.wrangler/
