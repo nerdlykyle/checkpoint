@@ -3,11 +3,15 @@ export type GameSearchResult = {
   steamAppId: string
   title: string
   coverUrl: string
+  thumbnailUrl: string
 }
 
 type SteamCatalogEntry = [number, string]
 
-const REMOTE_CATALOG = 'https://raw.githubusercontent.com/jsnli/SteamAppIDList/master/data/games_appid.json'
+const REMOTE_CATALOGS = [
+  'https://raw.githubusercontent.com/jsnli/SteamAppIDList/master/data/games_appid.json',
+  'https://raw.githubusercontent.com/jsnli/SteamAppIDList/master/data/dlc_appid.json',
+]
 const catalogPromises = new Map<string, Promise<SteamCatalogEntry[]>>()
 
 function normalize(value: string) {
@@ -41,11 +45,11 @@ async function loadCatalog(query: string, signal?: AbortSignal) {
         }
       }
 
-      const remoteResponse = await fetch(REMOTE_CATALOG, { signal })
-      if (!remoteResponse.ok) throw new Error('Steam catalog is unavailable')
-      const remoteData = await remoteResponse.json() as unknown
-      if (!isFullCatalog(remoteData)) throw new Error('Steam catalog format changed')
-      return remoteData.filter((game) => bucketFor(game.name) === bucket).map((game) => [game.appid, game.name] as SteamCatalogEntry)
+      const remoteResponses = await Promise.all(REMOTE_CATALOGS.map((catalog) => fetch(catalog, { signal })))
+      if (remoteResponses.some((response) => !response.ok)) throw new Error('Steam catalog is unavailable')
+      const remoteCatalogs = await Promise.all(remoteResponses.map((response) => response.json() as Promise<unknown>))
+      if (!remoteCatalogs.every(isFullCatalog)) throw new Error('Steam catalog format changed')
+      return remoteCatalogs.flat().filter((game) => bucketFor(game.name) === bucket).map((game) => [game.appid, game.name] as SteamCatalogEntry)
     })().catch((error) => {
       catalogPromises.delete(bucket)
       throw error
@@ -74,6 +78,7 @@ export async function searchGames(query: string, signal?: AbortSignal): Promise<
       catalogId: String(appId),
       steamAppId: String(appId),
       title,
-      coverUrl: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg`,
+      coverUrl: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${appId}/library_600x900_2x.jpg`,
+      thumbnailUrl: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg`,
     }))
 }

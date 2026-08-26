@@ -214,3 +214,37 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
   .mobile-nav { background: rgba(13,18,20,.97); }
   .game-search-results { position: static; margin-top: 3px; }
 }
+
+/* Crew profiles, DLC relationships, and catalog artwork */
+.server-switcher { width: 100%; color: #eef2f0; font: inherit; text-align: left; cursor: pointer; transition: border-color .16s, background .16s; }
+.server-switcher:hover { border-color: rgba(129,115,238,.45); background: rgba(129,115,238,.1); }
+.member-stack-button { border: 0; background: transparent; cursor: pointer; }
+.content-type-choice { margin: 0 0 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.content-type-choice button { min-height: 62px; padding: 11px 13px; border: 1px solid #303a3f; border-radius: 11px; background: #0f1517; color: #87928e; display: flex; align-items: center; gap: 10px; text-align: left; cursor: pointer; }
+.content-type-choice button.active { border-color: #7568e8; background: #24203f; color: #c8c1ff; box-shadow: 0 0 0 2px rgba(117,104,232,.12); }
+.content-type-choice button > span, .content-type-choice strong, .content-type-choice small { display: block; }
+.content-type-choice button > span { flex: 1; }.content-type-choice strong { font-size: 11px; }.content-type-choice small { margin-top: 3px; color: #727e79; font-size: 8.5px; }
+.catalog-selected { color: #79c99a; display: flex; align-items: center; gap: 4px; }
+.details-pills, .details-quick-actions { display: flex; align-items: center; gap: 7px; }
+.content-pill, .dlc-card-label { color: #e4b46e; display: inline-flex; align-items: center; gap: 3px; font-weight: 800; text-transform: uppercase; letter-spacing: .45px; }
+.content-pill { padding: 4px 8px; border-radius: 9px; background: #3a2d1d; font-size: 8px; }
+.dlc-card-label { margin-left: 3px; font-size: 7px; }
+.add-dlc-button { height: 32px; padding: 0 10px; border: 1px solid #4c4435; border-radius: 9px; background: #201c17; color: #e1ad64; display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 750; cursor: pointer; }
+.crew-modal { width: min(570px,100%); }
+.crew-auto-note { margin-bottom: 18px; padding: 13px; border: 1px solid #303a3f; border-radius: 12px; background: #101619; color: #8579ec; display: flex; align-items: flex-start; gap: 10px; }
+.crew-auto-note svg { flex: 0 0 auto; margin-top: 2px; }.crew-auto-note strong { color: #d9dddb; font-size: 11px; }.crew-auto-note p { margin: 4px 0 0; color: #7f8b87; font-size: 9.5px; line-height: 1.45; }
+.crew-list { display: grid; grid-template-columns: repeat(3,1fr); gap: 9px; }
+.crew-member { min-width: 0; padding: 12px; border: 1px solid #2b3539; border-radius: 12px; background: #111719; display: flex; align-items: center; gap: 9px; }
+.crew-member > div { min-width: 0; }.crew-member strong, .crew-member span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.crew-member strong { font-size: 11px; }.crew-member span { margin-top: 3px; color: #74807b; font-size: 8.5px; }
+.profile-image-panel { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+.profile-image-preview { display: flex; align-items: center; gap: 10px; }.profile-image-preview .avatar { width: 48px; height: 48px; }.profile-image-preview strong, .profile-image-preview span { display: block; }.profile-image-preview strong { font-size: 12px; }.profile-image-preview span { margin-top: 3px; color: #75817c; font-size: 9px; }
+.profile-image-actions { margin-top: 13px; display: flex; gap: 8px; }.profile-image-actions input { display: none; }.profile-image-actions .is-disabled { opacity: .55; pointer-events: none; }.profile-image-actions button:disabled { opacity: .55; cursor: wait; }
+.profile-image-error { margin: 10px 0 0; color: #ef8b82; font-size: 9.5px; }
+
+@media (max-width: 620px) {
+  .content-type-choice { grid-template-columns: 1fr; }
+  .crew-list { grid-template-columns: 1fr; }
+  .profile-image-actions { flex-direction: column; }
+  .profile-image-actions .button { width: 100%; }
+  .details-quick-actions { flex-wrap: wrap; }
+}

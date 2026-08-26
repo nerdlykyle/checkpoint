@@ -1,6 +1,9 @@
 import { access, mkdir, writeFile } from 'node:fs/promises'
 
-const source = 'https://raw.githubusercontent.com/jsnli/SteamAppIDList/master/data/games_appid.json'
+const sources = [
+  'https://raw.githubusercontent.com/jsnli/SteamAppIDList/master/data/games_appid.json',
+  'https://raw.githubusercontent.com/jsnli/SteamAppIDList/master/data/dlc_appid.json',
+]
 const destination = new URL('../public/steam-games/', import.meta.url)
 
 function normalize(value) {
@@ -11,10 +14,11 @@ function bucketFor(value) {
   const first = normalize(value)[0]
   return first && /[a-z0-9]/.test(first) ? first : '_'
 }
-let response
+let responses
 try {
-  response = await fetch(source)
-  if (!response.ok) throw new Error(`Steam catalog download failed (${response.status})`)
+  responses = await Promise.all(sources.map((source) => fetch(source)))
+  const failedResponse = responses.find((response) => !response.ok)
+  if (failedResponse) throw new Error(`Steam catalog download failed (${failedResponse.status})`)
 } catch (error) {
   try {
     await access(new URL('s.json', destination))
@@ -25,8 +29,8 @@ try {
   }
 }
 
-const games = await response.json()
-const compact = games
+const catalogs = await Promise.all(responses.map((response) => response.json()))
+const compact = catalogs.flat()
   .filter((game) => Number.isInteger(game.appid) && typeof game.name === 'string' && game.name.trim())
   .map((game) => [game.appid, game.name])
 
@@ -38,4 +42,4 @@ for (const game of compact) {
 
 await mkdir(destination, { recursive: true })
 await Promise.all([...buckets].map(([key, bucket]) => writeFile(new URL(`${key}.json`, destination), JSON.stringify(bucket))))
-console.log(`Prepared ${compact.length.toLocaleString()} Steam games for search.`)
+console.log(`Prepared ${compact.length.toLocaleString()} Steam games and DLC for search.`)

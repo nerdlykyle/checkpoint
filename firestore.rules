@@ -16,8 +16,7 @@ service cloud.firestore {
       }
 
       function validBoard() {
-        return request.resource.data.keys().hasOnly(['games', 'ownerUid', 'members', 'createdAt', 'updatedAt'])
-          && request.resource.data.games is list
+        return request.resource.data.games is list
           && request.resource.data.games.size() <= 2000
           && request.resource.data.members is map;
       }
@@ -32,13 +31,12 @@ service cloud.firestore {
 
       function joiningOnlyAsSelf() {
         return signedIn()
-          && validBoard()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'updatedAt'])
           && request.resource.data.members.diff(resource.data.members).affectedKeys().hasOnly([request.auth.uid])
           && validSelfProfile();
       }
 
-      allow get: if validBoardId() && isMember();
+      allow get: if validBoardId() && signedIn();
       allow list, delete: if false;
       allow create: if validBoardId()
         && signedIn()

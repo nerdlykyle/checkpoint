@@ -14,6 +14,7 @@ import { database } from './firebase'
 
 export type BoardConnection = {
   save: (games: Game[]) => Promise<void>
+  saveProfileImage: (customPhotoUrl: string | null) => Promise<void>
   close: Unsubscribe
 }
 
@@ -22,6 +23,8 @@ type StoredMember = {
   persona?: Persona
   email: string
   photoUrl: string
+  googlePhotoUrl?: string
+  customPhotoUrl?: string
   joinedAt: string
 }
 
@@ -51,13 +54,16 @@ function isGameList(value: unknown): value is Game[] {
   })
 }
 
-function memberFromUser(user: User, persona: Persona): StoredMember {
+function memberFromUser(user: User, persona: Persona, existing?: StoredMember, customPhotoUrl = existing?.customPhotoUrl ?? ''): StoredMember {
+  const googlePhotoUrl = user.photoURL || existing?.googlePhotoUrl || ''
   return {
     name: persona,
     persona,
     email: user.email || '',
-    photoUrl: user.photoURL || '',
-    joinedAt: new Date().toISOString(),
+    photoUrl: customPhotoUrl || googlePhotoUrl,
+    googlePhotoUrl,
+    customPhotoUrl,
+    joinedAt: existing?.joinedAt || new Date().toISOString(),
   }
 }
 
@@ -67,7 +73,9 @@ function membersFromData(data: BoardData): Member[] {
     name: member.name,
     initials: member.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase(),
     color: ['#f6a44b', '#ec6f8f', '#69b8ff', '#7bd99a', '#a990e8'][index % 5],
-    photoUrl: member.photoUrl,
+    photoUrl: member.customPhotoUrl || member.googlePhotoUrl || member.photoUrl,
+    googlePhotoUrl: member.googlePhotoUrl || member.photoUrl,
+    customPhotoUrl: member.customPhotoUrl,
     persona: member.persona,
   }))
 }
@@ -96,6 +104,7 @@ export async function connectBoard(
 ): Promise<BoardConnection | null> {
   if (!database) return null
   const boardRef = doc(database, 'boards', boardId)
+  let latestMember: StoredMember | undefined
   let snapshot
 
   try {
@@ -133,11 +142,17 @@ export async function connectBoard(
     })
   } else {
     const data = snapshot.data() as BoardData
-    if (!data.members?.[user.uid] || data.members[user.uid].persona !== persona) {
+    latestMember = data.members?.[user.uid]
+    const refreshedMember = memberFromUser(user, persona, latestMember)
+    if (!latestMember
+      || latestMember.persona !== persona
+      || latestMember.email !== refreshedMember.email
+      || latestMember.googlePhotoUrl !== refreshedMember.googlePhotoUrl
+      || latestMember.photoUrl !== refreshedMember.photoUrl) {
       await updateDoc(
         boardRef,
         new FieldPath('members', user.uid),
-        memberFromUser(user, persona),
+        refreshedMember,
         'updatedAt',
         serverTimestamp(),
       )
@@ -147,12 +162,24 @@ export async function connectBoard(
   const unsubscribe = onSnapshot(boardRef, (nextSnapshot) => {
     if (!nextSnapshot.exists()) return
     const data = nextSnapshot.data() as BoardData
+    latestMember = data.members?.[user.uid]
     if (isGameList(data.games)) onRemoteState(data.games, membersFromData(data))
   })
 
   return {
     async save(games) {
       await updateDoc(boardRef, { games, updatedAt: serverTimestamp() })
+    },
+    async saveProfileImage(customPhotoUrl) {
+      const nextMember = memberFromUser(user, persona, latestMember, customPhotoUrl ?? '')
+      await updateDoc(
+        boardRef,
+        new FieldPath('members', user.uid),
+        nextMember,
+        'updatedAt',
+        serverTimestamp(),
+      )
+      latestMember = nextMember
     },
     close: unsubscribe,
   }
