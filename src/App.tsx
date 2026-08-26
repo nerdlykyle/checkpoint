@@ -410,11 +410,14 @@ function PuzzleBoardModal({ game, boardId, currentUserId, onClose }: {
   const [brushWidth, setBrushWidth] = useState(4)
   const [aspectRatio, setAspectRatio] = useState(16 / 9)
   const [hasUsedCanvas, setHasUsedCanvas] = useState(false)
+  const [notePanelWidth, setNotePanelWidth] = useState(310)
+  const [isResizingNotes, setIsResizingNotes] = useState(false)
   const [sync, setSync] = useState<'connecting' | 'live' | 'saving' | 'local' | 'error'>(firebaseConfigured ? 'connecting' : 'local')
   const [error, setError] = useState<string | null>(null)
   const connectionRef = useRef<PuzzleConnection | null>(null)
   const boardRef = useRef(board)
   const dirtyRef = useRef(false)
+  const resizingNotesRef = useRef(false)
 
   useEffect(() => {
     const connection = connectPuzzle(boardId, game.id, (remoteBoard) => {
@@ -491,13 +494,25 @@ function PuzzleBoardModal({ game, boardId, currentUserId, onClose }: {
     setAspectRatio(16 / 9)
   }
 
+  function resizeNotes(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!resizingNotesRef.current) return
+    const layout = event.currentTarget.getBoundingClientRect()
+    setNotePanelWidth(Math.max(240, Math.min(640, Math.round(layout.right - event.clientX))))
+  }
+
+  function stopResizingNotes() {
+    if (!resizingNotesRef.current) return
+    resizingNotesRef.current = false
+    setIsResizingNotes(false)
+  }
+
   const syncLabel = sync === 'live' ? 'Shared live' : sync === 'saving' ? 'Saving…' : sync === 'connecting' ? 'Connecting…' : sync === 'error' ? 'Local backup · sync needs rules' : 'Saved on this device'
 
   return (
     <div className="modal-backdrop puzzle-backdrop" onMouseDown={onClose}>
       <section className="modal puzzle-modal" onMouseDown={(event) => event.stopPropagation()} onPaste={handlePaste} aria-modal="true" role="dialog" tabIndex={-1}>
         <div className="modal-heading puzzle-heading"><div><span className="eyebrow">{game.title}</span><h2>Puzzle Board</h2><p>Draw together, paste screenshots, and type notes live.</p></div><div className={`puzzle-sync sync-${sync}`}><span />{syncLabel}</div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
-        <div className="puzzle-layout">
+        <div className={`puzzle-layout ${isResizingNotes ? 'is-resizing' : ''}`} style={{ '--puzzle-notes-width': `${notePanelWidth}px` } as CSSProperties} onPointerMove={resizeNotes} onPointerUp={stopResizingNotes} onPointerCancel={stopResizingNotes}>
           <div className="puzzle-workspace">
             <div className="puzzle-toolbar">
               <label className="puzzle-tool upload-tool"><ImagePlus size={16} /> {board.imageDataUrl ? 'Replace image' : 'Add image'}<input type="file" accept="image/*" onChange={(event) => { void useImage(event.target.files?.[0]); event.currentTarget.value = '' }} /></label>
@@ -518,6 +533,10 @@ function PuzzleBoardModal({ game, boardId, currentUserId, onClose }: {
             </div>
             <div className="puzzle-image-footer"><span>{board.imageName || 'Blank shared canvas'}</span><span>{board.strokes.length} {board.strokes.length === 1 ? 'stroke' : 'strokes'}</span>{board.imageDataUrl && <button type="button" onClick={removeImage}>Remove image</button>}</div>
           </div>
+          <div className="puzzle-resizer" role="separator" tabIndex={0} aria-label="Resize shared notes" aria-orientation="vertical" aria-valuemin={240} aria-valuemax={640} aria-valuenow={notePanelWidth}
+            onPointerDown={(event) => { event.preventDefault(); resizingNotesRef.current = true; setIsResizingNotes(true); try { event.currentTarget.setPointerCapture(event.pointerId) } catch { /* The layout still tracks the drag without capture. */ } }}
+            onLostPointerCapture={stopResizingNotes}
+            onDoubleClick={() => setNotePanelWidth(310)} onKeyDown={(event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); setNotePanelWidth((value) => Math.min(640, value + 16)) } else if (event.key === 'ArrowRight') { event.preventDefault(); setNotePanelWidth((value) => Math.max(240, value - 16)) } }}><GripVertical size={14} /></div>
           <aside className="puzzle-notes"><div><span className="eyebrow">Shared live notes</span><h3>Work it out together</h3><p>Typing autosaves and appears for the crew while this board is open.</p></div><textarea value={board.note} maxLength={20000} onChange={(event) => editBoard((current) => ({ ...current, note: event.target.value }))} placeholder="Codes, clues, theories, steps…" /><div className="puzzle-note-footer"><span>{board.note.length.toLocaleString()} / 20,000</span><span>Paste an image anywhere in this window</span></div>{error && <p className="puzzle-error">{error}</p>}</aside>
         </div>
       </section>
