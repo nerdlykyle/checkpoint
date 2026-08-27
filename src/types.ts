@@ -15,11 +15,29 @@ export type PuzzleStroke = {
   authorId: string
 }
 
-export type PuzzleBoard = {
-  imageDataUrl: string
-  imageName: string
+export type PuzzleImage = {
+  id: string
+  name: string
+  dataUrl: string
+  x: number
+  y: number
+  width: number
+  height: number
+  cropX: number
+  cropY: number
+  cropZoom: number
+}
+
+export type PuzzlePage = {
+  id: string
+  title: string
   note: string
   strokes: PuzzleStroke[]
+  images: PuzzleImage[]
+}
+
+export type PuzzleBoard = {
+  pages: PuzzlePage[]
   updatedBy: string
 }
 

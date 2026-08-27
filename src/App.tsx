@@ -1,20 +1,21 @@
 import {
-  BadgeDollarSign, Bell, BookOpen, Camera, Check, ChevronDown, CircleHelp, Clock3, Eraser, ExternalLink, Flag, Gamepad2,
-  GripVertical, Heart, ImagePlus, LayoutDashboard, Library, Link2, ListFilter, MoreHorizontal,
-  LogOut, NotebookPen, Pencil, Plus, Puzzle, RefreshCw, RotateCcw, Search, Settings, Share2, Sparkles, Trash2, Trophy, Unlink, Users, X,
+  BadgeDollarSign, Bell, BookOpen, BringToFront, Camera, Check, ChevronDown, CircleHelp, Clock3, Crop, Eraser, ExternalLink,
+  FilePlus, Flag, Gamepad2, GripVertical, Heart, ImagePlus, Images, LayoutDashboard, Library, Link2, ListFilter, MoreHorizontal,
+  LogOut, Move, NotebookPen, Pencil, Plus, Puzzle, RefreshCw, RotateCcw, Search, SendToBack, Settings, Share2, Sparkles,
+  Trash2, Trophy, Unlink, Users, X, ZoomIn, ZoomOut,
 } from 'lucide-react'
 import {
   createContext, useContext, useEffect, useMemo, useRef, useState,
-  type ClipboardEvent as ReactClipboardEvent, type CSSProperties, type DragEvent, type FormEvent, type PointerEvent as ReactPointerEvent,
+  type ClipboardEvent as ReactClipboardEvent, type CSSProperties, type DragEvent, type FormEvent, type PointerEvent as ReactPointerEvent, type RefObject,
 } from 'react'
 import type { User } from 'firebase/auth'
 import './App.css'
 import { initialGames, members, statusLabels } from './data'
-import type { ContentType, Game, GameDeal, GameStatus, Member, Persona, PuzzleBoard, PuzzlePoint, PuzzleStroke, SteamAchievementSnapshot, SteamCrewSnapshot } from './types'
+import type { ContentType, Game, GameDeal, GameStatus, Member, Persona, PuzzleBoard, PuzzleImage, PuzzlePage, PuzzlePoint, PuzzleStroke, SteamAchievementSnapshot, SteamCrewSnapshot } from './types'
 import { firebaseConfigured, signInWithGoogle, signOut, watchAuth } from './lib/firebase'
 import { searchGames, type GameSearchResult } from './lib/gameSearch'
 import { connectBoard, getBoardId, getExistingPersona, type BoardConnection, type SteamProfile } from './lib/sharedBoard'
-import { connectPuzzle, type PuzzleConnection } from './lib/sharedPuzzle'
+import { connectPuzzle, createEmptyPuzzleBoard, createPuzzlePage, normalizePuzzleBoard, type PuzzleConnection } from './lib/sharedPuzzle'
 import { gameIntegrationsConfigured, loadGameAchievements, loadSteamCrew, resolveSteamProfile } from './lib/gameIntegrations'
 import { loadCheapSharkDeals } from './lib/cheapShark'
 
@@ -116,8 +117,8 @@ async function resizePuzzleImage(file: File) {
       image.onerror = () => reject(new Error('That image could not be opened.'))
       image.src = objectUrl
     })
-    let scale = Math.min(1, 1600 / Math.max(image.naturalWidth, image.naturalHeight))
-    for (let attempt = 0; attempt < 7; attempt += 1) {
+    let scale = Math.min(1, 1400 / Math.max(image.naturalWidth, image.naturalHeight))
+    for (let attempt = 0; attempt < 8; attempt += 1) {
       const canvas = document.createElement('canvas')
       canvas.width = Math.max(1, Math.round(image.naturalWidth * scale))
       canvas.height = Math.max(1, Math.round(image.naturalHeight * scale))
@@ -126,8 +127,8 @@ async function resizePuzzleImage(file: File) {
       context.fillStyle = '#ffffff'
       context.fillRect(0, 0, canvas.width, canvas.height)
       context.drawImage(image, 0, 0, canvas.width, canvas.height)
-      const dataUrl = canvas.toDataURL('image/jpeg', Math.max(.48, .8 - attempt * .06))
-      if (dataUrl.length <= 600000) return dataUrl
+      const dataUrl = canvas.toDataURL('image/jpeg', Math.max(.42, .78 - attempt * .055))
+      if (dataUrl.length <= 180000) return { dataUrl, aspectRatio: image.naturalWidth / image.naturalHeight }
       scale *= .82
     }
     throw new Error('That image is too detailed to sync. Try a smaller screenshot.')
@@ -279,6 +280,13 @@ function CrewModal({ members: crew, currentUserId, googlePhotoUrl, integrationEr
 }
 
 const PUZZLE_COLORS = ['#f8f6ed', '#f2c94c', '#ff6b76', '#6ad8ff', '#8df0a9']
+const MAX_PUZZLE_IMAGES = 6
+const MAX_PUZZLE_IMAGE_DATA = 650000
+type PuzzleTool = 'select' | 'crop' | 'draw' | 'erase'
+
+function clamp(value: number, minimum: number, maximum: number) {
+  return Math.max(minimum, Math.min(maximum, value))
+}
 
 function renderPuzzleCanvas(canvas: HTMLCanvasElement, strokes: PuzzleStroke[], preview: PuzzleStroke | null) {
   const bounds = canvas.getBoundingClientRect()
@@ -391,6 +399,95 @@ function PuzzleCanvas({ strokes, tool, color, width, authorId, onAddStroke, onEr
     onPointerDown={startStroke} onPointerMove={continueStroke} onPointerUp={finishStroke} onPointerCancel={finishStroke} />
 }
 
+function PuzzleImageLayer({ image, selected, tool, stageRef, onSelect, onChange }: {
+  image: PuzzleImage
+  selected: boolean
+  tool: PuzzleTool
+  stageRef: RefObject<HTMLDivElement | null>
+  onSelect: () => void
+  onChange: (image: PuzzleImage) => void
+}) {
+  const gestureRef = useRef<{
+    kind: 'move' | 'resize' | 'crop'
+    clientX: number
+    clientY: number
+    image: PuzzleImage
+    stageWidth: number
+    stageHeight: number
+  } | null>(null)
+
+  function startGesture(event: ReactPointerEvent<HTMLElement>, kind: 'move' | 'resize' | 'crop') {
+    if (tool !== 'select' && tool !== 'crop') return
+    event.preventDefault()
+    event.stopPropagation()
+    onSelect()
+    const bounds = stageRef.current?.getBoundingClientRect()
+    if (!bounds) return
+    gestureRef.current = {
+      kind,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      image,
+      stageWidth: Math.max(1, bounds.width),
+      stageHeight: Math.max(1, bounds.height),
+    }
+    try { event.currentTarget.setPointerCapture(event.pointerId) } catch { /* Pointer capture is an enhancement. */ }
+  }
+
+  function moveGesture(event: ReactPointerEvent<HTMLElement>) {
+    const gesture = gestureRef.current
+    if (!gesture) return
+    event.preventDefault()
+    event.stopPropagation()
+    const dx = (event.clientX - gesture.clientX) / gesture.stageWidth
+    const dy = (event.clientY - gesture.clientY) / gesture.stageHeight
+    if (gesture.kind === 'move') {
+      onChange({
+        ...gesture.image,
+        x: clamp(gesture.image.x + dx, 0, 1 - gesture.image.width),
+        y: clamp(gesture.image.y + dy, 0, 1 - gesture.image.height),
+      })
+    } else if (gesture.kind === 'resize') {
+      onChange({
+        ...gesture.image,
+        width: clamp(gesture.image.width + dx, .1, 1 - gesture.image.x),
+        height: clamp(gesture.image.height + dy, .1, 1 - gesture.image.y),
+      })
+    } else {
+      onChange({
+        ...gesture.image,
+        cropX: clamp(gesture.image.cropX + dx * 3, -1, 1),
+        cropY: clamp(gesture.image.cropY + dy * 3, -1, 1),
+      })
+    }
+  }
+
+  function finishGesture(event: ReactPointerEvent<HTMLElement>) {
+    if (!gestureRef.current) return
+    gestureRef.current = null
+    try {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+    } catch { /* The pointer may already be released. */ }
+  }
+
+  const interactive = tool === 'select' || tool === 'crop'
+  const imageStyle = {
+    transform: `translate(${image.cropX * 14}%, ${image.cropY * 14}%) scale(${image.cropZoom})`,
+  } as CSSProperties
+  return (
+    <div className={`puzzle-image-layer ${selected ? 'is-selected' : ''} ${tool === 'crop' && selected ? 'is-cropping' : ''}`}
+      style={{ left: `${image.x * 100}%`, top: `${image.y * 100}%`, width: `${image.width * 100}%`, height: `${image.height * 100}%` }}
+      onPointerDown={(event) => startGesture(event, tool === 'crop' && selected ? 'crop' : 'move')}
+      onPointerMove={moveGesture} onPointerUp={finishGesture} onPointerCancel={finishGesture}
+      aria-label={`${image.name}${selected ? ', selected' : ''}`}>
+      <img src={image.dataUrl} alt="" draggable={false} style={imageStyle} />
+      {interactive && selected && tool === 'select' && <button className="puzzle-image-resize" type="button" aria-label={`Resize ${image.name}`}
+        onPointerDown={(event) => startGesture(event, 'resize')} onPointerMove={moveGesture} onPointerUp={finishGesture} onPointerCancel={finishGesture} />}
+      {interactive && selected && <span className="puzzle-image-label">{tool === 'crop' ? 'Drag image to crop' : image.name}</span>}
+    </div>
+  )
+}
+
 function PuzzleBoardModal({ game, boardId, currentUserId, onClose }: {
   game: Game
   boardId: string
@@ -401,14 +498,15 @@ function PuzzleBoardModal({ game, boardId, currentUserId, onClose }: {
   const [board, setBoard] = useState<PuzzleBoard>(() => {
     try {
       const stored = localStorage.getItem(localKey)
-      if (stored) return JSON.parse(stored) as PuzzleBoard
+      if (stored) return normalizePuzzleBoard(JSON.parse(stored), currentUserId)
     } catch { /* Start with a fresh puzzle board. */ }
-    return { imageDataUrl: '', imageName: '', note: '', strokes: [], updatedBy: currentUserId }
+    return createEmptyPuzzleBoard(currentUserId)
   })
-  const [tool, setTool] = useState<'draw' | 'erase'>('draw')
+  const [activePageId, setActivePageId] = useState(board.pages[0].id)
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null)
+  const [tool, setTool] = useState<PuzzleTool>('draw')
   const [color, setColor] = useState(PUZZLE_COLORS[1])
   const [brushWidth, setBrushWidth] = useState(4)
-  const [aspectRatio, setAspectRatio] = useState(16 / 9)
   const [hasUsedCanvas, setHasUsedCanvas] = useState(false)
   const [notePanelWidth, setNotePanelWidth] = useState(310)
   const [isResizingNotes, setIsResizingNotes] = useState(false)
@@ -417,13 +515,21 @@ function PuzzleBoardModal({ game, boardId, currentUserId, onClose }: {
   const connectionRef = useRef<PuzzleConnection | null>(null)
   const boardRef = useRef(board)
   const dirtyRef = useRef(false)
+  const dirtyRevisionRef = useRef(0)
+  const dirtyPageIdsRef = useRef(new Set<string>())
+  const deletedPageIdsRef = useRef(new Set<string>())
+  const structureDirtyRef = useRef(false)
   const resizingNotesRef = useRef(false)
+  const stageRef = useRef<HTMLDivElement>(null)
+  const activePage = board.pages.find((page) => page.id === activePageId) ?? board.pages[0]
+  const selectedImage = activePage.images.find((image) => image.id === selectedImageId) ?? null
 
   useEffect(() => {
     const connection = connectPuzzle(boardId, game.id, (remoteBoard) => {
       if (dirtyRef.current) return
       boardRef.current = remoteBoard
       setBoard(remoteBoard)
+      setActivePageId((current) => remoteBoard.pages.some((page) => page.id === current) ? current : remoteBoard.pages[0].id)
       try { localStorage.setItem(localKey, JSON.stringify(remoteBoard)) } catch { /* Firestore remains the primary copy. */ }
       setSync('live')
     }, () => setSync('error'))
@@ -440,9 +546,20 @@ function PuzzleBoardModal({ game, boardId, currentUserId, onClose }: {
       const connection = connectionRef.current
       if (!connection) { dirtyRef.current = false; setSync('local'); return }
       const savingBoard = board
+      const savingRevision = dirtyRevisionRef.current
+      const savingOptions = {
+        pageIds: [...dirtyPageIdsRef.current],
+        deletedPageIds: [...deletedPageIdsRef.current],
+        structure: structureDirtyRef.current,
+      }
       setSync('saving')
-      connection.save(savingBoard).then(() => {
-        if (boardRef.current === savingBoard) dirtyRef.current = false
+      connection.save(savingBoard, savingOptions).then(() => {
+        if (dirtyRevisionRef.current === savingRevision) {
+          dirtyRef.current = false
+          dirtyPageIdsRef.current.clear()
+          deletedPageIdsRef.current.clear()
+          structureDirtyRef.current = false
+        }
         setSync('live')
       }).catch(() => {
         setSync('error')
@@ -452,46 +569,126 @@ function PuzzleBoardModal({ game, boardId, currentUserId, onClose }: {
     return () => window.clearTimeout(timer)
   }, [board, localKey])
 
-  function editBoard(change: (current: PuzzleBoard) => PuzzleBoard) {
+  function editBoard(change: (current: PuzzleBoard) => PuzzleBoard, pageIds: string[], structure = false, deletedPageIds: string[] = []) {
     setBoard((current) => {
       const next = change(current)
       if (next === current) return current
       dirtyRef.current = true
+      dirtyRevisionRef.current += 1
+      pageIds.forEach((pageId) => dirtyPageIdsRef.current.add(pageId))
+      deletedPageIds.forEach((pageId) => deletedPageIdsRef.current.add(pageId))
+      if (structure) structureDirtyRef.current = true
       return { ...next, updatedBy: currentUserId }
     })
   }
 
-  async function useImage(file?: File) {
-    if (!file) return
-    if (board.strokes.length && !window.confirm('Replace the puzzle image and clear the current drawing?')) return
+  function editActivePage(change: (page: PuzzlePage) => PuzzlePage) {
+    editBoard((current) => ({
+      ...current,
+      pages: current.pages.map((page) => page.id === activePage.id ? change(page) : page),
+    }), [activePage.id])
+  }
+
+  async function useImages(files: File[]) {
+    if (!files.length) return
     setError(null)
     try {
-      const imageDataUrl = await resizePuzzleImage(file)
-      editBoard((current) => ({ ...current, imageDataUrl, imageName: file.name || 'Pasted puzzle', strokes: [] }))
+      const remainingSlots = MAX_PUZZLE_IMAGES - activePage.images.length
+      if (remainingSlots <= 0) throw new Error(`Each puzzle page can hold up to ${MAX_PUZZLE_IMAGES} images.`)
+      const additions: PuzzleImage[] = []
+      let imageDataSize = activePage.images.reduce((total, image) => total + image.dataUrl.length, 0)
+      for (const file of files.slice(0, remainingSlots)) {
+        const { dataUrl, aspectRatio } = await resizePuzzleImage(file)
+        if (imageDataSize + dataUrl.length > MAX_PUZZLE_IMAGE_DATA) throw new Error('This page is full. Add another puzzle page for more screenshots.')
+        imageDataSize += dataUrl.length
+        const width = .52
+        const height = clamp(width * (16 / 9) / Math.max(.2, aspectRatio), .2, .78)
+        const offset = (activePage.images.length + additions.length) * .035
+        additions.push({
+          id: crypto.randomUUID(),
+          name: file.name || 'Pasted puzzle',
+          dataUrl,
+          x: clamp(.08 + offset, 0, 1 - width),
+          y: clamp(.08 + offset, 0, 1 - height),
+          width,
+          height,
+          cropX: 0,
+          cropY: 0,
+          cropZoom: 1,
+        })
+      }
+      if (!additions.length) return
+      editActivePage((page) => ({ ...page, images: [...page.images, ...additions] }))
+      setSelectedImageId(additions[additions.length - 1].id)
+      setTool('select')
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : 'That puzzle image could not be added.')
     }
   }
 
   function handlePaste(event: ReactClipboardEvent<HTMLElement>) {
-    const imageItem = [...event.clipboardData.items].find((item) => item.type.startsWith('image/'))
-    const file = imageItem?.getAsFile()
-    if (!file) return
+    const files = [...event.clipboardData.items]
+      .filter((item) => item.type.startsWith('image/'))
+      .flatMap((item, index) => {
+        const file = item.getAsFile()
+        return file ? [new File([file], `Pasted puzzle ${index + 1}.jpg`, { type: file.type })] : []
+      })
+    if (!files.length) return
     event.preventDefault()
-    void useImage(new File([file], 'Pasted puzzle.jpg', { type: file.type }))
+    void useImages(files)
   }
 
   function eraseAt(point: PuzzlePoint) {
-    editBoard((current) => {
-      const strokes = current.strokes.filter((stroke) => !stroke.points.some((candidate) => Math.hypot(candidate.x - point.x, candidate.y - point.y) < .028))
-      return strokes.length === current.strokes.length ? current : { ...current, strokes }
+    editActivePage((page) => {
+      const strokes = page.strokes.filter((stroke) => !stroke.points.some((candidate) => Math.hypot(candidate.x - point.x, candidate.y - point.y) < .028))
+      return strokes.length === page.strokes.length ? page : { ...page, strokes }
     })
   }
 
-  function removeImage() {
-    if (!window.confirm('Remove the puzzle image and clear its drawing?')) return
-    editBoard((current) => ({ ...current, imageDataUrl: '', imageName: '', strokes: [] }))
-    setAspectRatio(16 / 9)
+  function editSelectedImage(change: (image: PuzzleImage) => PuzzleImage) {
+    if (!selectedImage) return
+    editActivePage((page) => ({ ...page, images: page.images.map((image) => image.id === selectedImage.id ? change(image) : image) }))
+  }
+
+  function removeSelectedImage() {
+    if (!selectedImage || !window.confirm(`Remove “${selectedImage.name}”? Your drawing will stay.`)) return
+    editActivePage((page) => ({ ...page, images: page.images.filter((image) => image.id !== selectedImage.id) }))
+    setSelectedImageId(null)
+    setTool('select')
+  }
+
+  function moveSelectedImage(direction: 'front' | 'back') {
+    if (!selectedImage) return
+    editActivePage((page) => {
+      const images = page.images.filter((image) => image.id !== selectedImage.id)
+      return { ...page, images: direction === 'front' ? [...images, selectedImage] : [selectedImage, ...images] }
+    })
+  }
+
+  function addPage() {
+    if (board.pages.length >= 20) { setError('A game can have up to 20 puzzle pages.'); return }
+    const page = createPuzzlePage(`Puzzle ${board.pages.length + 1}`)
+    editBoard((current) => ({ ...current, pages: [...current.pages, page] }), [page.id], true)
+    setActivePageId(page.id)
+    setSelectedImageId(null)
+  }
+
+  function renamePage() {
+    const title = window.prompt('Puzzle page name', activePage.title)?.trim()
+    if (!title || title === activePage.title) return
+    editBoard((current) => ({
+      ...current,
+      pages: current.pages.map((page) => page.id === activePage.id ? { ...page, title: title.slice(0, 80) } : page),
+    }), [activePage.id], true)
+  }
+
+  function deletePage() {
+    if (board.pages.length === 1) { setError('Keep at least one puzzle page.'); return }
+    if (!window.confirm(`Delete “${activePage.title}” and everything on that page?`)) return
+    const nextPage = board.pages.find((page) => page.id !== activePage.id)
+    editBoard((current) => ({ ...current, pages: current.pages.filter((page) => page.id !== activePage.id) }), [], true, [activePage.id])
+    setActivePageId(nextPage?.id ?? board.pages[0].id)
+    setSelectedImageId(null)
   }
 
   function resizeNotes(event: ReactPointerEvent<HTMLDivElement>) {
@@ -511,33 +708,42 @@ function PuzzleBoardModal({ game, boardId, currentUserId, onClose }: {
   return (
     <div className="modal-backdrop puzzle-backdrop" onMouseDown={onClose}>
       <section className="modal puzzle-modal" onMouseDown={(event) => event.stopPropagation()} onPaste={handlePaste} aria-modal="true" role="dialog" tabIndex={-1}>
-        <div className="modal-heading puzzle-heading"><div><span className="eyebrow">{game.title}</span><h2>Puzzle Board</h2><p>Draw together, paste screenshots, and type notes live.</p></div><div className={`puzzle-sync sync-${sync}`}><span />{syncLabel}</div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
+        <div className="modal-heading puzzle-heading"><div><span className="eyebrow">{game.title}</span><h2>Puzzle Board</h2><p>Layer screenshots, draw together, and keep a page for every puzzle.</p></div><div className={`puzzle-sync sync-${sync}`}><span />{syncLabel}</div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
+        <div className="puzzle-pages"><div className="puzzle-page-tabs" role="tablist" aria-label="Puzzle pages">{board.pages.map((page) => <button key={page.id} type="button" role="tab" aria-selected={page.id === activePage.id} className={page.id === activePage.id ? 'active' : ''} onClick={() => { setActivePageId(page.id); setSelectedImageId(null) }}><Images size={13} />{page.title}</button>)}</div><button className="puzzle-page-action" type="button" onClick={addPage}><FilePlus size={14} /> New page</button><button className="puzzle-page-icon" type="button" onClick={renamePage} aria-label="Rename current puzzle page"><Pencil size={14} /></button><button className="puzzle-page-icon danger" type="button" onClick={deletePage} aria-label="Delete current puzzle page" disabled={board.pages.length === 1}><Trash2 size={14} /></button></div>
         <div className={`puzzle-layout ${isResizingNotes ? 'is-resizing' : ''}`} style={{ '--puzzle-notes-width': `${notePanelWidth}px` } as CSSProperties} onPointerMove={resizeNotes} onPointerUp={stopResizingNotes} onPointerCancel={stopResizingNotes}>
           <div className="puzzle-workspace">
             <div className="puzzle-toolbar">
-              <label className="puzzle-tool upload-tool"><ImagePlus size={16} /> {board.imageDataUrl ? 'Replace image' : 'Add image'}<input type="file" accept="image/*" onChange={(event) => { void useImage(event.target.files?.[0]); event.currentTarget.value = '' }} /></label>
+              <label className="puzzle-tool upload-tool"><ImagePlus size={16} /> Add images<input type="file" accept="image/*" multiple onChange={(event) => { void useImages([...event.target.files ?? []]); event.currentTarget.value = '' }} /></label>
+              <button className={`puzzle-tool ${tool === 'select' ? 'active' : ''}`} type="button" onClick={() => setTool('select')}><Move size={15} /> Arrange</button>
+              <button className={`puzzle-tool ${tool === 'crop' ? 'active' : ''}`} type="button" onClick={() => setTool('crop')} disabled={!selectedImage}><Crop size={15} /> Crop</button>
               <button className={`puzzle-tool ${tool === 'draw' ? 'active' : ''}`} type="button" onClick={() => setTool('draw')}><Pencil size={15} /> Draw</button>
               <button className={`puzzle-tool ${tool === 'erase' ? 'active' : ''}`} type="button" onClick={() => setTool('erase')}><Eraser size={15} /> Erase</button>
               <span className="toolbar-divider" />
-              <div className="puzzle-colors" aria-label="Drawing color">{PUZZLE_COLORS.map((option) => <button type="button" key={option} className={color === option ? 'active' : ''} style={{ background: option }} onClick={() => { setColor(option); setTool('draw') }} aria-label={`Use ${option}`} />)}</div>
-              <select className="brush-size" value={brushWidth} onChange={(event) => setBrushWidth(Number(event.target.value))} aria-label="Brush size"><option value="2">Thin</option><option value="4">Medium</option><option value="8">Thick</option></select>
+              {tool === 'crop' && selectedImage ? <div className="puzzle-crop-controls">
+                <button type="button" onClick={() => editSelectedImage((image) => ({ ...image, cropZoom: clamp(image.cropZoom - .1, 1, 3) }))} aria-label="Zoom image out" disabled={selectedImage.cropZoom <= 1}><ZoomOut size={14} /></button>
+                <input type="range" min="1" max="3" step=".05" value={selectedImage.cropZoom} aria-label="Image crop zoom" onChange={(event) => editSelectedImage((image) => ({ ...image, cropZoom: Number(event.target.value) }))} />
+                <button type="button" onClick={() => editSelectedImage((image) => ({ ...image, cropZoom: clamp(image.cropZoom + .1, 1, 3) }))} aria-label="Zoom image in" disabled={selectedImage.cropZoom >= 3}><ZoomIn size={14} /></button>
+                <button type="button" onClick={() => editSelectedImage((image) => ({ ...image, cropX: 0, cropY: 0, cropZoom: 1 }))}>Reset</button>
+              </div> : <><div className="puzzle-colors" aria-label="Drawing color">{PUZZLE_COLORS.map((option) => <button type="button" key={option} className={color === option ? 'active' : ''} style={{ background: option }} onClick={() => { setColor(option); setTool('draw') }} aria-label={`Use ${option}`} />)}</div><select className="brush-size" value={brushWidth} onChange={(event) => setBrushWidth(Number(event.target.value))} aria-label="Brush size"><option value="2">Thin</option><option value="4">Medium</option><option value="8">Thick</option></select></>}
               <span className="toolbar-spacer" />
-              <button className="puzzle-icon-tool" type="button" onClick={() => editBoard((current) => ({ ...current, strokes: current.strokes.slice(0, -1) }))} disabled={!board.strokes.length} aria-label="Undo last stroke"><RotateCcw size={16} /></button>
-              <button className="puzzle-icon-tool danger" type="button" onClick={() => { if (board.strokes.length && window.confirm('Clear the shared drawing?')) editBoard((current) => ({ ...current, strokes: [] })) }} disabled={!board.strokes.length} aria-label="Clear drawing"><Trash2 size={16} /></button>
+              {selectedImage && (tool === 'select' || tool === 'crop') && <><button className="puzzle-icon-tool" type="button" onClick={() => moveSelectedImage('back')} aria-label="Send selected image to back"><SendToBack size={16} /></button><button className="puzzle-icon-tool" type="button" onClick={() => moveSelectedImage('front')} aria-label="Bring selected image to front"><BringToFront size={16} /></button><button className="puzzle-icon-tool danger" type="button" onClick={removeSelectedImage} aria-label="Remove selected image"><Trash2 size={16} /></button></>}
+              <button className="puzzle-icon-tool" type="button" onClick={() => editActivePage((page) => ({ ...page, strokes: page.strokes.slice(0, -1) }))} disabled={!activePage.strokes.length} aria-label="Undo last stroke"><RotateCcw size={16} /></button>
+              <button className="puzzle-icon-tool danger" type="button" onClick={() => { if (activePage.strokes.length && window.confirm('Clear the shared drawing? Images will stay.')) editActivePage((page) => ({ ...page, strokes: [] })) }} disabled={!activePage.strokes.length} aria-label="Clear drawing"><Eraser size={16} /></button>
             </div>
-            <div className={`puzzle-stage ${board.imageDataUrl ? 'has-image' : ''}`} style={{ aspectRatio }}>
-              {board.imageDataUrl ? <img src={board.imageDataUrl} alt="Puzzle reference" draggable={false} onLoad={(event) => setAspectRatio(event.currentTarget.naturalWidth / event.currentTarget.naturalHeight)} /> : !board.strokes.length && !hasUsedCanvas ? <div className="puzzle-empty"><ImagePlus size={28} /><strong>Add or paste a puzzle screenshot</strong><span>You can also draw on the blank board.</span></div> : null}
-              <PuzzleCanvas strokes={board.strokes} tool={tool} color={color} width={brushWidth} authorId={currentUserId}
-                onAddStroke={(stroke) => editBoard((current) => ({ ...current, strokes: [...current.strokes.slice(-499), stroke] }))}
-                onErase={eraseAt} onInteract={() => setHasUsedCanvas(true)} />
+            <div ref={stageRef} className={`puzzle-stage tool-${tool}`} onPointerDown={() => { if (tool === 'select' || tool === 'crop') setSelectedImageId(null) }}>
+              {!activePage.images.length && !activePage.strokes.length && !hasUsedCanvas ? <div className="puzzle-empty"><ImagePlus size={28} /><strong>Add or paste puzzle screenshots</strong><span>Arrange several images, or draw on the blank board.</span></div> : null}
+              {activePage.images.map((image) => <PuzzleImageLayer key={image.id} image={image} selected={image.id === selectedImageId} tool={tool} stageRef={stageRef} onSelect={() => setSelectedImageId(image.id)} onChange={(nextImage) => editActivePage((page) => ({ ...page, images: page.images.map((item) => item.id === image.id ? nextImage : item) }))} />)}
+              <div className={`puzzle-canvas-layer ${tool === 'draw' || tool === 'erase' ? 'is-active' : ''}`}><PuzzleCanvas strokes={activePage.strokes} tool={tool === 'erase' ? 'erase' : 'draw'} color={color} width={brushWidth} authorId={currentUserId}
+                onAddStroke={(stroke) => editActivePage((page) => ({ ...page, strokes: [...page.strokes.slice(-499), stroke] }))}
+                onErase={eraseAt} onInteract={() => setHasUsedCanvas(true)} /></div>
             </div>
-            <div className="puzzle-image-footer"><span>{board.imageName || 'Blank shared canvas'}</span><span>{board.strokes.length} {board.strokes.length === 1 ? 'stroke' : 'strokes'}</span>{board.imageDataUrl && <button type="button" onClick={removeImage}>Remove image</button>}</div>
+            <div className="puzzle-image-footer"><span>{activePage.title}</span><span>{activePage.images.length} {activePage.images.length === 1 ? 'image' : 'images'}</span><span>{activePage.strokes.length} {activePage.strokes.length === 1 ? 'stroke' : 'strokes'}</span><em>{selectedImage ? `Selected: ${selectedImage.name}` : tool === 'draw' ? 'Drawings stay when images are added or removed' : 'Tap an image to arrange it'}</em></div>
           </div>
           <div className="puzzle-resizer" role="separator" tabIndex={0} aria-label="Resize shared notes" aria-orientation="vertical" aria-valuemin={240} aria-valuemax={640} aria-valuenow={notePanelWidth}
             onPointerDown={(event) => { event.preventDefault(); resizingNotesRef.current = true; setIsResizingNotes(true); try { event.currentTarget.setPointerCapture(event.pointerId) } catch { /* The layout still tracks the drag without capture. */ } }}
             onLostPointerCapture={stopResizingNotes}
             onDoubleClick={() => setNotePanelWidth(310)} onKeyDown={(event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); setNotePanelWidth((value) => Math.min(640, value + 16)) } else if (event.key === 'ArrowRight') { event.preventDefault(); setNotePanelWidth((value) => Math.max(240, value - 16)) } }}><GripVertical size={14} /></div>
-          <aside className="puzzle-notes"><div><span className="eyebrow">Shared live notes</span><h3>Work it out together</h3><p>Typing autosaves and appears for the crew while this board is open.</p></div><textarea value={board.note} maxLength={20000} onChange={(event) => editBoard((current) => ({ ...current, note: event.target.value }))} placeholder="Codes, clues, theories, steps…" /><div className="puzzle-note-footer"><span>{board.note.length.toLocaleString()} / 20,000</span><span>Paste an image anywhere in this window</span></div>{error && <p className="puzzle-error">{error}</p>}</aside>
+          <aside className="puzzle-notes"><div><span className="eyebrow">{activePage.title} · shared notes</span><h3>Work it out together</h3><p>Each puzzle page has its own live notes, images, and drawing.</p></div><textarea value={activePage.note} maxLength={20000} onChange={(event) => editActivePage((page) => ({ ...page, note: event.target.value }))} placeholder="Codes, clues, theories, steps…" /><div className="puzzle-note-footer"><span>{activePage.note.length.toLocaleString()} / 20,000</span><span>Paste images anywhere in this window</span></div>{error && <p className="puzzle-error">{error}</p>}</aside>
         </div>
       </section>
     </div>

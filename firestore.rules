@@ -72,8 +72,11 @@ service cloud.firestore {
             && get(/databases/$(database)/documents/boards/$(boardId)).data.members[request.auth.uid] != null;
         }
 
-        function validPuzzle() {
-          return request.resource.data.keys().hasOnly([
+        function validLegacyPuzzle() {
+          return request.resource.data.keys().hasAll([
+              'imageDataUrl', 'imageName', 'note', 'strokes', 'updatedBy', 'updatedAt'
+            ])
+            && request.resource.data.keys().hasOnly([
               'imageDataUrl', 'imageName', 'note', 'strokes', 'updatedBy', 'updatedAt'
             ])
             && request.resource.data.imageDataUrl is string
@@ -87,10 +90,56 @@ service cloud.firestore {
             && request.resource.data.updatedBy == request.auth.uid;
         }
 
+        function validPuzzleManifest() {
+          return request.resource.data.keys().hasAll([
+              'version', 'pages', 'updatedBy', 'updatedAt'
+            ])
+            && request.resource.data.keys().hasOnly([
+              'version', 'pages', 'updatedBy', 'updatedAt'
+            ])
+            && request.resource.data.version == 2
+            && request.resource.data.pages is list
+            && request.resource.data.pages.size() > 0
+            && request.resource.data.pages.size() <= 20
+            && request.resource.data.updatedBy == request.auth.uid;
+        }
+
         allow get: if isBoardMember();
         allow list: if false;
-        allow create, update: if isBoardMember() && validPuzzle();
+        allow create, update: if isBoardMember()
+          && (validPuzzleManifest() || validLegacyPuzzle());
         allow delete: if isBoardMember();
+
+        match /pages/{pageId} {
+          function isBoardMemberForPage() {
+            return request.auth != null
+              && get(/databases/$(database)/documents/boards/$(boardId)).data.members[request.auth.uid] != null;
+          }
+
+          function validPuzzlePage() {
+            return request.resource.data.keys().hasAll([
+                'title', 'note', 'strokes', 'images', 'updatedBy', 'updatedAt'
+              ])
+              && request.resource.data.keys().hasOnly([
+                'title', 'note', 'strokes', 'images', 'updatedBy', 'updatedAt'
+              ])
+              && request.resource.data.title is string
+              && request.resource.data.title.size() > 0
+              && request.resource.data.title.size() <= 80
+              && request.resource.data.note is string
+              && request.resource.data.note.size() <= 20000
+              && request.resource.data.strokes is list
+              && request.resource.data.strokes.size() <= 500
+              && request.resource.data.images is list
+              && request.resource.data.images.size() <= 6
+              && request.resource.data.updatedBy == request.auth.uid;
+          }
+
+          allow get: if isBoardMemberForPage();
+          allow list: if false;
+          allow create, update: if isBoardMemberForPage() && validPuzzlePage();
+          allow delete: if isBoardMemberForPage();
+        }
       }
     }
   }

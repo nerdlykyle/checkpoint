@@ -29,7 +29,8 @@ Open the local address shown in the terminal.
 - Live Firestore syncing across devices
 - Empty first-run board with no placeholder players or games
 - Crew identities for Nern, Jern, and Vern
-- Per-game live puzzle drawing boards and notes
+- Per-game live puzzle pages with independent notes and drawings
+- Layered puzzle screenshots that can be moved, resized, cropped, and reordered without erasing drawings
 - Optional Steam profile linking, ownership, playtime, and achievements
 - CheapShark price cards for Steam-redeemable copies the crew still needs
 - Morning, afternoon, and evening price-cache windows in Central Time
