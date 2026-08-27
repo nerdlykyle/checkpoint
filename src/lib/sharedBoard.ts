@@ -45,17 +45,15 @@ type BoardData = {
   members?: Record<string, StoredMember>
 }
 
+export const CHECKPOINT_CREW_BOARD_ID = '4b39bba9-4b6a-47ce-bc73-85d1985aad28'
+
 export function getBoardId() {
-  const match = window.location.hash.match(/(?:^#|&)board=([0-9a-f-]{36})/i)
-  if (match) {
-    localStorage.setItem('checkpoint-board-id', match[1])
-    return match[1]
+  localStorage.setItem('checkpoint-board-id', CHECKPOINT_CREW_BOARD_ID)
+  const expectedHash = `#board=${CHECKPOINT_CREW_BOARD_ID}`
+  if (window.location.hash !== expectedHash) {
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${expectedHash}`)
   }
-  const stored = localStorage.getItem('checkpoint-board-id')
-  const id = stored && /^[0-9a-f-]{36}$/i.test(stored) ? stored : crypto.randomUUID()
-  localStorage.setItem('checkpoint-board-id', id)
-  window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#board=${id}`)
-  return id
+  return CHECKPOINT_CREW_BOARD_ID
 }
 
 function isGameList(value: unknown): value is Game[] {
@@ -176,6 +174,23 @@ export async function connectBoard(
         'updatedAt',
         serverTimestamp(),
       )
+    }
+  }
+
+  // Hydrate from Firestore before reporting the connection as live. This keeps a
+  // blank cache on a new device from racing the first cloud snapshot and
+  // replacing the crew's library. If the original board was empty but the
+  // existing desktop still has games, migrate that local library once.
+  snapshot = await getDoc(boardRef)
+  if (snapshot.exists()) {
+    const initialData = snapshot.data() as BoardData
+    latestMember = initialData.members?.[user.uid]
+    if (isGameList(initialData.games)) {
+      const initialGames = initialData.games.length || !fallbackGames.length ? initialData.games : fallbackGames
+      if (initialGames === fallbackGames) {
+        await updateDoc(boardRef, { games: fallbackGames, updatedAt: serverTimestamp() })
+      }
+      onRemoteState(initialGames, membersFromData({ ...initialData, games: initialGames }))
     }
   }
 
