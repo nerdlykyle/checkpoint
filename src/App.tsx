@@ -85,6 +85,13 @@ function friendlyCalendarError(error: unknown) {
   return message
 }
 
+function gameNightCalendarState(gameNight: GameNight, crew: Member[]) {
+  const responses = crew.map((member) => gameNight.responses[member.id])
+  if (responses.some((response) => response?.status === 'declined' && (response.suggestedStartAt || response.suggestedEndAt))) return 'denied'
+  if (crew.length && responses.every((response) => response?.status === 'accepted')) return 'approved'
+  return 'pending'
+}
+
 function cleanRemoteGames(games: Game[]) {
   const withoutPlaceholders = games.filter((game) => !LEGACY_PLACEHOLDER_IDS.has(game.id))
   if (localStorage.getItem(REMNANT_CLEANUP_KEY)) return withoutPlaceholders
@@ -992,14 +999,14 @@ function LibraryCard({ game, onOpen, onVote }: { game: Game; onOpen: () => void;
   )
 }
 
-function ScheduleGameNightModal({ games, onClose, onSchedule }: { games: Game[]; onClose: () => void; onSchedule: (night: Omit<GameNight, 'id' | 'createdBy' | 'createdAt' | 'responses'>) => void }) {
+function ScheduleGameNightModal({ games, defaultDate, onClose, onSchedule }: { games: Game[]; defaultDate?: string; onClose: () => void; onSchedule: (night: Omit<GameNight, 'id' | 'createdBy' | 'createdAt' | 'responses'>) => void }) {
   const initialStart = new Date()
   initialStart.setDate(initialStart.getDate() + (initialStart.getDay() === 5 ? 7 : (12 - initialStart.getDay()) % 7))
   initialStart.setHours(19, 0, 0, 0)
   const initialEnd = new Date(initialStart.getTime() + 3 * 60 * 60 * 1000)
   const [title, setTitle] = useState('Game Night')
   const [gameQuery, setGameQuery] = useState(() => games.find((game) => game.status === 'playing')?.title ?? '')
-  const [date, setDate] = useState(localDateValue(initialStart))
+  const [date, setDate] = useState(defaultDate || localDateValue(initialStart))
   const [startTime, setStartTime] = useState(localTimeValue(initialStart))
   const [endTime, setEndTime] = useState(localTimeValue(initialEnd))
   const [note, setNote] = useState('')
@@ -1068,7 +1075,7 @@ function GameNightCard({ gameNight, currentUserId, crew, syncing, onAccept, onDe
   </article>
 }
 
-function CalendarPage({ gameNights, crew, currentUserId, syncingId, calendarError, sharedSyncError, onSchedule, onAccept, onDecline }: { gameNights: GameNight[]; crew: Member[]; currentUserId: string; syncingId: string | null; calendarError: string | null; sharedSyncError: boolean; onSchedule: () => void; onAccept: (night: GameNight) => void; onDecline: (night: GameNight) => void }) {
+function CalendarPage({ gameNights, crew, currentUserId, syncingId, calendarError, sharedSyncError, onSchedule, onAccept, onDecline }: { gameNights: GameNight[]; crew: Member[]; currentUserId: string; syncingId: string | null; calendarError: string | null; sharedSyncError: boolean; onSchedule: (date?: string) => void; onAccept: (night: GameNight) => void; onDecline: (night: GameNight) => void }) {
   const [visibleMonth, setVisibleMonth] = useState(() => { const date = new Date(); date.setDate(1); date.setHours(0, 0, 0, 0); return date })
   const monthStart = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1)
   const gridStart = new Date(monthStart)
@@ -1076,11 +1083,11 @@ function CalendarPage({ gameNights, crew, currentUserId, syncingId, calendarErro
   const days = Array.from({ length: 42 }, (_, index) => { const date = new Date(gridStart); date.setDate(gridStart.getDate() + index); return date })
   const upcoming = [...gameNights].filter((night) => new Date(night.endAt) >= new Date()).sort((a, b) => a.startAt.localeCompare(b.startAt))
   return <div className="page calendar-page">
-    <div className="page-title-row calendar-title-row"><div><span className="eyebrow">Get the crew together</span><h1>Game night calendar</h1><p>Propose a night, RSVP together, and add accepted plans to your personal Google Calendar.</p></div><button className="button button-primary" type="button" onClick={onSchedule}><Plus size={18} /> Schedule game night</button></div>
+    <div className="page-title-row calendar-title-row"><div><span className="eyebrow">Get the crew together</span><h1>Game night calendar</h1><p>Propose a night, RSVP together, and add accepted plans to your personal Google Calendar.</p></div><button className="button button-primary" type="button" onClick={() => onSchedule()}><Plus size={18} /> Schedule game night</button></div>
     {(calendarError || sharedSyncError) && <div className="calendar-alert" role="alert"><CircleHelp size={19} /><div><strong>Calendar setup needs attention</strong>{sharedSyncError && <p>Your game night is saved on this device, but Firebase rejected the shared-calendar update.</p>}{calendarError && <p>{calendarError} Your Checkpoint RSVP is still saved.</p>}</div></div>}
-    <section className="calendar-shell"><div className="calendar-toolbar"><h2>{visibleMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2><div><button type="button" onClick={() => setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1))} aria-label="Previous month"><ChevronLeft size={18} /></button><button type="button" onClick={() => { const now = new Date(); setVisibleMonth(new Date(now.getFullYear(), now.getMonth(), 1)) }}>Today</button><button type="button" onClick={() => setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1))} aria-label="Next month"><ChevronRight size={18} /></button></div></div>
-      <div className="calendar-weekdays">{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => <span key={day}>{day}</span>)}</div><div className="calendar-grid">{days.map((day) => { const key = localDateValue(day); const dayEvents = gameNights.filter((night) => localDateValue(new Date(night.startAt)) === key); const today = key === localDateValue(new Date()); return <div className={`${day.getMonth() !== visibleMonth.getMonth() ? 'outside' : ''} ${today ? 'today' : ''}`} key={key}><span className="calendar-day-number">{day.getDate()}</span>{dayEvents.slice(0, 2).map((night) => <button className="calendar-event" type="button" key={night.id} onClick={() => document.getElementById(`night-${night.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}><span>{new Date(night.startAt).toLocaleTimeString('en-US', { hour: 'numeric' })}</span>{night.gameTitle || night.title}</button>)}{dayEvents.length > 2 && <small>+{dayEvents.length - 2} more</small>}</div> })}</div></section>
-    <section className="upcoming-nights"><div className="section-heading"><div><span className="eyebrow">Ready check</span><h2>Upcoming game nights</h2></div></div>{upcoming.length ? <div className="game-night-list">{upcoming.map((night) => <div id={`night-${night.id}`} key={night.id}><GameNightCard gameNight={night} currentUserId={currentUserId} crew={crew} syncing={syncingId === night.id} onAccept={() => onAccept(night)} onDecline={() => onDecline(night)} /></div>)}</div> : <div className="calendar-empty"><CalendarDays size={30} /><h3>No game nights scheduled</h3><p>Pick a day and let the crew vote on it.</p><button className="button button-primary" type="button" onClick={onSchedule}>Schedule the first one</button></div>}</section>
+    <section className="calendar-shell"><div className="calendar-toolbar"><h2>{visibleMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2><div><button type="button" onClick={() => setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1))} aria-label="Previous month"><ChevronLeft size={18} /></button><button type="button" onClick={() => { const now = new Date(); setVisibleMonth(new Date(now.getFullYear(), now.getMonth(), 1)) }}>Today</button><button type="button" onClick={() => setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1))} aria-label="Next month"><ChevronRight size={18} /></button></div></div><div className="calendar-legend" aria-label="Game night approval legend"><span className="pending"><Gamepad2 size={14} fill="none" /> Awaiting votes</span><span className="approved"><Gamepad2 size={14} fill="none" /> Everyone approved</span><span className="denied"><Gamepad2 size={14} fill="none" /> New time suggested</span></div>
+      <div className="calendar-weekdays">{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => <span key={day}>{day}</span>)}</div><div className="calendar-grid">{days.map((day) => { const key = localDateValue(day); const dayEvents = gameNights.filter((night) => localDateValue(new Date(night.startAt)) === key); const today = key === localDateValue(new Date()); return <div className={`${day.getMonth() !== visibleMonth.getMonth() ? 'outside' : ''} ${today ? 'today' : ''}`} key={key}><button className="calendar-day-hitbox" type="button" onClick={() => onSchedule(key)} aria-label={`Schedule a game night on ${day.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`} /><span className="calendar-day-number">{day.getDate()}</span><div className="calendar-event-markers">{dayEvents.slice(0, 3).map((night) => { const state = gameNightCalendarState(night, crew); return <button className={`calendar-event calendar-event-${state}`} type="button" key={night.id} title={`${night.gameTitle || night.title} · ${state}`} aria-label={`${night.gameTitle || night.title}: ${state}`} onClick={() => document.getElementById(`night-${night.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}><Gamepad2 size={17} fill="none" /><span>{new Date(night.startAt).toLocaleTimeString('en-US', { hour: 'numeric' })} · {night.gameTitle || night.title}</span></button> })}</div>{dayEvents.length > 3 && <small>+{dayEvents.length - 3} more</small>}</div> })}</div></section>
+    <section className="upcoming-nights"><div className="section-heading"><div><span className="eyebrow">Ready check</span><h2>Upcoming game nights</h2></div></div>{upcoming.length ? <div className="game-night-list">{upcoming.map((night) => <div id={`night-${night.id}`} key={night.id}><GameNightCard gameNight={night} currentUserId={currentUserId} crew={crew} syncing={syncingId === night.id} onAccept={() => onAccept(night)} onDecline={() => onDecline(night)} /></div>)}</div> : <div className="calendar-empty"><CalendarDays size={30} /><h3>No game nights scheduled</h3><p>Pick a day and let the crew vote on it.</p><button className="button button-primary" type="button" onClick={() => onSchedule()}>Schedule the first one</button></div>}</section>
   </div>
 }
 
@@ -1141,6 +1148,7 @@ function App() {
   const [addParentId, setAddParentId] = useState<string | undefined>()
   const [showCrew, setShowCrew] = useState(false)
   const [showSchedule, setShowSchedule] = useState(false)
+  const [scheduleDate, setScheduleDate] = useState<string | undefined>()
   const [declineNightId, setDeclineNightId] = useState<string | null>(null)
   const [calendarSyncingId, setCalendarSyncingId] = useState<string | null>(null)
   const [calendarError, setCalendarError] = useState<string | null>(null)
@@ -1356,6 +1364,7 @@ function App() {
     const gameNight: GameNight = { ...draft, id: crypto.randomUUID(), createdBy: currentUser, createdAt: now, responses: { [currentUser]: { status: 'accepted', respondedAt: now } } }
     setGameNights((current) => [...current, gameNight])
     setShowSchedule(false)
+    setScheduleDate(undefined)
     setView('calendar')
     void acceptGameNight(gameNight)
   }
@@ -1475,11 +1484,11 @@ function App() {
           <div className="filter-tabs">{([['all', 'All games'], ...Object.entries(statusLabels)] as [GameStatus | 'all', string][]).map(([value, label]) => <button key={value} className={libraryFilter === value ? 'active' : ''} onClick={() => setLibraryFilter(value)}>{label}<span>{value === 'all' ? games.length : games.filter((game) => game.status === value).length}</span></button>)}</div>
           <div className="smart-filters"><span><ListFilter size={14} /> Steam & prices</span>{([['any', 'Any ownership'], ['everyone-owns', 'Everyone owns'], ['needs-copy', 'Someone needs it'], ['on-sale', 'On sale']] as [SmartFilter, string][]).map(([value, label]) => <button type="button" key={value} className={smartFilter === value ? 'active' : ''} onClick={() => setSmartFilter(value)}>{label}</button>)}{integrationsLoading && <RefreshCw className="spin" size={14} />}</div>
           {filteredGames.length ? <div className="library-grid">{filteredGames.map((game) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} onVote={() => vote(game.id)} />)}</div> : <div className="empty-state"><Search size={28} /><h2>No games found</h2><p>Try another search or add a new game.</p><button className="button button-primary" onClick={() => openAddGame()}>Add game</button></div>}
-        </div> : <CalendarPage gameNights={gameNights} crew={groupMembers} currentUserId={currentUser} syncingId={calendarSyncingId} calendarError={calendarError} sharedSyncError={syncStatus === 'error'} onSchedule={() => setShowSchedule(true)} onAccept={acceptGameNight} onDecline={(night) => setDeclineNightId(night.id)} />}
+        </div> : <CalendarPage gameNights={gameNights} crew={groupMembers} currentUserId={currentUser} syncingId={calendarSyncingId} calendarError={calendarError} sharedSyncError={syncStatus === 'error'} onSchedule={(date) => { setScheduleDate(date); setShowSchedule(true) }} onAccept={acceptGameNight} onDecline={(night) => setDeclineNightId(night.id)} />}
         <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={20} /><span>Home</span></button><button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('all') }}><Library size={20} /><span>Library</span></button><button className="mobile-add" onClick={() => openAddGame()}><Plus size={23} /></button><button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('up-next') }}><BookOpen size={20} /><span>Queue</span></button><button className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}><CalendarDays size={20} /><span>Calendar</span></button></nav>
       </main>
       {showAdd && <AddGameModal onClose={closeAddGame} onAdd={addGame} games={games} defaultParentId={addParentId} />}
-      {showSchedule && <ScheduleGameNightModal games={games} onClose={() => setShowSchedule(false)} onSchedule={scheduleGameNight} />}
+      {showSchedule && <ScheduleGameNightModal games={games} defaultDate={scheduleDate} onClose={() => { setShowSchedule(false); setScheduleDate(undefined) }} onSchedule={scheduleGameNight} />}
       {declineNightId && gameNights.find((night) => night.id === declineNightId) && <SuggestTimeModal gameNight={gameNights.find((night) => night.id === declineNightId)!} onClose={() => setDeclineNightId(null)} onSuggest={(startAt, endAt) => declineGameNight(declineNightId, startAt, endAt)} />}
       {showCrew && <CrewModal members={groupMembers} currentUserId={currentUser} googlePhotoUrl={user?.photoURL} integrationError={integrationError} onClose={() => setShowCrew(false)} onSavePhoto={saveProfileImage} onResolveSteam={resolveSteamLink} onSaveSteam={saveSteamProfile} />}
       {selected && <GameDetailsModal game={selected} onClose={() => setSelectedId(null)} onVote={() => vote(selected.id)} onSave={(updates) => updateGame(selected.id, updates)} onRemove={() => removeGame(selected)} onAddDlc={() => openAddGame(selected)} onOpenPuzzle={() => { setPuzzleGameId(selected.id); setSelectedId(null) }} onManualOwnershipChange={(memberId, owned) => updateManualOwnership(selected.id, memberId, owned)} />}

@@ -321,16 +321,22 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
 .calendar-toolbar h2 { margin: 0; font-size: 18px; letter-spacing: -.35px; }
 .calendar-toolbar > div { display: flex; gap: 6px; }
 .calendar-toolbar button { height: 34px; min-width: 34px; padding: 0 10px; border: 1px solid #303a3f; border-radius: 9px; background: #101619; color: #9ba6a2; display: grid; place-items: center; font-size: 9px; font-weight: 750; cursor: pointer; }
+.calendar-legend { min-height: 38px; padding: 7px 18px; border-bottom: 1px solid var(--line); background: #12181a; display: flex; align-items: center; gap: 16px; }.calendar-legend span { display: inline-flex; align-items: center; gap: 5px; color: #7d8985; font-size: 8px; font-weight: 700; }.calendar-legend svg { fill: none; }.calendar-legend .pending svg { color: #eea64f; }.calendar-legend .approved svg { color: #69c591; }.calendar-legend .denied svg { color: #e36f75; }
 .calendar-weekdays { height: 35px; border-bottom: 1px solid var(--line); background: #111719; display: grid; grid-template-columns: repeat(7,1fr); }
 .calendar-weekdays span { padding: 12px 10px 0; color: #6f7b77; font-size: 8px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .calendar-grid { display: grid; grid-template-columns: repeat(7,1fr); }
-.calendar-grid > div { min-width: 0; min-height: 112px; padding: 8px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.calendar-grid > div { position: relative; min-width: 0; min-height: 112px; padding: 8px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .calendar-grid > div:nth-child(7n) { border-right: 0; }.calendar-grid > div:nth-last-child(-n+7) { border-bottom: 0; }
 .calendar-grid > div.outside { background: #101517; color: #4e5955; }.calendar-grid > div.today { background: rgba(129,115,238,.065); }
-.calendar-day-number { width: 25px; height: 25px; margin-bottom: 4px; border-radius: 50%; display: grid; place-items: center; color: #a6b0ac; font-size: 10px; font-weight: 750; }
+.calendar-day-hitbox { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.calendar-day-hitbox:hover, .calendar-day-hitbox:focus-visible { outline: 0; background: rgba(129,115,238,.075); box-shadow: inset 0 0 0 1px rgba(129,115,238,.32); }
+.calendar-day-number { position: relative; z-index: 1; width: 25px; height: 25px; margin-bottom: 5px; border-radius: 50%; pointer-events: none; display: grid; place-items: center; color: #a6b0ac; font-size: 10px; font-weight: 750; }
 .calendar-grid > div.today .calendar-day-number { background: var(--purple); color: #fff; }
-.calendar-event { width: 100%; margin-top: 4px; padding: 6px 7px; overflow: hidden; border: 1px solid #443b72; border-radius: 7px; background: #292447; color: #c9c3ff; text-align: left; text-overflow: ellipsis; white-space: nowrap; font-size: 8.5px; cursor: pointer; }
-.calendar-event span { margin-right: 4px; color: #8f85dc; }.calendar-grid small { color: #697570; font-size: 8px; }
+.calendar-event-markers { position: relative; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.calendar-event { width: 29px; height: 29px; padding: 0; border: 0; border-radius: 8px; background: transparent; display: grid; place-items: center; cursor: pointer; transition: background .15s, transform .15s; }
+.calendar-event:hover, .calendar-event:focus-visible { outline: 0; background: rgba(255,255,255,.06); transform: translateY(-1px); }.calendar-event svg { fill: none !important; stroke: currentColor; }.calendar-event span { display: none; }
+.calendar-event-pending { color: #eea64f; }.calendar-event-approved { color: #69c591; }.calendar-event-denied { color: #e36f75; }
+.calendar-grid small { position: relative; z-index: 2; color: #697570; font-size: 8px; }
 .upcoming-nights { margin-top: 34px; }.game-night-list { display: grid; gap: 11px; }
 .game-night-card { padding: 16px; border: 1px solid var(--line); border-radius: 15px; background: var(--card); display: grid; grid-template-columns: 56px minmax(0,1fr) auto; gap: 15px; align-items: start; box-shadow: 0 5px 20px rgba(0,0,0,.12); }
 .game-night-date { width: 54px; height: 61px; border: 1px solid #3a3e5c; border-radius: 12px; background: #242139; display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -347,8 +353,9 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 760px) {
   .calendar-title-row { gap: 16px; }.calendar-title-row .button { flex: 0 0 auto; padding: 0 11px; font-size: 0; }.calendar-title-row .button svg { margin: 0; }
   .calendar-toolbar { min-height: 58px; padding: 0 11px; }.calendar-toolbar h2 { font-size: 15px; }
-  .calendar-weekdays span { padding: 10px 2px 0; text-align: center; }.calendar-grid > div { min-height: 66px; padding: 4px 3px; }.calendar-day-number { width: 21px; height: 21px; margin: 0 auto 3px; font-size: 9px; }
-  .calendar-event { height: 7px; margin: 3px auto 0; padding: 0; border: 0; border-radius: 999px; font-size: 0; }.calendar-event span { display: none; }.calendar-grid small { display: none; }
+  .calendar-legend { min-height: 34px; padding: 6px 10px; justify-content: center; gap: 12px; }.calendar-legend span { font-size: 0; }.calendar-legend svg { width: 16px; height: 16px; }
+  .calendar-weekdays span { padding: 10px 2px 0; text-align: center; }.calendar-grid > div { min-height: 66px; padding: 4px 3px; }.calendar-day-number { width: 21px; height: 21px; margin: 0 auto 2px; font-size: 9px; }
+  .calendar-event-markers { justify-content: center; gap: 1px; }.calendar-event { width: 22px; height: 22px; }.calendar-event svg { width: 15px; height: 15px; }.calendar-grid small { display: none; }
   .upcoming-nights { margin-top: 27px; }.game-night-card { grid-template-columns: 48px minmax(0,1fr); padding: 13px; gap: 11px; }.game-night-date { width: 47px; height: 55px; }.rsvp-actions { grid-column: 1 / -1; min-width: 0; padding-top: 11px; border-top: 1px solid var(--line); flex-direction: row; align-items: center; }.rsvp-actions > span { margin-right: auto; }.rsvp-actions small, .calendar-retry { margin-left: auto; }
   .schedule-modal .form-grid, .suggestion-modal .form-grid { grid-template-columns: 1fr; }
 }
