@@ -3,6 +3,7 @@ import {
   GoogleAuthProvider,
   getAuth,
   onAuthStateChanged,
+  reauthenticateWithPopup,
   signInWithPopup,
   signOut as firebaseSignOut,
   type User,
@@ -45,3 +46,20 @@ export async function signOut() {
   if (auth) await firebaseSignOut(auth)
 }
 
+let calendarToken: { value: string; expiresAt: number } | null = null
+
+export async function getGoogleCalendarAccessToken() {
+  if (!auth?.currentUser) throw new Error('Sign in before connecting Google Calendar.')
+  if (calendarToken && calendarToken.expiresAt > Date.now()) return calendarToken.value
+
+  const provider = new GoogleAuthProvider()
+  provider.addScope('https://www.googleapis.com/auth/calendar.events')
+  provider.setCustomParameters({
+    login_hint: auth.currentUser.email || '',
+  })
+  const result = await reauthenticateWithPopup(auth.currentUser, provider)
+  const credential = GoogleAuthProvider.credentialFromResult(result)
+  if (!credential?.accessToken) throw new Error('Google Calendar permission was not granted.')
+  calendarToken = { value: credential.accessToken, expiresAt: Date.now() + 50 * 60 * 1000 }
+  return calendarToken.value
+}

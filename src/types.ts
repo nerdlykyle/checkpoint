@@ -2,6 +2,28 @@ export type GameStatus = 'playing' | 'up-next' | 'maybe' | 'wishlist' | 'complet
 export type Persona = 'Nern' | 'Jern' | 'Vern'
 export type ContentType = 'game' | 'dlc'
 
+export type GameNightResponse = {
+  status: 'accepted' | 'declined'
+  respondedAt: string
+  suggestedStartAt?: string
+  suggestedEndAt?: string
+  googleEventId?: string
+  calendarSyncedAt?: string
+}
+
+export type GameNight = {
+  id: string
+  title: string
+  gameId?: string
+  gameTitle?: string
+  startAt: string
+  endAt: string
+  note?: string
+  createdBy: string
+  createdAt: string
+  responses: Record<string, GameNightResponse>
+}
+
 export type PuzzlePoint = {
   x: number
   y: number

@@ -35,6 +35,8 @@ Open the local address shown in the terminal.
 - Synced manual ownership overrides for private Steam profiles and manually added games
 - CheapShark price cards for Steam-redeemable copies the crew still needs
 - Morning, afternoon, and evening price-cache windows in Central Time
+- Shared game-night calendar with per-player accept/decline responses and alternate-time suggestions
+- One-click personal Google Calendar copies for accepted game nights
 
 ## Commands
 
@@ -52,6 +54,10 @@ Open the local address shown in the terminal.
 5. Deploy `firestore.rules` with the Firebase CLI or paste them into the Firestore Rules editor.
 
 The private `#board=...` portion of the Checkpoint URL identifies the board. A visitor must also sign in with Google; opening a private link lets that signed-in user join only as themselves. `kjsparsons@gmail.com` is assigned to Nern automatically, while the other two accounts choose Jern or Vern. Firestore collection listing and board deletion are denied by the included rules.
+
+## Google Calendar
+
+Enable the **Google Calendar API** in the same Google Cloud project used by Firebase. The first time a player accepts a game night, Checkpoint asks that player for the `calendar.events` permission and creates a private event on their primary Google Calendar. Checkpoint keeps the temporary Google access token in memory only; the shared board stores only the returned event ID so it can update the same event without creating duplicates.
 
 ## Steam catalog
 

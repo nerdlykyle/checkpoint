@@ -9,11 +9,12 @@ import {
   updateDoc,
   type Unsubscribe,
 } from 'firebase/firestore'
-import type { Game, Member, Persona } from '../types'
+import type { Game, GameNight, Member, Persona } from '../types'
 import { database } from './firebase'
 
 export type BoardConnection = {
   save: (games: Game[]) => Promise<void>
+  saveGameNights: (gameNights: GameNight[]) => Promise<void>
   saveProfileImage: (customPhotoUrl: string | null) => Promise<void>
   saveSteamProfile: (profile: SteamProfile | null) => Promise<void>
   close: Unsubscribe
@@ -42,7 +43,21 @@ type StoredMember = {
 
 type BoardData = {
   games?: unknown
+  gameNights?: unknown
   members?: Record<string, StoredMember>
+}
+
+function isGameNightList(value: unknown): value is GameNight[] {
+  return Array.isArray(value) && value.every((item) => {
+    if (!item || typeof item !== 'object') return false
+    const gameNight = item as Partial<GameNight>
+    return typeof gameNight.id === 'string'
+      && typeof gameNight.title === 'string'
+      && typeof gameNight.startAt === 'string'
+      && typeof gameNight.endAt === 'string'
+      && typeof gameNight.createdBy === 'string'
+      && Boolean(gameNight.responses && typeof gameNight.responses === 'object')
+  })
 }
 
 export const CHECKPOINT_CREW_BOARD_ID = '4b39bba9-4b6a-47ce-bc73-85d1985aad28'
@@ -118,7 +133,8 @@ export async function connectBoard(
   user: User,
   persona: Persona,
   fallbackGames: Game[],
-  onRemoteState: (games: Game[], members: Member[]) => void,
+  fallbackGameNights: GameNight[],
+  onRemoteState: (games: Game[], members: Member[], gameNights: GameNight[]) => void,
 ): Promise<BoardConnection | null> {
   if (!database) return null
   const boardRef = doc(database, 'boards', boardId)
@@ -132,6 +148,7 @@ export async function connectBoard(
       // This succeeds only when the private board link has not been claimed yet.
       await setDoc(boardRef, {
         games: fallbackGames,
+        gameNights: fallbackGameNights,
         ownerUid: user.uid,
         members: { [user.uid]: memberFromUser(user, persona) },
         createdAt: serverTimestamp(),
@@ -153,6 +170,7 @@ export async function connectBoard(
   if (!snapshot.exists()) {
     await setDoc(boardRef, {
       games: fallbackGames,
+      gameNights: fallbackGameNights,
       ownerUid: user.uid,
       members: { [user.uid]: memberFromUser(user, persona) },
       createdAt: serverTimestamp(),
@@ -187,10 +205,18 @@ export async function connectBoard(
     latestMember = initialData.members?.[user.uid]
     if (isGameList(initialData.games)) {
       const initialGames = initialData.games.length || !fallbackGames.length ? initialData.games : fallbackGames
+      const initialGameNights = isGameNightList(initialData.gameNights)
+        ? initialData.gameNights
+        : fallbackGameNights
       if (initialGames === fallbackGames) {
         await updateDoc(boardRef, { games: fallbackGames, updatedAt: serverTimestamp() })
       }
-      onRemoteState(initialGames, membersFromData({ ...initialData, games: initialGames }))
+      if (!isGameNightList(initialData.gameNights)) {
+        // Older deployments do not have this field yet. Hydrate the rest of the
+        // board even if its matching rules update has not reached Firebase.
+        await updateDoc(boardRef, { gameNights: fallbackGameNights, updatedAt: serverTimestamp() }).catch(() => undefined)
+      }
+      onRemoteState(initialGames, membersFromData({ ...initialData, games: initialGames }), initialGameNights)
     }
   }
 
@@ -198,12 +224,15 @@ export async function connectBoard(
     if (!nextSnapshot.exists()) return
     const data = nextSnapshot.data() as BoardData
     latestMember = data.members?.[user.uid]
-    if (isGameList(data.games)) onRemoteState(data.games, membersFromData(data))
+    if (isGameList(data.games)) onRemoteState(data.games, membersFromData(data), isGameNightList(data.gameNights) ? data.gameNights : [])
   })
 
   return {
     async save(games) {
       await updateDoc(boardRef, { games, updatedAt: serverTimestamp() })
+    },
+    async saveGameNights(gameNights) {
+      await updateDoc(boardRef, { gameNights, updatedAt: serverTimestamp() })
     },
     async saveProfileImage(customPhotoUrl) {
       const nextMember = memberFromUser(user, persona, latestMember, customPhotoUrl ?? '')
