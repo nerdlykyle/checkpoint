@@ -17,7 +17,7 @@ Open the local address shown in the terminal.
 
 - Responsive desktop and mobile layouts
 - Dark mode by default
-- Searchable Steam catalog with real titles and cover art
+- Searchable Steam catalog and exact Steam store-link matching with real titles and cover art
 - Playing, Up next, Maybe, Wishlist, and Completed statuses
 - Drag-to-reorder Up next queue
 - Per-player voting separate from official queue order

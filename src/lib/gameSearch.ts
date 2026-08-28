@@ -9,6 +9,11 @@ export type GameSearchResult = {
 
 type SteamCatalogEntry = [number, string, (0 | 1)?]
 
+type SteamStoreLink = {
+  appId: number
+  slugTitle: string
+}
+
 const REMOTE_CATALOGS = [
   'https://raw.githubusercontent.com/jsnli/SteamAppIDList/master/data/games_appid.json',
   'https://raw.githubusercontent.com/jsnli/SteamAppIDList/master/data/dlc_appid.json',
@@ -41,6 +46,49 @@ function isCompactCatalog(value: unknown): value is SteamCatalogEntry[] {
 
 function isFullCatalog(value: unknown): value is { appid: number; name: string }[] {
   return Array.isArray(value) && value.every((entry) => entry && typeof entry === 'object' && 'appid' in entry && 'name' in entry && typeof entry.appid === 'number' && typeof entry.name === 'string')
+}
+
+function resultFromEntry([appId, title, catalogKind = 0]: SteamCatalogEntry): GameSearchResult {
+  return {
+    catalogId: String(appId),
+    steamAppId: String(appId),
+    title,
+    coverUrl: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${appId}/library_600x900_2x.jpg`,
+    thumbnailUrl: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg`,
+    contentType: catalogKind === 1 ? 'dlc' : 'game',
+  }
+}
+
+export function parseSteamStoreLink(input: string): SteamStoreLink | null {
+  const clean = input.trim()
+  const clientMatch = clean.match(/^steam:\/\/store\/(\d{1,10})(?:\/|$)/i)
+  if (clientMatch) return { appId: Number(clientMatch[1]), slugTitle: '' }
+  try {
+    const url = new URL(clean)
+    if (!['store.steampowered.com', 'www.store.steampowered.com'].includes(url.hostname.toLowerCase())) return null
+    const match = url.pathname.match(/^\/(?:agecheck\/)?app\/(\d{1,10})(?:\/([^/]+))?/i)
+    if (!match) return null
+    const slugTitle = match[2] ? decodeURIComponent(match[2]).replace(/[_-]+/g, ' ').trim() : ''
+    return { appId: Number(match[1]), slugTitle }
+  } catch {
+    return null
+  }
+}
+
+export async function resolveSteamStoreLink(input: string, signal?: AbortSignal, fallbackContentType: 'game' | 'dlc' = 'game'): Promise<GameSearchResult | null> {
+  const link = parseSteamStoreLink(input)
+  if (!link) return null
+  if (link.slugTitle) {
+    try {
+      const catalog = await loadCatalog(link.slugTitle, signal)
+      const exactEntry = catalog.find(([appId]) => appId === link.appId)
+      if (exactEntry) return resultFromEntry(exactEntry)
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') throw error
+    }
+  }
+  const fallbackTitle = link.slugTitle || `Steam app ${link.appId}`
+  return resultFromEntry([link.appId, fallbackTitle, fallbackContentType === 'dlc' ? 1 : 0])
 }
 
 async function loadCatalog(query: string, signal?: AbortSignal) {
@@ -116,12 +164,5 @@ export async function searchGames(query: string, signal?: AbortSignal, contentTy
     })
     .sort((left, right) => left.score - right.score || left.appId - right.appId || left.title.localeCompare(right.title))
     .slice(0, 20)
-    .map(({ appId, title, resultType }) => ({
-      catalogId: String(appId),
-      steamAppId: String(appId),
-      title,
-      coverUrl: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${appId}/library_600x900_2x.jpg`,
-      thumbnailUrl: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg`,
-      contentType: resultType,
-    }))
+    .map(({ appId, title, resultType }) => resultFromEntry([appId, title, resultType === 'dlc' ? 1 : 0]))
 }

@@ -13,7 +13,7 @@ import './App.css'
 import { initialGames, members, statusLabels } from './data'
 import type { ContentType, Game, GameDeal, GameStatus, Member, Persona, PuzzleBoard, PuzzleImage, PuzzlePage, PuzzlePoint, PuzzleStroke, SteamAchievementSnapshot, SteamCrewSnapshot } from './types'
 import { firebaseConfigured, signInWithGoogle, signOut, watchAuth } from './lib/firebase'
-import { searchGames, type GameSearchResult } from './lib/gameSearch'
+import { parseSteamStoreLink, resolveSteamStoreLink, searchGames, type GameSearchResult } from './lib/gameSearch'
 import { connectBoard, getBoardId, getExistingPersona, type BoardConnection, type SteamProfile } from './lib/sharedBoard'
 import { connectPuzzle, createEmptyPuzzleBoard, createPuzzlePage, normalizePuzzleBoard, type PuzzleConnection } from './lib/sharedPuzzle'
 import { gameIntegrationsConfigured, loadGameAchievements, loadSteamCrew, resolveSteamProfile } from './lib/gameIntegrations'
@@ -780,6 +780,20 @@ function AddGameModal({ onClose, onAdd, games, defaultParentId }: { onClose: () 
     const timer = window.setTimeout(() => {
       setSearching(true)
       setSearchFailed(false)
+      const steamLink = parseSteamStoreLink(query)
+      if (steamLink) {
+        resolveSteamStoreLink(query, controller.signal, contentType)
+          .then((match) => {
+            if (!match) throw new Error('Steam link could not be resolved')
+            chooseGame(match)
+          })
+          .catch((error: unknown) => {
+            if (error instanceof DOMException && error.name === 'AbortError') return
+            setSearchFailed(true)
+          })
+          .finally(() => setSearching(false))
+        return
+      }
       const parentGame = contentType === 'dlc' ? games.find((game) => game.id === parentGameId) : undefined
       const catalogQuery = parentGame ? `${parentGame.title}: ${query}` : query
       searchGames(catalogQuery, controller.signal, contentType)
@@ -789,13 +803,15 @@ function AddGameModal({ onClose, onAdd, games, defaultParentId }: { onClose: () 
           setSearchFailed(true)
         })
         .finally(() => setSearching(false))
-    }, 320)
+    }, parseSteamStoreLink(query) ? 80 : 320)
     return () => { window.clearTimeout(timer); controller.abort() }
   }, [contentType, games, parentGameId, title, selectedGame])
 
   function chooseGame(game: GameSearchResult) {
     setSelectedGame(game)
     setTitle(game.title)
+    setContentType(game.contentType)
+    if (game.contentType === 'game') setParentGameId('')
     setShowResults(false)
   }
 
@@ -830,14 +846,14 @@ function AddGameModal({ onClose, onAdd, games, defaultParentId }: { onClose: () 
         <form onSubmit={submit}>
           <div className="content-type-choice" role="group" aria-label="Content type"><button className={contentType === 'game' ? 'active' : ''} type="button" onClick={() => { setContentType('game'); setParentGameId('') }}><Gamepad2 size={17} /><span><strong>Full game</strong><small>Main campaign</small></span></button><button className={contentType === 'dlc' ? 'active' : ''} type="button" onClick={() => setContentType('dlc')}><Puzzle size={17} /><span><strong>DLC / expansion</strong><small>Track separately</small></span></button></div>
           {contentType === 'dlc' && <label className="field field-full"><span>Base game <em>optional</em></span><select value={parentGameId} onChange={(event) => setParentGameId(event.target.value)}><option value="">Not linked to a tracked game</option>{baseGames.map((game) => <option value={game.id} key={game.id}>{game.title}{game.status === 'completed' ? ' · completed' : ''}</option>)}</select></label>}
-          <label className="field field-full game-search-field"><span>{contentType === 'dlc' ? 'DLC title' : 'Game title'}</span><input name="title" value={title} onChange={(event) => { setTitle(event.target.value); setSelectedGame(null); setShowResults(true) }} onFocus={() => setShowResults(true)} placeholder={contentType === 'dlc' ? 'Start typing a Steam DLC' : 'Start typing a Steam game'} autoComplete="off" autoFocus required />
+          <label className="field field-full game-search-field"><span>{contentType === 'dlc' ? 'DLC title or Steam link' : 'Game title or Steam link'}</span><input name="title" value={title} onChange={(event) => { setTitle(event.target.value); setSelectedGame(null); setShowResults(true) }} onFocus={() => setShowResults(true)} placeholder={contentType === 'dlc' ? 'Type a DLC title or paste its Steam page' : 'Type a title or paste its Steam store page'} autoComplete="off" autoFocus required />
             {showResults && title.trim().length >= 2 && <div className="game-search-results">
               {searching && <div className="game-search-message">Searching the game catalog…</div>}
               {!searching && searchFailed && <div className="game-search-message">Search is unavailable. You can still enter the title manually.</div>}
               {!searching && !searchFailed && results.map((game) => <button className="game-search-result" type="button" key={game.catalogId} onClick={() => chooseGame(game)}><span className="result-cover"><Gamepad2 size={16} /><img src={game.thumbnailUrl} alt="" data-fallback={game.coverUrl} onError={(event) => { const fallback = event.currentTarget.dataset.fallback; if (fallback && event.currentTarget.src !== fallback) { event.currentTarget.src = fallback; return } event.currentTarget.style.display = 'none' }} /></span><span><strong>{game.title}</strong><small>Steam {game.contentType === 'dlc' ? 'DLC' : 'game'} · artwork included</small></span><Plus size={16} /></button>)}
               {!searching && !searchFailed && !results.length && <div className="game-search-message">No catalog match yet. You can add this title manually.</div>}
             </div>}
-            <small className={`catalog-credit ${selectedGame ? 'catalog-selected' : ''}`}>{selectedGame ? <><Check size={11} /> Steam artwork connected</> : <>Search uses the <a href="https://github.com/jsnli/SteamAppIDList" target="_blank" rel="noreferrer">Steam AppID catalog</a></>}</small>
+            <small className={`catalog-credit ${selectedGame ? 'catalog-selected' : ''}`}>{selectedGame ? <><Check size={11} /> Exact Steam AppID and artwork connected</> : <>Paste a Steam store URL to match the exact edition, or search the <a href="https://github.com/jsnli/SteamAppIDList" target="_blank" rel="noreferrer">Steam catalog</a></>}</small>
           </label>
           <div className="form-grid">
             <label className="field"><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value as GameStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
@@ -909,7 +925,7 @@ function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onAddDlc, o
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <section className="modal details-modal" onMouseDown={(event) => event.stopPropagation()} aria-modal="true" role="dialog">
-        <div className="details-hero"><Cover game={game} size="large" /><div className="details-title"><div className="details-pills"><span className="status-pill">{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="content-pill"><Puzzle size={10} /> DLC</span>}</div><h2>{game.title}</h2><p>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle} · ` : ''}{[game.year, game.genre, game.platform].filter(Boolean).join(' · ')}</p><div className="details-quick-actions"><VoteButton game={game} onVote={onVote} /><button className="puzzle-board-button" type="button" onClick={onOpenPuzzle}><Pencil size={14} /> Puzzle Board</button>{game.contentType !== 'dlc' && <button className="add-dlc-button" type="button" onClick={onAddDlc}><Puzzle size={14} /> Add DLC</button>}</div></div><button className="icon-button details-close" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
+        <div className="details-hero"><Cover game={game} size="large" /><div className="details-title"><div className="details-pills"><span className="status-pill">{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="content-pill"><Puzzle size={10} /> DLC</span>}</div><h2>{game.title}</h2><p>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle} · ` : ''}{[game.year, game.genre, game.platform].filter(Boolean).join(' · ')}</p><div className="details-quick-actions"><VoteButton game={game} onVote={onVote} />{game.steamAppId && <a className="steam-store-button" href={`steam://store/${game.steamAppId}`}><Gamepad2 size={14} /> Open in Steam</a>}<button className="puzzle-board-button" type="button" onClick={onOpenPuzzle}><Pencil size={14} /> Puzzle Board</button>{game.contentType !== 'dlc' && <button className="add-dlc-button" type="button" onClick={onAddDlc}><Puzzle size={14} /> Add DLC</button>}</div></div><button className="icon-button details-close" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
         <form onSubmit={save} className="details-form">
           <div className="form-grid">
             <label className="field"><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value as GameStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
@@ -1249,7 +1265,7 @@ function App() {
       <main className="main-area">
         <header className="topbar"><div className="mobile-brand"><span className="brand-mark"><Flag size={18} fill="currentColor" /></span>checkpoint</div>
           <label className="search-box"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} onFocus={() => setView('library')} placeholder="Search your games" /><kbd>⌘ K</kbd></label>
-          <div className="topbar-actions"><button className="icon-button notification" type="button" onClick={() => flash('You’re all caught up')} aria-label="Notifications"><Bell size={19} /><span /></button><button className="member-stack member-stack-button" type="button" onClick={() => setShowCrew(true)} aria-label="Open Checkpoint Crew">{groupMembers.map((member) => <Avatar id={member.id} small key={member.id} />)}</button><button className="button button-primary add-button" type="button" onClick={() => openAddGame()}><Plus size={18} /><span>Add game</span></button></div>
+          <div className="topbar-actions"><button className="icon-button notification" type="button" onClick={() => flash('You’re all caught up')} aria-label="Notifications"><Bell size={19} /><span /></button><button className="member-stack member-stack-button" type="button" onClick={() => setShowCrew(true)} aria-label="Open Checkpoint Crew">{groupMembers.map((member) => <Avatar id={member.id} small key={member.id} />)}</button><button className="button button-primary add-button" type="button" onClick={() => openAddGame()} aria-label="Add game"><Plus size={18} /><span>Add game</span></button></div>
         </header>
 
         {view === 'dashboard' ? <div className="page dashboard-page">
