@@ -18,6 +18,7 @@ import { connectBoard, getBoardId, getExistingPersona, type BoardConnection, typ
 import { connectPuzzle, createEmptyPuzzleBoard, createPuzzlePage, normalizePuzzleBoard, type PuzzleConnection } from './lib/sharedPuzzle'
 import { gameIntegrationsConfigured, loadGameAchievements, loadSteamCrew, resolveSteamProfile } from './lib/gameIntegrations'
 import { loadCheapSharkDeals } from './lib/cheapShark'
+import { manualOwnershipFor, ownershipForGame } from './lib/ownership'
 
 const STORAGE_KEY = 'checkpoint-games-v1'
 const DEMO_USER = 'local-player'
@@ -168,15 +169,6 @@ function formatPlaytime(minutes: number) {
   return `${hours >= 10 ? Math.round(hours) : hours.toFixed(1)}h`
 }
 
-function ownershipForGame(game: Game, crew: Member[], steam: SteamCrewSnapshot | null) {
-  const linked = crew.filter((member) => member.steamId)
-  const rows = game.steamAppId ? steam?.ownership[game.steamAppId] : undefined
-  const owners = linked.filter((member) => member.steamId && rows?.[member.steamId]?.owned)
-  const missing = linked.filter((member) => member.steamId && rows?.[member.steamId] && !rows[member.steamId].owned)
-  const complete = crew.length >= 3 && linked.length === crew.length && Boolean(rows) && linked.every((member) => member.steamId && rows?.[member.steamId])
-  return { linked, owners, missing, everyoneOwns: complete && owners.length === crew.length }
-}
-
 function DealBadge({ game, compact = false }: { game: Game; compact?: boolean }) {
   const crew = useContext(MembersContext)
   const { deals, steam } = useContext(IntegrationsContext)
@@ -189,10 +181,10 @@ function DealBadge({ game, compact = false }: { game: Game; compact?: boolean })
 function OwnershipBadge({ game, compact = false }: { game: Game; compact?: boolean }) {
   const crew = useContext(MembersContext)
   const { steam, loading } = useContext(IntegrationsContext)
-  if (!game.steamAppId) return null
   const ownership = ownershipForGame(game, crew, steam)
-  if (!ownership.linked.length) return null
-  const label = loading && !steam ? 'Checking Steam…' : ownership.everyoneOwns ? 'Everyone owns it' : `${ownership.owners.length}/${Math.max(3, crew.length)} own on Steam`
+  if (!ownership.known.length && !game.steamAppId) return null
+  if (!ownership.known.length && !ownership.linked.length) return null
+  const label = loading && !steam && !ownership.known.length ? 'Checking Steam…' : ownership.everyoneOwns ? 'Everyone owns it' : `${ownership.owners.length}/${crew.length || 3} own`
   return <span className={`ownership-badge ${ownership.everyoneOwns ? 'is-complete' : ''} ${compact ? 'is-compact' : ''}`}><span className="owner-avatars">{ownership.owners.slice(0, 3).map((member) => <Avatar id={member.id} small key={member.id} />)}</span><span>{label}</span></span>
 }
 
@@ -272,7 +264,7 @@ function CrewModal({ members: crew, currentUserId, googlePhotoUrl, integrationEr
         {currentMember && <div className="steam-link-panel"><div className="steam-panel-heading"><span className="steam-mark"><Gamepad2 size={18} /></span><div><strong>Steam connection</strong><span>Ownership, playtime, recent games, and achievements</span></div></div>
           {currentMember.steamId ? <div className="linked-steam-profile">{currentMember.steamAvatarUrl ? <img src={currentMember.steamAvatarUrl} alt="" /> : <span><Gamepad2 size={18} /></span>}<div><strong>{currentMember.steamName || 'Steam profile'}</strong><a href={currentMember.steamProfileUrl} target="_blank" rel="noreferrer">View profile <ExternalLink size={11} /></a></div><button type="button" onClick={unlinkSteam} disabled={steamBusy}><Unlink size={14} /> Disconnect</button></div>
             : <form className="steam-link-form" onSubmit={linkSteam}><label><span>Your Steam profile link</span><div><Link2 size={16} /><input value={steamInput} onChange={(event) => setSteamInput(event.target.value)} placeholder="steamcommunity.com/id/your-name" autoComplete="url" /></div></label><button className="button button-primary" type="submit" disabled={steamBusy || !steamInput.trim()}>{steamBusy ? <RefreshCw className="spin" size={16} /> : <Link2 size={16} />} {steamBusy ? 'Connecting…' : 'Link Steam'}</button></form>}
-          <p className="steam-privacy-note">Steam Profile and Game details must be set to Public. Checkpoint never receives your Steam password.</p>{(steamLinkError || integrationError) && <p className="profile-image-error">{steamLinkError || integrationError}</p>}
+          <p className="steam-privacy-note">Public Game details enable automatic tracking. Private profiles can set ownership manually inside each game. Checkpoint never receives your Steam password.</p>{(steamLinkError || integrationError) && <p className="profile-image-error">{steamLinkError || integrationError}</p>}
         </div>}
       </section>
     </div>
@@ -864,7 +856,7 @@ function AddGameModal({ onClose, onAdd, games, defaultParentId }: { onClose: () 
   )
 }
 
-function SteamGamePanel({ game }: { game: Game }) {
+function SteamGamePanel({ game, onManualOwnershipChange }: { game: Game; onManualOwnershipChange: (memberId: string, owned: boolean | undefined) => void }) {
   const crew = useContext(MembersContext)
   const { boardId, steam, deals, loading, error } = useContext(IntegrationsContext)
   const [achievements, setAchievements] = useState<SteamAchievementSnapshot[]>([])
@@ -884,22 +876,28 @@ function SteamGamePanel({ game }: { game: Game }) {
     return () => controller.abort()
   }, [boardId, game.steamAppId, linked.map((member) => member.steamId).join(',')])
 
-  if (!game.steamAppId) return <section className="steam-game-panel is-empty"><div className="steam-game-heading"><Gamepad2 size={18} /><div><strong>Steam tracking unavailable</strong><span>This manually added title is not connected to a Steam AppID.</span></div></div></section>
-
-  return <section className="steam-game-panel"><div className="steam-game-heading"><Gamepad2 size={18} /><div><strong>Steam crew</strong><span>{loading ? 'Refreshing ownership and playtime…' : `${linked.length}/3 profiles linked`}</span></div>{ownership.everyoneOwns && <span className="everyone-owns-pill"><Check size={12} /> Everyone owns it</span>}</div>
+  return <section className="steam-game-panel"><div className="steam-game-heading"><Gamepad2 size={18} /><div><strong>Crew ownership</strong><span>{loading ? 'Refreshing Steam…' : 'Set manually or use Steam when available'}</span></div>{ownership.everyoneOwns && <span className="everyone-owns-pill"><Check size={12} /> Everyone owns it</span>}</div>
     <div className="steam-crew-rows">{crew.map((member) => {
-      const record = member.steamId ? steam?.ownership[game.steamAppId!]?.[member.steamId] : undefined
+      const manual = manualOwnershipFor(game, member.id)
+      const steamRecord = game.steamAppId && member.steamId ? steam?.ownership[game.steamAppId]?.[member.steamId] : undefined
       const achievement = member.steamId ? achievements.find((item) => item.steamId === member.steamId) : undefined
       const player = member.steamId ? steam?.players.find((item) => item.steamId === member.steamId) : undefined
       const isPrivate = Boolean(member.steamId && steam?.privateSteamIds.includes(member.steamId))
-      return <div className="steam-crew-row" key={member.id}><Avatar id={member.id} /><div><strong>{member.name}</strong><span>{!member.steamId ? 'Steam not linked' : isPrivate ? 'Steam Game details are private' : !record ? 'Checking library…' : record.owned ? `${formatPlaytime(record.playtimeMinutes)} played${record.lastPlayedAt ? ` · last played ${new Date(record.lastPlayedAt * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}` : 'Doesn’t own this'}</span>{player?.currentGameAppId === game.steamAppId && <em><span /> Playing now</em>}</div><div className="steam-row-stat">{record?.owned && (achievementsLoading && !achievement ? 'Achievements…' : achievement?.total ? `${achievement.unlocked}/${achievement.total} achievements` : 'No achievement data')}</div></div>
+      const detail = typeof manual === 'boolean'
+        ? manual ? 'Marked as owned manually' : 'Marked as not owned manually'
+        : !game.steamAppId ? 'Ownership not set'
+          : !member.steamId ? 'Steam not linked · choose manually'
+            : isPrivate ? 'Steam Game details are private · choose manually'
+              : !steamRecord ? loading ? 'Checking Steam library…' : 'Ownership not set'
+                : steamRecord.owned ? `${formatPlaytime(steamRecord.playtimeMinutes)} played${steamRecord.lastPlayedAt ? ` · last played ${new Date(steamRecord.lastPlayedAt * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}` : 'Doesn’t own this · from Steam'
+      return <div className="steam-crew-row" key={member.id}><Avatar id={member.id} /><div><strong>{member.name}</strong><span>{detail}</span>{player?.currentGameAppId === game.steamAppId && <em><span /> Playing now</em>}{steamRecord?.owned && <small className="steam-row-stat">{achievementsLoading && !achievement ? 'Achievements…' : achievement?.total ? `${achievement.unlocked}/${achievement.total} achievements` : 'No achievement data'}</small>}</div><label className={`manual-ownership-control ${typeof manual === 'boolean' ? 'is-manual' : ''}`}><span>Ownership</span><select aria-label={`${member.name} ownership`} value={typeof manual !== 'boolean' ? 'automatic' : manual ? 'owned' : 'not-owned'} onChange={(event) => onManualOwnershipChange(member.id, event.target.value === 'automatic' ? undefined : event.target.value === 'owned')}><option value="automatic">{steamRecord ? 'Use Steam' : 'Not set'}</option><option value="owned">Owns it</option><option value="not-owned">Doesn’t own it</option></select></label></div>
     })}</div>
     {deal && !ownership.everyoneOwns && <a className="details-deal" href={deal.dealUrl} target="_blank" rel="noreferrer"><span className="deal-icon"><BadgeDollarSign size={20} /></span><div><span>Lowest Steam-key price</span><strong>${deal.price.toFixed(2)} at {deal.storeName}</strong><small>{deal.savingsPercent >= 1 ? `${Math.round(deal.savingsPercent)}% off · ` : ''}Prices supplied by CheapShark</small></div><ExternalLink size={17} /></a>}
-    {!linked.length && <p className="steam-panel-message">Link Steam from Players to see who owns this game.</p>}{error && <p className="steam-panel-message is-error">{error}</p>}
+    <p className="steam-panel-message">Manual choices override Steam and sync for the whole crew.</p>{error && <p className="steam-panel-message is-error">{error}</p>}
   </section>
 }
 
-function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onAddDlc, onOpenPuzzle }: { game: Game; onClose: () => void; onSave: (updates: Partial<Game>) => void; onVote: () => void; onRemove: () => void; onAddDlc: () => void; onOpenPuzzle: () => void }) {
+function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onAddDlc, onOpenPuzzle, onManualOwnershipChange }: { game: Game; onClose: () => void; onSave: (updates: Partial<Game>) => void; onVote: () => void; onRemove: () => void; onAddDlc: () => void; onOpenPuzzle: () => void; onManualOwnershipChange: (memberId: string, owned: boolean | undefined) => void }) {
   const [progress, setProgress] = useState(game.progress)
   const [status, setStatus] = useState(game.status)
   const [note, setNote] = useState(game.note)
@@ -918,7 +916,7 @@ function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onAddDlc, o
             <label className="field"><span>Progress · {progress}%</span><input className="range" type="range" min="0" max="100" value={progress} onChange={(event) => setProgress(Number(event.target.value))} /></label>
           </div>
           <label className="field field-full"><span>Shared notes</span><textarea value={note} onChange={(event) => setNote(event.target.value)} rows={4} placeholder="Where did we leave off?" /></label>
-          <SteamGamePanel game={game} />
+          <SteamGamePanel game={game} onManualOwnershipChange={onManualOwnershipChange} />
           <div className="modal-actions"><button className="button button-danger" type="button" onClick={onRemove}><Trash2 size={16} /> Remove game</button><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit">Save changes</button></div>
         </form>
       </section>
@@ -1148,6 +1146,16 @@ function App() {
   function closeAddGame() { setShowAdd(false); setAddParentId(undefined) }
   function addGame(game: Game) { setGames((current) => [...current, game]); closeAddGame(); flash(`${game.title} added to ${statusLabels[game.status]}`) }
   function updateGame(gameId: string, updates: Partial<Game>) { setGames((current) => current.map((game) => game.id === gameId ? { ...game, ...updates } : game)); setSelectedId(null); flash('Checkpoint updated') }
+  function updateManualOwnership(gameId: string, memberId: string, owned: boolean | undefined) {
+    setGames((current) => current.map((game) => {
+      if (game.id !== gameId) return game
+      const manualOwnership = { ...game.manualOwnership }
+      if (typeof owned === 'boolean') manualOwnership[memberId] = owned
+      else delete manualOwnership[memberId]
+      return { ...game, manualOwnership }
+    }))
+    flash(typeof owned === 'boolean' ? 'Manual ownership saved' : 'Steam ownership restored')
+  }
   function removeGame(game: Game) {
     if (!window.confirm(`Remove ${game.title} from the shared library? This cannot be undone.`)) return
     setGames((current) => current.filter((item) => item.id !== game.id))
@@ -1274,7 +1282,7 @@ function App() {
       </main>
       {showAdd && <AddGameModal onClose={closeAddGame} onAdd={addGame} games={games} defaultParentId={addParentId} />}
       {showCrew && <CrewModal members={groupMembers} currentUserId={currentUser} googlePhotoUrl={user?.photoURL} integrationError={integrationError} onClose={() => setShowCrew(false)} onSavePhoto={saveProfileImage} onResolveSteam={resolveSteamLink} onSaveSteam={saveSteamProfile} />}
-      {selected && <GameDetailsModal game={selected} onClose={() => setSelectedId(null)} onVote={() => vote(selected.id)} onSave={(updates) => updateGame(selected.id, updates)} onRemove={() => removeGame(selected)} onAddDlc={() => openAddGame(selected)} onOpenPuzzle={() => { setPuzzleGameId(selected.id); setSelectedId(null) }} />}
+      {selected && <GameDetailsModal game={selected} onClose={() => setSelectedId(null)} onVote={() => vote(selected.id)} onSave={(updates) => updateGame(selected.id, updates)} onRemove={() => removeGame(selected)} onAddDlc={() => openAddGame(selected)} onOpenPuzzle={() => { setPuzzleGameId(selected.id); setSelectedId(null) }} onManualOwnershipChange={(memberId, owned) => updateManualOwnership(selected.id, memberId, owned)} />}
       {puzzleGame && <PuzzleBoardModal game={puzzleGame} boardId={boardId} currentUserId={currentUser} onClose={() => setPuzzleGameId(null)} />}
       {toast && <div className="toast"><Check size={17} /> {toast}</div>}
     </div>

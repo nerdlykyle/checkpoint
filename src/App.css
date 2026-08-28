@@ -191,7 +191,12 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
 .steam-crew-row span { color: #7b8783; font-size: 10px; }
 .steam-crew-row em { display: inline-flex; align-items: center; gap: 4px; color: #397e58; font-size: 9px; font-style: normal; font-weight: 800; }
 .steam-crew-row em span { width: 6px; height: 6px; border-radius: 50%; background: #53bd7b; box-shadow: 0 0 0 3px rgba(83, 189, 123, .14); }
-.steam-row-stat { color: #66736f; font-size: 10px; font-weight: 700; text-align: right; }
+.steam-row-stat { color: #66736f; font-size: 9px; font-weight: 700; }
+.manual-ownership-control { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.manual-ownership-control > span { color: #8a9691; font-size: 8px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.manual-ownership-control select { min-width: 112px; height: 31px; padding: 0 25px 0 8px; border: 1px solid #d8dfdb; border-radius: 8px; outline: none; background: #f8faf8; color: #53605c; font: inherit; font-size: 10px; font-weight: 700; }
+.manual-ownership-control.is-manual select { border-color: #8b80df; background: #f0edff; color: #5549ae; }
+.manual-ownership-control select:focus-visible { border-color: #776bd8; box-shadow: 0 0 0 3px rgba(119,107,216,.15); }
 .details-deal { display: grid; grid-template-columns: 40px 1fr auto; gap: 11px; align-items: center; margin-top: 12px; padding: 11px; border: 1px solid #eadcae; border-radius: 11px; background: #fffaf0; color: inherit; text-decoration: none; }
 .details-deal .deal-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: #f5e7b8; color: #82610a; }
 .details-deal > div { display: flex; flex-direction: column; gap: 2px; }
@@ -218,7 +223,8 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
   .steam-game-heading { align-items: flex-start; }
   .everyone-owns-pill { display: none; }
   .steam-crew-row { grid-template-columns: 34px 1fr; }
-  .steam-row-stat { grid-column: 2; text-align: left; }
+  .manual-ownership-control { grid-column: 2; align-items: stretch; }
+  .manual-ownership-control select { width: 100%; }
   .details-deal { grid-template-columns: 36px 1fr auto; }
   .details-deal .deal-icon { width: 36px; height: 36px; }
   .smart-filters { flex-wrap: nowrap; margin-bottom: 14px; padding-bottom: 5px; overflow-x: auto; scrollbar-width: none; }

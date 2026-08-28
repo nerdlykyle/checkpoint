@@ -64,6 +64,7 @@ export type Game = {
   parentGameId?: string
   parentGameTitle?: string
   completedAt?: string
+  manualOwnership?: Record<string, boolean>
 }
 
 export type Member = {
