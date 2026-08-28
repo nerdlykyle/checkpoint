@@ -991,7 +991,7 @@ function ScheduleGameNightModal({ games, onClose, onSchedule }: { games: Game[];
   initialStart.setHours(19, 0, 0, 0)
   const initialEnd = new Date(initialStart.getTime() + 3 * 60 * 60 * 1000)
   const [title, setTitle] = useState('Game Night')
-  const [gameId, setGameId] = useState('')
+  const [gameQuery, setGameQuery] = useState(() => games.find((game) => game.status === 'playing')?.title ?? '')
   const [date, setDate] = useState(localDateValue(initialStart))
   const [startTime, setStartTime] = useState(localTimeValue(initialStart))
   const [endTime, setEndTime] = useState(localTimeValue(initialEnd))
@@ -1006,15 +1006,16 @@ function ScheduleGameNightModal({ games, onClose, onSchedule }: { games: Game[];
       setError('End time needs to be later than the start time.')
       return
     }
-    const game = games.find((item) => item.id === gameId)
-    onSchedule({ title: title.trim() || 'Game Night', gameId: game?.id, gameTitle: game?.title, startAt, endAt, note: note.trim() })
+    const selectedTitle = gameQuery.trim()
+    const game = games.find((item) => item.title.localeCompare(selectedTitle, undefined, { sensitivity: 'accent' }) === 0)
+    onSchedule({ title: title.trim() || 'Game Night', gameId: game?.id, gameTitle: game?.title || selectedTitle || undefined, startAt, endAt, note: note.trim() })
   }
 
   return <div className="modal-backdrop" onMouseDown={onClose}><section className="modal schedule-modal" onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-modal="true">
     <div className="modal-heading"><div><span className="eyebrow">Roll call</span><h2>Schedule a game night</h2></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
     <form onSubmit={submit}>
       <label className="field field-full"><span>Event name</span><input value={title} maxLength={80} onChange={(event) => setTitle(event.target.value)} required /></label>
-      <label className="field field-full"><span>Game <em>optional</em></span><select value={gameId} onChange={(event) => setGameId(event.target.value)}><option value="">Decide later</option>{games.map((game) => <option key={game.id} value={game.id}>{game.title}</option>)}</select></label>
+      <label className="field field-full"><span>Game <em>optional · type to search</em></span><input list="checkpoint-game-night-games" value={gameQuery} maxLength={140} onChange={(event) => setGameQuery(event.target.value)} placeholder="Start typing a game title or decide later" /><datalist id="checkpoint-game-night-games">{games.map((game) => <option key={game.id} value={game.title}>{statusLabels[game.status]}</option>)}</datalist></label>
       <div className="form-grid"><label className="field"><span>Day</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)} required /></label><label className="field"><span>Starts</span><input type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} required /></label><label className="field"><span>Ends</span><input type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} required /></label></div>
       <label className="field field-full"><span>Details <em>optional</em></span><textarea rows={3} maxLength={1000} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Voice channel, what to bring, or the plan for the night…" /></label>
       {error && <p className="calendar-form-error">{error}</p>}
