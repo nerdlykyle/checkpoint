@@ -314,6 +314,8 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
 /* Shared scheduling and Google Calendar RSVPs */
 .calendar-page { max-width: 1280px; }
 .calendar-title-row { align-items: center; }
+.calendar-alert { margin: -8px 0 20px; padding: 13px 15px; border: 1px solid #68474b; border-radius: 12px; background: #281b1d; color: #e18a8e; display: flex; align-items: flex-start; gap: 10px; }
+.calendar-alert > svg { flex: 0 0 auto; margin-top: 1px; }.calendar-alert strong { color: #efb1b4; font-size: 11px; }.calendar-alert p { margin: 4px 0 0; color: #c48f91; font-size: 9px; line-height: 1.45; }
 .calendar-shell { overflow: hidden; border: 1px solid var(--line); border-radius: 18px; background: var(--card); box-shadow: var(--shadow); }
 .calendar-toolbar { min-height: 68px; padding: 0 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .calendar-toolbar h2 { margin: 0; font-size: 18px; letter-spacing: -.35px; }

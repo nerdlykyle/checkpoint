@@ -78,6 +78,13 @@ function dateTimeIso(date: string, time: string) {
   return new Date(`${date}T${time}`).toISOString()
 }
 
+function friendlyCalendarError(error: unknown) {
+  const message = error instanceof Error ? error.message : 'Google Calendar could not add this game night.'
+  if (/has not been used|is disabled|accessnotconfigured/i.test(message)) return 'The Google Calendar API is not enabled for Checkpoint yet.'
+  if (/permission|scope|access blocked|unauthorized|401/i.test(message)) return 'Google Calendar permission was not completed for this account.'
+  return message
+}
+
 function cleanRemoteGames(games: Game[]) {
   const withoutPlaceholders = games.filter((game) => !LEGACY_PLACEHOLDER_IDS.has(game.id))
   if (localStorage.getItem(REMNANT_CLEANUP_KEY)) return withoutPlaceholders
@@ -1061,7 +1068,7 @@ function GameNightCard({ gameNight, currentUserId, crew, syncing, onAccept, onDe
   </article>
 }
 
-function CalendarPage({ gameNights, crew, currentUserId, syncingId, onSchedule, onAccept, onDecline }: { gameNights: GameNight[]; crew: Member[]; currentUserId: string; syncingId: string | null; onSchedule: () => void; onAccept: (night: GameNight) => void; onDecline: (night: GameNight) => void }) {
+function CalendarPage({ gameNights, crew, currentUserId, syncingId, calendarError, sharedSyncError, onSchedule, onAccept, onDecline }: { gameNights: GameNight[]; crew: Member[]; currentUserId: string; syncingId: string | null; calendarError: string | null; sharedSyncError: boolean; onSchedule: () => void; onAccept: (night: GameNight) => void; onDecline: (night: GameNight) => void }) {
   const [visibleMonth, setVisibleMonth] = useState(() => { const date = new Date(); date.setDate(1); date.setHours(0, 0, 0, 0); return date })
   const monthStart = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1)
   const gridStart = new Date(monthStart)
@@ -1070,6 +1077,7 @@ function CalendarPage({ gameNights, crew, currentUserId, syncingId, onSchedule, 
   const upcoming = [...gameNights].filter((night) => new Date(night.endAt) >= new Date()).sort((a, b) => a.startAt.localeCompare(b.startAt))
   return <div className="page calendar-page">
     <div className="page-title-row calendar-title-row"><div><span className="eyebrow">Get the crew together</span><h1>Game night calendar</h1><p>Propose a night, RSVP together, and add accepted plans to your personal Google Calendar.</p></div><button className="button button-primary" type="button" onClick={onSchedule}><Plus size={18} /> Schedule game night</button></div>
+    {(calendarError || sharedSyncError) && <div className="calendar-alert" role="alert"><CircleHelp size={19} /><div><strong>Calendar setup needs attention</strong>{sharedSyncError && <p>Your game night is saved on this device, but Firebase rejected the shared-calendar update.</p>}{calendarError && <p>{calendarError} Your Checkpoint RSVP is still saved.</p>}</div></div>}
     <section className="calendar-shell"><div className="calendar-toolbar"><h2>{visibleMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2><div><button type="button" onClick={() => setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1))} aria-label="Previous month"><ChevronLeft size={18} /></button><button type="button" onClick={() => { const now = new Date(); setVisibleMonth(new Date(now.getFullYear(), now.getMonth(), 1)) }}>Today</button><button type="button" onClick={() => setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1))} aria-label="Next month"><ChevronRight size={18} /></button></div></div>
       <div className="calendar-weekdays">{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => <span key={day}>{day}</span>)}</div><div className="calendar-grid">{days.map((day) => { const key = localDateValue(day); const dayEvents = gameNights.filter((night) => localDateValue(new Date(night.startAt)) === key); const today = key === localDateValue(new Date()); return <div className={`${day.getMonth() !== visibleMonth.getMonth() ? 'outside' : ''} ${today ? 'today' : ''}`} key={key}><span className="calendar-day-number">{day.getDate()}</span>{dayEvents.slice(0, 2).map((night) => <button className="calendar-event" type="button" key={night.id} onClick={() => document.getElementById(`night-${night.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}><span>{new Date(night.startAt).toLocaleTimeString('en-US', { hour: 'numeric' })}</span>{night.gameTitle || night.title}</button>)}{dayEvents.length > 2 && <small>+{dayEvents.length - 2} more</small>}</div> })}</div></section>
     <section className="upcoming-nights"><div className="section-heading"><div><span className="eyebrow">Ready check</span><h2>Upcoming game nights</h2></div></div>{upcoming.length ? <div className="game-night-list">{upcoming.map((night) => <div id={`night-${night.id}`} key={night.id}><GameNightCard gameNight={night} currentUserId={currentUserId} crew={crew} syncing={syncingId === night.id} onAccept={() => onAccept(night)} onDecline={() => onDecline(night)} /></div>)}</div> : <div className="calendar-empty"><CalendarDays size={30} /><h3>No game nights scheduled</h3><p>Pick a day and let the crew vote on it.</p><button className="button button-primary" type="button" onClick={onSchedule}>Schedule the first one</button></div>}</section>
@@ -1135,6 +1143,7 @@ function App() {
   const [showSchedule, setShowSchedule] = useState(false)
   const [declineNightId, setDeclineNightId] = useState<string | null>(null)
   const [calendarSyncingId, setCalendarSyncingId] = useState<string | null>(null)
+  const [calendarError, setCalendarError] = useState<string | null>(null)
   const [puzzleGameId, setPuzzleGameId] = useState<string | null>(null)
   const [expandedCampaignNoteId, setExpandedCampaignNoteId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -1158,7 +1167,7 @@ function App() {
 
   useEffect(() => localStorage.setItem(STORAGE_KEY, JSON.stringify(games)), [games])
   useEffect(() => localStorage.setItem(GAME_NIGHTS_STORAGE_KEY, JSON.stringify(gameNights)), [gameNights])
-  useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(null), 2200); return () => window.clearTimeout(timer) }, [toast])
+  useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(null), 5000); return () => window.clearTimeout(timer) }, [toast])
   useEffect(() => watchAuth((nextUser) => { setUser(nextUser); setAuthReady(true) }), [])
   useEffect(() => {
     let active = true
@@ -1201,7 +1210,13 @@ function App() {
       lastSyncedRef.current = JSON.stringify(remoteGames)
       lastSyncedGameNightsRef.current = JSON.stringify(remoteGameNights)
       setGames(cleanRemoteGames(remoteGames))
-      setGameNights(remoteGameNights)
+      setGameNights((current) => {
+        const merged = new Map(remoteGameNights.map((night) => [night.id, night]))
+        // Keep locally created nights until Firebase confirms them. Google
+        // reauthentication can reconnect the board before that write finishes.
+        current.forEach((night) => { if (!merged.has(night.id)) merged.set(night.id, night) })
+        return [...merged.values()]
+      })
       setGroupMembers(remoteMembers)
     }).then((connection) => {
       if (!active) { connection?.close(); return }
@@ -1318,12 +1333,15 @@ function App() {
     const priorResponse = gameNight.responses[currentUser]
     setGameNights((current) => current.map((night) => night.id === gameNight.id ? { ...night, responses: { ...night.responses, [currentUser]: { ...priorResponse, status: 'accepted', respondedAt, suggestedStartAt: undefined, suggestedEndAt: undefined } } } : night))
     setCalendarSyncingId(gameNight.id)
+    setCalendarError(null)
     try {
       const result = await syncGameNightToGoogleCalendar(gameNight, priorResponse?.googleEventId)
       setGameNights((current) => current.map((night) => night.id === gameNight.id ? { ...night, responses: { ...night.responses, [currentUser]: { ...night.responses[currentUser], status: 'accepted', respondedAt, googleEventId: result.id, calendarSyncedAt: new Date().toISOString(), suggestedStartAt: undefined, suggestedEndAt: undefined } } } : night))
       flash(priorResponse?.googleEventId ? 'Game night updated in Google Calendar' : 'Accepted and added to Google Calendar')
     } catch (error) {
-      flash(error instanceof Error ? `Accepted · ${error.message}` : 'Accepted · Google Calendar needs attention')
+      const message = friendlyCalendarError(error)
+      setCalendarError(message)
+      flash(`Accepted · ${message}`)
     } finally {
       setCalendarSyncingId(null)
     }
@@ -1457,7 +1475,7 @@ function App() {
           <div className="filter-tabs">{([['all', 'All games'], ...Object.entries(statusLabels)] as [GameStatus | 'all', string][]).map(([value, label]) => <button key={value} className={libraryFilter === value ? 'active' : ''} onClick={() => setLibraryFilter(value)}>{label}<span>{value === 'all' ? games.length : games.filter((game) => game.status === value).length}</span></button>)}</div>
           <div className="smart-filters"><span><ListFilter size={14} /> Steam & prices</span>{([['any', 'Any ownership'], ['everyone-owns', 'Everyone owns'], ['needs-copy', 'Someone needs it'], ['on-sale', 'On sale']] as [SmartFilter, string][]).map(([value, label]) => <button type="button" key={value} className={smartFilter === value ? 'active' : ''} onClick={() => setSmartFilter(value)}>{label}</button>)}{integrationsLoading && <RefreshCw className="spin" size={14} />}</div>
           {filteredGames.length ? <div className="library-grid">{filteredGames.map((game) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} onVote={() => vote(game.id)} />)}</div> : <div className="empty-state"><Search size={28} /><h2>No games found</h2><p>Try another search or add a new game.</p><button className="button button-primary" onClick={() => openAddGame()}>Add game</button></div>}
-        </div> : <CalendarPage gameNights={gameNights} crew={groupMembers} currentUserId={currentUser} syncingId={calendarSyncingId} onSchedule={() => setShowSchedule(true)} onAccept={acceptGameNight} onDecline={(night) => setDeclineNightId(night.id)} />}
+        </div> : <CalendarPage gameNights={gameNights} crew={groupMembers} currentUserId={currentUser} syncingId={calendarSyncingId} calendarError={calendarError} sharedSyncError={syncStatus === 'error'} onSchedule={() => setShowSchedule(true)} onAccept={acceptGameNight} onDecline={(night) => setDeclineNightId(night.id)} />}
         <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={20} /><span>Home</span></button><button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('all') }}><Library size={20} /><span>Library</span></button><button className="mobile-add" onClick={() => openAddGame()}><Plus size={23} /></button><button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('up-next') }}><BookOpen size={20} /><span>Queue</span></button><button className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}><CalendarDays size={20} /><span>Calendar</span></button></nav>
       </main>
       {showAdd && <AddGameModal onClose={closeAddGame} onAdd={addGame} games={games} defaultParentId={addParentId} />}
