@@ -57,7 +57,7 @@ The private `#board=...` portion of the Checkpoint URL identifies the board. A v
 
 ## Google Calendar
 
-Enable the **Google Calendar API** in the same Google Cloud project used by Firebase. The first time a player accepts a game night, Checkpoint asks that player for the `calendar.events` permission and creates a private event on their primary Google Calendar. Checkpoint keeps the temporary Google access token in memory only; the shared board stores only the returned event ID so it can update the same event without creating duplicates.
+Enable the **Google Calendar API** in the same Google Cloud project used by Firebase. Checkpoint scheduling and RSVPs work without personal-calendar access. A player can optionally click **Add to Google Calendar** on an accepted night; the first use asks that player for the `calendar.events` permission and creates a private event on the Google account used to sign into Checkpoint. Checkpoint keeps the temporary Google access token in memory only; the shared board stores only the returned event ID so it can update the same event without creating duplicates.
 
 ## Steam catalog
 

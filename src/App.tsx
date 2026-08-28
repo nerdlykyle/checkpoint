@@ -1061,7 +1061,7 @@ function SuggestTimeModal({ gameNight, onClose, onSuggest }: { gameNight: GameNi
   </section></div>
 }
 
-function GameNightCard({ gameNight, currentUserId, crew, syncing, onAccept, onDecline }: { gameNight: GameNight; currentUserId: string; crew: Member[]; syncing: boolean; onAccept: () => void; onDecline: () => void }) {
+function GameNightCard({ gameNight, currentUserId, crew, syncing, onAccept, onDecline, onSyncCalendar }: { gameNight: GameNight; currentUserId: string; crew: Member[]; syncing: boolean; onAccept: () => void; onDecline: () => void; onSyncCalendar: () => void }) {
   const response = gameNight.responses[currentUserId]
   const start = new Date(gameNight.startAt)
   const end = new Date(gameNight.endAt)
@@ -1071,11 +1071,11 @@ function GameNightCard({ gameNight, currentUserId, crew, syncing, onAccept, onDe
       <div className="game-night-responses">{crew.map((member) => { const answer = gameNight.responses[member.id]; return <span className={answer ? `is-${answer.status}` : ''} title={`${member.name}: ${answer?.status ?? 'No response'}`} key={member.id}><Avatar id={member.id} small />{answer?.status === 'accepted' ? <ThumbsUp size={10} /> : answer?.status === 'declined' ? <ThumbsDown size={10} /> : null}</span> })}</div>
       {Object.entries(gameNight.responses).map(([memberId, answer]) => answer.status === 'declined' && answer.suggestedStartAt ? <div className="time-suggestion" key={memberId}><ThumbsDown size={13} /><span><strong>{crew.find((member) => member.id === memberId)?.name ?? 'A player'} suggested</strong>{new Date(answer.suggestedStartAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} at {new Date(answer.suggestedStartAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span></div> : null)}
     </div>
-    <div className="rsvp-actions"><span>Your RSVP</span><div><button className={response?.status === 'accepted' ? 'active accept' : 'accept'} type="button" onClick={onAccept} disabled={syncing} aria-label="Accept game night"><ThumbsUp size={17} /></button><button className={response?.status === 'declined' ? 'active decline' : 'decline'} type="button" onClick={onDecline} disabled={syncing} aria-label="Decline and suggest a new time"><ThumbsDown size={17} /></button></div>{syncing ? <small>Connecting Google…</small> : response?.calendarSyncedAt ? <small className="calendar-synced"><Check size={11} /> In Google Calendar</small> : response?.status === 'accepted' ? <button className="calendar-retry" type="button" onClick={onAccept}>Add to Google Calendar</button> : null}</div>
+    <div className="rsvp-actions"><span>Your RSVP</span><div><button className={response?.status === 'accepted' ? 'active accept' : 'accept'} type="button" onClick={onAccept} disabled={syncing} aria-label="Accept game night in Checkpoint"><ThumbsUp size={17} /></button><button className={response?.status === 'declined' ? 'active decline' : 'decline'} type="button" onClick={onDecline} disabled={syncing} aria-label="Decline and suggest a new time"><ThumbsDown size={17} /></button></div>{syncing ? <small>Connecting Google…</small> : response?.calendarSyncedAt ? <small className="calendar-synced"><Check size={11} /> In Google Calendar</small> : response?.status === 'accepted' ? <button className="calendar-retry" type="button" onClick={onSyncCalendar}>Add to Google Calendar <em>optional</em></button> : null}</div>
   </article>
 }
 
-function CalendarPage({ gameNights, crew, currentUserId, syncingId, calendarError, sharedSyncError, onSchedule, onAccept, onDecline }: { gameNights: GameNight[]; crew: Member[]; currentUserId: string; syncingId: string | null; calendarError: string | null; sharedSyncError: boolean; onSchedule: (date?: string) => void; onAccept: (night: GameNight) => void; onDecline: (night: GameNight) => void }) {
+function CalendarPage({ gameNights, crew, currentUserId, syncingId, calendarError, sharedSyncError, onSchedule, onAccept, onDecline, onSyncCalendar }: { gameNights: GameNight[]; crew: Member[]; currentUserId: string; syncingId: string | null; calendarError: string | null; sharedSyncError: boolean; onSchedule: (date?: string) => void; onAccept: (night: GameNight) => void; onDecline: (night: GameNight) => void; onSyncCalendar: (night: GameNight) => void }) {
   const [visibleMonth, setVisibleMonth] = useState(() => { const date = new Date(); date.setDate(1); date.setHours(0, 0, 0, 0); return date })
   const monthStart = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1)
   const gridStart = new Date(monthStart)
@@ -1083,11 +1083,11 @@ function CalendarPage({ gameNights, crew, currentUserId, syncingId, calendarErro
   const days = Array.from({ length: 42 }, (_, index) => { const date = new Date(gridStart); date.setDate(gridStart.getDate() + index); return date })
   const upcoming = [...gameNights].filter((night) => new Date(night.endAt) >= new Date()).sort((a, b) => a.startAt.localeCompare(b.startAt))
   return <div className="page calendar-page">
-    <div className="page-title-row calendar-title-row"><div><span className="eyebrow">Get the crew together</span><h1>Game night calendar</h1><p>Propose a night, RSVP together, and add accepted plans to your personal Google Calendar.</p></div><button className="button button-primary" type="button" onClick={() => onSchedule()}><Plus size={18} /> Schedule game night</button></div>
+    <div className="page-title-row calendar-title-row"><div><span className="eyebrow">Get the crew together</span><h1>Game night calendar</h1><p>Propose a night and RSVP in Checkpoint, with optional personal Google Calendar copies.</p></div><button className="button button-primary" type="button" onClick={() => onSchedule()}><Plus size={18} /> Schedule game night</button></div>
     {(calendarError || sharedSyncError) && <div className="calendar-alert" role="alert"><CircleHelp size={19} /><div><strong>Calendar setup needs attention</strong>{sharedSyncError && <p>Your game night is saved on this device, but Firebase rejected the shared-calendar update.</p>}{calendarError && <p>{calendarError} Your Checkpoint RSVP is still saved.</p>}</div></div>}
     <section className="calendar-shell"><div className="calendar-toolbar"><h2>{visibleMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2><div><button type="button" onClick={() => setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1))} aria-label="Previous month"><ChevronLeft size={18} /></button><button type="button" onClick={() => { const now = new Date(); setVisibleMonth(new Date(now.getFullYear(), now.getMonth(), 1)) }}>Today</button><button type="button" onClick={() => setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1))} aria-label="Next month"><ChevronRight size={18} /></button></div></div><div className="calendar-legend" aria-label="Game night approval legend"><span className="pending"><Gamepad2 size={14} fill="none" /> Awaiting votes</span><span className="approved"><Gamepad2 size={14} fill="none" /> Everyone approved</span><span className="denied"><Gamepad2 size={14} fill="none" /> New time suggested</span></div>
       <div className="calendar-weekdays">{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => <span key={day}>{day}</span>)}</div><div className="calendar-grid">{days.map((day) => { const key = localDateValue(day); const dayEvents = gameNights.filter((night) => localDateValue(new Date(night.startAt)) === key); const today = key === localDateValue(new Date()); return <div className={`${day.getMonth() !== visibleMonth.getMonth() ? 'outside' : ''} ${today ? 'today' : ''}`} key={key}><button className="calendar-day-hitbox" type="button" onClick={() => onSchedule(key)} aria-label={`Schedule a game night on ${day.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`} /><span className="calendar-day-number">{day.getDate()}</span><div className="calendar-event-markers">{dayEvents.slice(0, 3).map((night) => { const state = gameNightCalendarState(night, crew); return <button className={`calendar-event calendar-event-${state}`} type="button" key={night.id} title={`${night.gameTitle || night.title} · ${state}`} aria-label={`${night.gameTitle || night.title}: ${state}`} onClick={() => document.getElementById(`night-${night.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}><Gamepad2 size={17} fill="none" /><span>{new Date(night.startAt).toLocaleTimeString('en-US', { hour: 'numeric' })} · {night.gameTitle || night.title}</span></button> })}</div>{dayEvents.length > 3 && <small>+{dayEvents.length - 3} more</small>}</div> })}</div></section>
-    <section className="upcoming-nights"><div className="section-heading"><div><span className="eyebrow">Ready check</span><h2>Upcoming game nights</h2></div></div>{upcoming.length ? <div className="game-night-list">{upcoming.map((night) => <div id={`night-${night.id}`} key={night.id}><GameNightCard gameNight={night} currentUserId={currentUserId} crew={crew} syncing={syncingId === night.id} onAccept={() => onAccept(night)} onDecline={() => onDecline(night)} /></div>)}</div> : <div className="calendar-empty"><CalendarDays size={30} /><h3>No game nights scheduled</h3><p>Pick a day and let the crew vote on it.</p><button className="button button-primary" type="button" onClick={() => onSchedule()}>Schedule the first one</button></div>}</section>
+    <section className="upcoming-nights"><div className="section-heading"><div><span className="eyebrow">Ready check</span><h2>Upcoming game nights</h2></div></div>{upcoming.length ? <div className="game-night-list">{upcoming.map((night) => <div id={`night-${night.id}`} key={night.id}><GameNightCard gameNight={night} currentUserId={currentUserId} crew={crew} syncing={syncingId === night.id} onAccept={() => onAccept(night)} onDecline={() => onDecline(night)} onSyncCalendar={() => onSyncCalendar(night)} /></div>)}</div> : <div className="calendar-empty"><CalendarDays size={30} /><h3>No game nights scheduled</h3><p>Pick a day and let the crew vote on it.</p><button className="button button-primary" type="button" onClick={() => onSchedule()}>Schedule the first one</button></div>}</section>
   </div>
 }
 
@@ -1336,20 +1336,24 @@ function App() {
     setSelectedId(null)
     flash(`${game.title} removed`)
   }
-  async function acceptGameNight(gameNight: GameNight) {
+  function acceptGameNight(gameNight: GameNight) {
     const respondedAt = new Date().toISOString()
     const priorResponse = gameNight.responses[currentUser]
     setGameNights((current) => current.map((night) => night.id === gameNight.id ? { ...night, responses: { ...night.responses, [currentUser]: { ...priorResponse, status: 'accepted', respondedAt, suggestedStartAt: undefined, suggestedEndAt: undefined } } } : night))
+    flash('Game night accepted in Checkpoint')
+  }
+  async function syncGameNightToPersonalCalendar(gameNight: GameNight) {
+    const priorResponse = gameNight.responses[currentUser]
     setCalendarSyncingId(gameNight.id)
     setCalendarError(null)
     try {
       const result = await syncGameNightToGoogleCalendar(gameNight, priorResponse?.googleEventId)
-      setGameNights((current) => current.map((night) => night.id === gameNight.id ? { ...night, responses: { ...night.responses, [currentUser]: { ...night.responses[currentUser], status: 'accepted', respondedAt, googleEventId: result.id, calendarSyncedAt: new Date().toISOString(), suggestedStartAt: undefined, suggestedEndAt: undefined } } } : night))
-      flash(priorResponse?.googleEventId ? 'Game night updated in Google Calendar' : 'Accepted and added to Google Calendar')
+      setGameNights((current) => current.map((night) => night.id === gameNight.id ? { ...night, responses: { ...night.responses, [currentUser]: { ...night.responses[currentUser], status: 'accepted', respondedAt: night.responses[currentUser]?.respondedAt || new Date().toISOString(), googleEventId: result.id, calendarSyncedAt: new Date().toISOString(), suggestedStartAt: undefined, suggestedEndAt: undefined } } } : night))
+      flash(priorResponse?.googleEventId ? 'Game night updated in Google Calendar' : 'Added to your Google Calendar')
     } catch (error) {
       const message = friendlyCalendarError(error)
       setCalendarError(message)
-      flash(`Accepted · ${message}`)
+      flash(message)
     } finally {
       setCalendarSyncingId(null)
     }
@@ -1366,7 +1370,7 @@ function App() {
     setShowSchedule(false)
     setScheduleDate(undefined)
     setView('calendar')
-    void acceptGameNight(gameNight)
+    flash('Game night scheduled in Checkpoint')
   }
   function reorderQueue(sourceId: string, targetId: string) {
     if (sourceId === targetId) return
@@ -1484,7 +1488,7 @@ function App() {
           <div className="filter-tabs">{([['all', 'All games'], ...Object.entries(statusLabels)] as [GameStatus | 'all', string][]).map(([value, label]) => <button key={value} className={libraryFilter === value ? 'active' : ''} onClick={() => setLibraryFilter(value)}>{label}<span>{value === 'all' ? games.length : games.filter((game) => game.status === value).length}</span></button>)}</div>
           <div className="smart-filters"><span><ListFilter size={14} /> Steam & prices</span>{([['any', 'Any ownership'], ['everyone-owns', 'Everyone owns'], ['needs-copy', 'Someone needs it'], ['on-sale', 'On sale']] as [SmartFilter, string][]).map(([value, label]) => <button type="button" key={value} className={smartFilter === value ? 'active' : ''} onClick={() => setSmartFilter(value)}>{label}</button>)}{integrationsLoading && <RefreshCw className="spin" size={14} />}</div>
           {filteredGames.length ? <div className="library-grid">{filteredGames.map((game) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} onVote={() => vote(game.id)} />)}</div> : <div className="empty-state"><Search size={28} /><h2>No games found</h2><p>Try another search or add a new game.</p><button className="button button-primary" onClick={() => openAddGame()}>Add game</button></div>}
-        </div> : <CalendarPage gameNights={gameNights} crew={groupMembers} currentUserId={currentUser} syncingId={calendarSyncingId} calendarError={calendarError} sharedSyncError={syncStatus === 'error'} onSchedule={(date) => { setScheduleDate(date); setShowSchedule(true) }} onAccept={acceptGameNight} onDecline={(night) => setDeclineNightId(night.id)} />}
+        </div> : <CalendarPage gameNights={gameNights} crew={groupMembers} currentUserId={currentUser} syncingId={calendarSyncingId} calendarError={calendarError} sharedSyncError={syncStatus === 'error'} onSchedule={(date) => { setScheduleDate(date); setShowSchedule(true) }} onAccept={acceptGameNight} onDecline={(night) => setDeclineNightId(night.id)} onSyncCalendar={syncGameNightToPersonalCalendar} />}
         <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={20} /><span>Home</span></button><button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('all') }}><Library size={20} /><span>Library</span></button><button className="mobile-add" onClick={() => openAddGame()}><Plus size={23} /></button><button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('up-next') }}><BookOpen size={20} /><span>Queue</span></button><button className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}><CalendarDays size={20} /><span>Calendar</span></button></nav>
       </main>
       {showAdd && <AddGameModal onClose={closeAddGame} onAdd={addGame} games={games} defaultParentId={addParentId} />}
