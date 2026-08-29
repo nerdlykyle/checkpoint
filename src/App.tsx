@@ -910,6 +910,88 @@ function AddGameModal({ onClose, onAdd, games, defaultParentId }: { onClose: () 
   )
 }
 
+function ChangeGameModal({ game, onClose, onChange }: { game: Game; onClose: () => void; onChange: (updates: Partial<Game>) => void }) {
+  const [title, setTitle] = useState(game.title)
+  const [dirty, setDirty] = useState(false)
+  const [selectedGame, setSelectedGame] = useState<GameSearchResult | null>(null)
+  const [results, setResults] = useState<GameSearchResult[]>([])
+  const [searching, setSearching] = useState(false)
+  const [searchFailed, setSearchFailed] = useState(false)
+  const [showResults, setShowResults] = useState(false)
+
+  useEffect(() => {
+    const query = title.trim()
+    if (!dirty || query.length < 2 || selectedGame?.title === query) {
+      setResults([])
+      setSearching(false)
+      setSearchFailed(false)
+      return
+    }
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => {
+      setSearching(true)
+      setSearchFailed(false)
+      const request = parseSteamStoreLink(query)
+        ? resolveSteamStoreLink(query, controller.signal, game.contentType ?? 'game').then((match) => match ? [match] : [])
+        : searchGames(query, controller.signal)
+      request.then((matches) => { setResults(matches); setShowResults(true) })
+        .catch((error: unknown) => {
+          if (error instanceof DOMException && error.name === 'AbortError') return
+          setSearchFailed(true)
+        })
+        .finally(() => setSearching(false))
+    }, parseSteamStoreLink(query) ? 80 : 320)
+    return () => { window.clearTimeout(timer); controller.abort() }
+  }, [dirty, game.contentType, selectedGame, title])
+
+  function chooseGame(nextGame: GameSearchResult) {
+    setSelectedGame(nextGame)
+    setTitle(nextGame.title)
+    setShowResults(false)
+  }
+
+  function submit(event: FormEvent) {
+    event.preventDefault()
+    const cleanTitle = title.trim()
+    if (!cleanTitle) return
+    const catalogGame = selectedGame ?? results.find((result) => result.title.trim().toLowerCase() === cleanTitle.toLowerCase())
+    const nextType = catalogGame?.contentType ?? game.contentType ?? 'game'
+    const words = cleanTitle.split(/\s+/)
+    const coverMark = (words.length > 1 ? words.slice(0, 2).map((word) => word[0]).join('') : cleanTitle.slice(0, 2)).toUpperCase()
+    onChange({
+      title: cleanTitle,
+      year: undefined,
+      genre: nextType === 'dlc' ? 'DLC' : 'Game',
+      coverMark,
+      coverUrl: catalogGame?.coverUrl,
+      steamAppId: catalogGame?.steamAppId,
+      catalogId: catalogGame?.catalogId,
+      catalogSource: catalogGame ? 'steam' : undefined,
+      contentType: nextType,
+      parentGameId: nextType === 'dlc' ? game.parentGameId : undefined,
+      parentGameTitle: nextType === 'dlc' ? game.parentGameTitle : undefined,
+      manualOwnership: {},
+    })
+  }
+
+  return <div className="modal-backdrop" onMouseDown={onClose}><section className="modal change-game-modal" onMouseDown={(event) => event.stopPropagation()} aria-modal="true" role="dialog">
+    <div className="modal-heading"><div><span className="eyebrow">Correct the game</span><h2>Change {game.title}</h2></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
+    <form onSubmit={submit}>
+      <label className="field field-full game-search-field"><span>New game title or Steam link</span><input value={title} onChange={(event) => { setTitle(event.target.value); setDirty(true); setSelectedGame(null); setShowResults(true) }} onFocus={() => dirty && setShowResults(true)} placeholder="Type a title or paste its Steam store page" autoComplete="off" autoFocus required />
+        {showResults && dirty && title.trim().length >= 2 && <div className="game-search-results">
+          {searching && <div className="game-search-message">Searching the game catalog…</div>}
+          {!searching && searchFailed && <div className="game-search-message">Search is unavailable. You can still save the title manually.</div>}
+          {!searching && !searchFailed && results.map((result) => <button className="game-search-result" type="button" key={result.catalogId} onClick={() => chooseGame(result)}><span className="result-cover"><Gamepad2 size={16} /><img src={result.thumbnailUrl} alt="" data-fallback={result.coverUrl} onError={(event) => { const fallback = event.currentTarget.dataset.fallback; if (fallback && event.currentTarget.src !== fallback) { event.currentTarget.src = fallback; return } event.currentTarget.style.display = 'none' }} /></span><span><strong>{result.title}</strong><small>Steam {result.contentType === 'dlc' ? 'DLC' : 'game'} · artwork included</small></span><Check size={16} /></button>)}
+          {!searching && !searchFailed && !results.length && <div className="game-search-message">No catalog match yet. You can still save this title manually.</div>}
+        </div>}
+        <small className={`catalog-credit ${selectedGame ? 'catalog-selected' : ''}`}>{selectedGame ? <><Check size={11} /> Exact Steam AppID and artwork connected</> : <>Choose a result for correct artwork, or paste the exact Steam store URL.</>}</small>
+      </label>
+      <div className="change-game-note"><RefreshCw size={16} /><p><strong>Your Checkpoint history stays attached.</strong><span>Status, progress, votes, notes, and puzzle pages remain. Old Steam ownership overrides are cleared for the corrected game.</span></p></div>
+      <div className="modal-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit" disabled={!dirty}><Pencil size={16} /> Save corrected game</button></div>
+    </form>
+  </section></div>
+}
+
 function SteamGamePanel({ game, onManualOwnershipChange }: { game: Game; onManualOwnershipChange: (memberId: string, owned: boolean | undefined) => void }) {
   const crew = useContext(MembersContext)
   const { boardId, steam, deals, loading, error } = useContext(IntegrationsContext)
@@ -951,7 +1033,7 @@ function SteamGamePanel({ game, onManualOwnershipChange }: { game: Game; onManua
   </section>
 }
 
-function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onAddDlc, onOpenPuzzle, onManualOwnershipChange }: { game: Game; onClose: () => void; onSave: (updates: Partial<Game>) => void; onVote: () => void; onRemove: () => void; onAddDlc: () => void; onOpenPuzzle: () => void; onManualOwnershipChange: (memberId: string, owned: boolean | undefined) => void }) {
+function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onChangeGame, onAddDlc, onOpenPuzzle, onManualOwnershipChange }: { game: Game; onClose: () => void; onSave: (updates: Partial<Game>) => void; onVote: () => void; onRemove: () => void; onChangeGame: () => void; onAddDlc: () => void; onOpenPuzzle: () => void; onManualOwnershipChange: (memberId: string, owned: boolean | undefined) => void }) {
   const [progress, setProgress] = useState(game.progress)
   const [status, setStatus] = useState(game.status)
   const [note, setNote] = useState(game.note)
@@ -963,7 +1045,7 @@ function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onAddDlc, o
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <section className="modal details-modal" onMouseDown={(event) => event.stopPropagation()} aria-modal="true" role="dialog">
-        <div className="details-hero"><Cover game={game} size="large" /><div className="details-title"><div className="details-pills"><span className="status-pill">{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="content-pill"><Puzzle size={10} /> DLC</span>}</div><h2>{game.title}</h2><p>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle} · ` : ''}{[game.year, game.genre, game.platform].filter(Boolean).join(' · ')}</p><div className="details-quick-actions"><VoteButton game={game} onVote={onVote} />{game.steamAppId && <a className="steam-store-button" href={`steam://store/${game.steamAppId}`}><Gamepad2 size={14} /> Open in Steam</a>}<button className="puzzle-board-button" type="button" onClick={onOpenPuzzle}><Pencil size={14} /> Puzzle Board</button>{game.contentType !== 'dlc' && <button className="add-dlc-button" type="button" onClick={onAddDlc}><Puzzle size={14} /> Add DLC</button>}</div></div><button className="icon-button details-close" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
+        <div className="details-hero"><Cover game={game} size="large" /><div className="details-title"><div className="details-pills"><span className="status-pill">{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="content-pill"><Puzzle size={10} /> DLC</span>}</div><h2>{game.title}</h2><p>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle} · ` : ''}{[game.year, game.genre, game.platform].filter(Boolean).join(' · ')}</p><div className="details-quick-actions"><VoteButton game={game} onVote={onVote} /><button className="change-game-button" type="button" onClick={onChangeGame}><RefreshCw size={14} /> Change game</button><button className="mobile-remove-game" type="button" onClick={onRemove}><Trash2 size={14} /> Remove game</button>{game.steamAppId && <a className="steam-store-button" href={`steam://store/${game.steamAppId}`}><Gamepad2 size={14} /> Open in Steam</a>}<button className="puzzle-board-button" type="button" onClick={onOpenPuzzle}><Pencil size={14} /> Puzzle Board</button>{game.contentType !== 'dlc' && <button className="add-dlc-button" type="button" onClick={onAddDlc}><Puzzle size={14} /> Add DLC</button>}</div></div><button className="icon-button details-close" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
         <form onSubmit={save} className="details-form">
           <div className="form-grid">
             <label className="field"><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value as GameStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
@@ -1155,6 +1237,7 @@ function App() {
   const [puzzleGameId, setPuzzleGameId] = useState<string | null>(null)
   const [expandedCampaignNoteId, setExpandedCampaignNoteId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [changeGameId, setChangeGameId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [libraryFilter, setLibraryFilter] = useState<GameStatus | 'all'>('all')
   const [smartFilter, setSmartFilter] = useState<SmartFilter>('any')
@@ -1305,6 +1388,7 @@ function App() {
   const playing = games.find((game) => game.status === 'playing')
   const upNext = games.filter((game) => game.status === 'up-next')
   const selected = games.find((game) => game.id === selectedId)
+  const changeGame = games.find((game) => game.id === changeGameId)
   const puzzleGame = games.find((game) => game.id === puzzleGameId)
   const filteredGames = useMemo(() => games.filter((game) => {
     if ((libraryFilter !== 'all' && game.status !== libraryFilter) || !game.title.toLowerCase().includes(search.toLowerCase())) return false
@@ -1320,6 +1404,14 @@ function App() {
   function closeAddGame() { setShowAdd(false); setAddParentId(undefined) }
   function addGame(game: Game) { setGames((current) => [...current, game]); closeAddGame(); flash(`${game.title} added to ${statusLabels[game.status]}`) }
   function updateGame(gameId: string, updates: Partial<Game>) { setGames((current) => current.map((game) => game.id === gameId ? { ...game, ...updates } : game)); setSelectedId(null); flash('Checkpoint updated') }
+  function replaceGame(gameId: string, updates: Partial<Game>) {
+    setGames((current) => current.map((game) => game.id === gameId
+      ? { ...game, ...updates }
+      : game.parentGameId === gameId && updates.title ? { ...game, parentGameTitle: updates.title } : game))
+    if (updates.title) setGameNights((current) => current.map((night) => night.gameId === gameId ? { ...night, gameTitle: updates.title } : night))
+    setChangeGameId(null)
+    flash(`${updates.title || 'Game'} corrected without losing its Checkpoint history`)
+  }
   function updateManualOwnership(gameId: string, memberId: string, owned: boolean | undefined) {
     setGames((current) => current.map((game) => {
       if (game.id !== gameId) return game
@@ -1495,7 +1587,8 @@ function App() {
       {showSchedule && <ScheduleGameNightModal games={games} defaultDate={scheduleDate} onClose={() => { setShowSchedule(false); setScheduleDate(undefined) }} onSchedule={scheduleGameNight} />}
       {declineNightId && gameNights.find((night) => night.id === declineNightId) && <SuggestTimeModal gameNight={gameNights.find((night) => night.id === declineNightId)!} onClose={() => setDeclineNightId(null)} onSuggest={(startAt, endAt) => declineGameNight(declineNightId, startAt, endAt)} />}
       {showCrew && <CrewModal members={groupMembers} currentUserId={currentUser} googlePhotoUrl={user?.photoURL} integrationError={integrationError} onClose={() => setShowCrew(false)} onSavePhoto={saveProfileImage} onResolveSteam={resolveSteamLink} onSaveSteam={saveSteamProfile} />}
-      {selected && <GameDetailsModal game={selected} onClose={() => setSelectedId(null)} onVote={() => vote(selected.id)} onSave={(updates) => updateGame(selected.id, updates)} onRemove={() => removeGame(selected)} onAddDlc={() => openAddGame(selected)} onOpenPuzzle={() => { setPuzzleGameId(selected.id); setSelectedId(null) }} onManualOwnershipChange={(memberId, owned) => updateManualOwnership(selected.id, memberId, owned)} />}
+      {selected && <GameDetailsModal game={selected} onClose={() => setSelectedId(null)} onVote={() => vote(selected.id)} onSave={(updates) => updateGame(selected.id, updates)} onRemove={() => removeGame(selected)} onChangeGame={() => { setChangeGameId(selected.id); setSelectedId(null) }} onAddDlc={() => openAddGame(selected)} onOpenPuzzle={() => { setPuzzleGameId(selected.id); setSelectedId(null) }} onManualOwnershipChange={(memberId, owned) => updateManualOwnership(selected.id, memberId, owned)} />}
+      {changeGame && <ChangeGameModal game={changeGame} onClose={() => setChangeGameId(null)} onChange={(updates) => replaceGame(changeGame.id, updates)} />}
       {puzzleGame && <PuzzleBoardModal game={puzzleGame} boardId={boardId} currentUserId={currentUser} onClose={() => setPuzzleGameId(null)} />}
       {toast && <div className="toast"><Check size={17} /> {toast}</div>}
     </div>
