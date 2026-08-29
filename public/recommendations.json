@@ -1,0 +1,1161 @@
+{
+  "editionDate": "2026-08-28",
+  "generatedAt": "2026-08-29T14:22:09.375Z",
+  "minimumReviews": 25,
+  "minimumOnlinePlayers": 3,
+  "recommendations": [
+    {
+      "steamAppId": "427410",
+      "title": "Abiotic Factor",
+      "year": 2025,
+      "genres": [
+        "Action",
+        "Adventure",
+        "RPG",
+        "Simulation"
+      ],
+      "summary": "Abiotic Factor is a survival crafting experience for 1-6 players set in the depths of an underground research facility. Caught between paranormal containment failure, a military crusade, and chaos from a dozen realms, the world’s greatest minds must survive against the universe’s biggest threats.",
+      "why": "6-player online co-op with overwhelmingly positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 6,
+      "reviewSummary": "Overwhelmingly Positive",
+      "positivePercent": 96,
+      "totalReviews": 58518,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/427410/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/427410/afe0e6c04aaa67d511a7fffe630aa8a54788c3b3/header.jpg?t=1785170446",
+      "steamUrl": "https://store.steampowered.com/app/427410/"
+    },
+    {
+      "steamAppId": "1385380",
+      "title": "Across the Obelisk",
+      "year": 2022,
+      "genres": [
+        "Adventure",
+        "Indie",
+        "RPG",
+        "Strategy"
+      ],
+      "summary": "Set forth in a co-op roguelite deckbuilder where every choice matters! Craft decks of breathtaking power. Journey alone or with up to three friends. Plot your party’s path to glory and face powerful enemies in deep tactical combat on your quest to save the kingdom of Senenthia in Across the Obelisk!",
+      "why": "4-player online co-op with very positive Steam reviews and adventure/indie gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 80,
+      "totalReviews": 13080,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1385380/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1385380/header.jpg?t=1781697686",
+      "steamUrl": "https://store.steampowered.com/app/1385380/"
+    },
+    {
+      "steamAppId": "602960",
+      "title": "Barotrauma",
+      "year": 2023,
+      "genres": [
+        "Action",
+        "Indie",
+        "Simulation",
+        "Strategy"
+      ],
+      "summary": "Barotrauma is a 2D co-op submarine simulator – in space, with survival horror and RPG elements. Steer your submarine, complete missions, fight monsters, fix leaks, operate machinery, man the guns and craft items, and stay alert: danger in Barotrauma doesn’t announce itself!",
+      "why": "16-player online co-op with very positive Steam reviews and action/indie gameplay.",
+      "onlineCoopMax": 16,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 94,
+      "totalReviews": 89401,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/602960/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/602960/header.jpg?t=1776271911",
+      "steamUrl": "https://store.steampowered.com/app/602960/"
+    },
+    {
+      "steamAppId": "274190",
+      "title": "Broforce",
+      "year": 2015,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Casual",
+        "Indie"
+      ],
+      "summary": "Broforce is an action-packed side-scrolling run ‘n’ gun ode to freedom, putting you in control of an under-funded, overpowered paramilitary organization dealing exclusively in excessive force.",
+      "why": "4-player online co-op with overwhelmingly positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Overwhelmingly Positive",
+      "positivePercent": 97,
+      "totalReviews": 60968,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/274190/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/274190/header.jpg?t=1764247760",
+      "steamUrl": "https://store.steampowered.com/app/274190/"
+    },
+    {
+      "steamAppId": "204360",
+      "title": "Castle Crashers®",
+      "year": 2012,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Casual",
+        "Indie",
+        "RPG"
+      ],
+      "summary": "Hack, slash, and smash your way to victory in this award winning 2D arcade adventure from The Behemoth!",
+      "why": "4-player online co-op with overwhelmingly positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Overwhelmingly Positive",
+      "positivePercent": 96,
+      "totalReviews": 140400,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/204360/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/204360/header.jpg?t=1764096331",
+      "steamUrl": "https://store.steampowered.com/app/204360/"
+    },
+    {
+      "steamAppId": "1621690",
+      "title": "Core Keeper",
+      "year": 2024,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Indie",
+        "RPG",
+        "Simulation"
+      ],
+      "summary": "Explore a vast cavern of creatures, relics and resources in a mining sandbox adventure for 1-8 players. Mine, build, fight, craft and farm to unravel the mystery of the ancient Core.",
+      "why": "8-player online co-op with very positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 8,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 93,
+      "totalReviews": 66166,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1621690/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1621690/header.jpg?t=1787841024",
+      "steamUrl": "https://store.steampowered.com/app/1621690/"
+    },
+    {
+      "steamAppId": "548430",
+      "title": "Deep Rock Galactic",
+      "year": 2020,
+      "genres": [
+        "Action"
+      ],
+      "summary": "Deep Rock Galactic is a 1-4 player co-op FPS featuring dwarven space miners, procedurally-generated destructible environments, and endless hordes of alien monsters. Explore cave systems, mine for minerals, and work together to survive!",
+      "why": "4-player online co-op with overwhelmingly positive Steam reviews and action gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Overwhelmingly Positive",
+      "positivePercent": 97,
+      "totalReviews": 379426,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/548430/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/548430/37b58a6c4816ee60b0ca97cb6724d6e904c58c41/header.jpg?t=1786014445",
+      "steamUrl": "https://store.steampowered.com/app/548430/"
+    },
+    {
+      "steamAppId": "1135230",
+      "title": "Ember Knights",
+      "year": 2023,
+      "genres": [
+        "Action",
+        "Adventure",
+        "RPG"
+      ],
+      "summary": "Ember Knights is an action rogue-lite for 1-4 players where you play as legendary knights, the last spark of hope against the mad sorcerer Praxis and his hordes of unwavering fiends. Wield weapons & skills, build synergies with game-changing relics and free the universe of Praxis’ corruption.",
+      "why": "4-player online co-op with very positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 94,
+      "totalReviews": 6992,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1135230/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1135230/header.jpg?t=1776356243",
+      "steamUrl": "https://store.steampowered.com/app/1135230/"
+    },
+    {
+      "steamAppId": "1435790",
+      "title": "Escape Simulator",
+      "year": 2021,
+      "genres": [
+        "Adventure",
+        "Casual",
+        "Indie",
+        "Simulation"
+      ],
+      "summary": "First-person puzzler you can play solo or in an online co-op. Explore a set of highly interactive escape rooms. Move furniture, pick up and examine everything, smash pots and break locks! Play thousands of community-made rooms through the level editor.",
+      "why": "10-player online co-op with very positive Steam reviews and adventure/casual gameplay.",
+      "onlineCoopMax": 10,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 94,
+      "totalReviews": 19333,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1435790/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1435790/413708a2da512607f70bb22b29270359586c6e5f/header.jpg?t=1782813501",
+      "steamUrl": "https://store.steampowered.com/app/1435790/"
+    },
+    {
+      "steamAppId": "527230",
+      "title": "For The King",
+      "year": 2018,
+      "genres": [
+        "Adventure",
+        "Indie",
+        "RPG",
+        "Strategy"
+      ],
+      "summary": "For The King is a strategic RPG that blends tabletop and roguelike elements in a challenging adventure that spans the realms. Set off on a single player experience or play cooperatively both online and locally.",
+      "why": "3-player online co-op with very positive Steam reviews and adventure/indie gameplay.",
+      "onlineCoopMax": 3,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 88,
+      "totalReviews": 43728,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/527230/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/527230/166aff558fda0f7e13df1970c7e825805c6e52b0/header_alt_assets_14.jpg?t=1762445651",
+      "steamUrl": "https://store.steampowered.com/app/527230/"
+    },
+    {
+      "steamAppId": "416600",
+      "title": "Full Metal Furies",
+      "year": 2018,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Indie",
+        "RPG"
+      ],
+      "summary": "From the creators of Rogue Legacy comes a \"true-cooperative\" action RPG. FULL METAL FURIES puts an emphasis on team play with a unique combat system where everyone is important. Play on the couch, alone or with friends, or make it an online party for up to four players!",
+      "why": "4-player online co-op with very positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 91,
+      "totalReviews": 2924,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/416600/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/416600/header.jpg?t=1689347261",
+      "steamUrl": "https://store.steampowered.com/app/416600/"
+    },
+    {
+      "steamAppId": "780290",
+      "title": "Gloomhaven",
+      "year": 2021,
+      "genres": [
+        "Adventure",
+        "RPG",
+        "Strategy"
+      ],
+      "summary": "Lead your band of mercenaries in the land of Gloomhaven, work with unsavoury individuals, shape the fate of the region, fight your way through horrific places and get rich or die trying in this ruthless Tactical-RPG.",
+      "why": "4-player online co-op with very positive Steam reviews and adventure/rpg gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 82,
+      "totalReviews": 16088,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/780290/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/780290/header.jpg?t=1786706403",
+      "steamUrl": "https://store.steampowered.com/app/780290/"
+    },
+    {
+      "steamAppId": "493520",
+      "title": "GTFO",
+      "year": 2021,
+      "genres": [
+        "Action"
+      ],
+      "summary": "GTFO is a hardcore cooperative horror shooter that throws you from gripping suspense to explosive action in a heartbeat. Stealth, strategy, and teamwork are necessary to survive in your deadly, underground prison. Work together or die together.",
+      "why": "4-player online co-op with very positive Steam reviews and action gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 84,
+      "totalReviews": 66649,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/493520/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/493520/header.jpg?t=1773842359",
+      "steamUrl": "https://store.steampowered.com/app/493520/"
+    },
+    {
+      "steamAppId": "1217060",
+      "title": "Gunfire Reborn",
+      "year": 2021,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Indie",
+        "RPG"
+      ],
+      "summary": "Gunfire Reborn is a level-based adventure game featuring FPS, Roguelite and RPG. Players can control heroes with various abilities to experience diverse Build gameplay, use various weapons to explore procedurally-generated levels. You can play the game alone, or join 4-player coop.",
+      "why": "4-player online co-op with very positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 93,
+      "totalReviews": 103624,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1217060/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1217060/dd6c1906d262c38c183ccd711f192db187b5103f/header.jpg?t=1785381312",
+      "steamUrl": "https://store.steampowered.com/app/1217060/"
+    },
+    {
+      "steamAppId": "1201540",
+      "title": "HELLCARD",
+      "year": 2024,
+      "genres": [
+        "Adventure",
+        "Indie",
+        "RPG",
+        "Strategy"
+      ],
+      "summary": "Hellcard is a unique cooperative deck builder rogue-like game. Descend into the paper dungeons on your own, recruit computer-controlled companions or join other players' lobbies in fast-paced tactical card battles against the armies of darkness and the Archdemon himself!",
+      "why": "3-player online co-op with very positive Steam reviews and adventure/indie gameplay.",
+      "onlineCoopMax": 3,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 86,
+      "totalReviews": 4667,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1201540/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1201540/header.jpg?t=1778601414",
+      "steamUrl": "https://store.steampowered.com/app/1201540/"
+    },
+    {
+      "steamAppId": "1062810",
+      "title": "Inkbound",
+      "year": 2024,
+      "genres": [
+        "Action",
+        "Indie",
+        "Massively Multiplayer",
+        "RPG",
+        "Simulation",
+        "Strategy"
+      ],
+      "summary": "A turn-based tactical roguelike from the creators of Monster Train. Play solo or co-op, create powerful builds, and save the Atheneum.",
+      "why": "4-player online co-op with very positive Steam reviews and action/indie gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 87,
+      "totalReviews": 4025,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1062810/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1062810/header.jpg?t=1780422654",
+      "steamUrl": "https://store.steampowered.com/app/1062810/"
+    },
+    {
+      "steamAppId": "1302240",
+      "title": "Labyrinthine",
+      "year": 2023,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Indie"
+      ],
+      "summary": "A co-op horror game like no other... Play with 1-8 players online as you solve puzzles, collect items and run from the horrors that lie within. Follow in the footsteps of Joan in the story mode or tackle procedurally generated maps that scale with your level and bring a fresh experience each game..",
+      "why": "8-player online co-op with very positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 8,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 84,
+      "totalReviews": 17453,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1302240/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1302240/header.jpg?t=1764093777",
+      "steamUrl": "https://store.steampowered.com/app/1302240/"
+    },
+    {
+      "steamAppId": "1966720",
+      "title": "Lethal Company",
+      "year": 2023,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Indie",
+        "Early Access"
+      ],
+      "summary": "A co-op horror about scavenging at abandoned moons to sell scrap to the Company.",
+      "why": "4-player online co-op with overwhelmingly positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Overwhelmingly Positive",
+      "positivePercent": 97,
+      "totalReviews": 510562,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1966720/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1966720/header.jpg?t=1775380053",
+      "steamUrl": "https://store.steampowered.com/app/1966720/"
+    },
+    {
+      "steamAppId": "471550",
+      "title": "Nine Parchments",
+      "year": 2017,
+      "genres": [
+        "Action",
+        "RPG"
+      ],
+      "summary": "Nine Parchments is a co-operative blast'em up game of magic mayhem from Frozenbyte, creators of the Trine series!",
+      "why": "4-player online co-op with mostly positive Steam reviews and action/rpg gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Mostly Positive",
+      "positivePercent": 77,
+      "totalReviews": 4735,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/471550/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/471550/header.jpg?t=1725007138",
+      "steamUrl": "https://store.steampowered.com/app/471550/"
+    },
+    {
+      "steamAppId": "739630",
+      "title": "Phasmophobia",
+      "year": 2020,
+      "genres": [
+        "Action",
+        "Indie",
+        "Early Access"
+      ],
+      "summary": "Phasmophobia is a 4 player online co-op psychological horror. Paranormal activity is on the rise and it’s up to you and your team to use all the ghost-hunting equipment at your disposal in order to gather as much evidence as you can.",
+      "why": "4-player online co-op with very positive Steam reviews and action/indie gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 94,
+      "totalReviews": 838091,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/739630/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/739630/3dab2169bcaac566718921c87f5982560123e8bf/header_alt_assets_12.jpg?t=1787675345",
+      "steamUrl": "https://store.steampowered.com/app/739630/"
+    },
+    {
+      "steamAppId": "1599600",
+      "title": "PlateUp!",
+      "year": 2022,
+      "genres": [
+        "Action",
+        "Casual",
+        "Indie",
+        "Strategy"
+      ],
+      "summary": "Cook and serve your dishes, design and decorate your restaurants, and expand your culinary kingdom with new unlocks, abilities and dishes in procedurally-generated locations. Classic cooking action with permanent roguelite progression. Hire your friends - or do it all yourself!",
+      "why": "4-player online co-op with very positive Steam reviews and action/casual gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 95,
+      "totalReviews": 27056,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1599600/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1599600/eb8fa3ad44fb5b4e4de4ef402101a55063797958/header.jpg?t=1786533482",
+      "steamUrl": "https://store.steampowered.com/app/1599600/"
+    },
+    {
+      "steamAppId": "2071280",
+      "title": "Ravenswatch",
+      "year": 2024,
+      "genres": [
+        "Action",
+        "Adventure"
+      ],
+      "summary": "Fallen heroes of old folk tales and legends: you are on the verge of a crucial battle against the Nightmare invading and corrupting your world. A roguelike action game from the creators of Curse of the Dead Gods©, playable solo or in online co-op.",
+      "why": "4-player online co-op with mostly positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Mostly Positive",
+      "positivePercent": 80,
+      "totalReviews": 22515,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2071280/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2071280/header.jpg?t=1782466354",
+      "steamUrl": "https://store.steampowered.com/app/2071280/"
+    },
+    {
+      "steamAppId": "632360",
+      "title": "Risk of Rain 2",
+      "year": 2020,
+      "genres": [
+        "Action",
+        "Indie"
+      ],
+      "summary": "Escape a chaotic alien planet by fighting through hordes of frenzied monsters – with your friends, or on your own. Combine loot in surprising ways and master each character until you become the havoc you feared upon your first crash landing.",
+      "why": "4-player online co-op with very positive Steam reviews and action/indie gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 94,
+      "totalReviews": 352011,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/632360/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/632360/header.jpg?t=1783621122",
+      "steamUrl": "https://store.steampowered.com/app/632360/"
+    },
+    {
+      "steamAppId": "1492070",
+      "title": "Sker Ritual",
+      "year": 2024,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Indie"
+      ],
+      "summary": "Tear through endless waves of supernatural enemies in this co-op horror horde shooter. Play solo or with up to 4 players, unleash god-like Miracle powers, supercharge your arsenal, and survive devastating boss encounters on Sker Island.",
+      "why": "4-player online co-op with very positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 82,
+      "totalReviews": 5997,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1492070/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1492070/8e288958e8c203003f00852e73dba95558b94992/header.jpg?t=1786031513",
+      "steamUrl": "https://store.steampowered.com/app/1492070/"
+    },
+    {
+      "steamAppId": "512900",
+      "title": "Streets of Rogue",
+      "year": 2019,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Indie",
+        "RPG"
+      ],
+      "summary": "Fight, sneak, and hack your way through randomly generated cities. It's like Nuclear Throne meets Deus Ex, mixed with the anarchy of GTA. Rogue-lite meets immersive sim, and goes completely insane.",
+      "why": "4-player online co-op with overwhelmingly positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Overwhelmingly Positive",
+      "positivePercent": 96,
+      "totalReviews": 23040,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/512900/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/512900/header.jpg?t=1758274145",
+      "steamUrl": "https://store.steampowered.com/app/512900/"
+    },
+    {
+      "steamAppId": "553850",
+      "title": "HELLDIVERS™ 2",
+      "year": 2024,
+      "genres": [
+        "Action"
+      ],
+      "summary": "The Galaxy’s Last Line of Offence. Enlist in the Helldivers and join the fight for freedom across a hostile galaxy in a fast, frantic, and ferocious third-person shooter.",
+      "why": "4-player online co-op with mostly positive Steam reviews and action gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Mostly Positive",
+      "positivePercent": 75,
+      "totalReviews": 1159016,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/553850/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/553850/850e2f9e5bb15c5706bb9a1edc832f4f782e8be5/header.jpg?t=1786525389",
+      "steamUrl": "https://store.steampowered.com/app/553850/"
+    },
+    {
+      "steamAppId": "1063420",
+      "title": "Void Crew",
+      "year": 2024,
+      "genres": [
+        "Action",
+        "Adventure"
+      ],
+      "summary": "Void Crew is a Chaotic, Co-op Roguelite game for 1 to 6 players: Outfit your spaceship and crew for thrilling quests, brave fierce enemies in Space Battles... and try not to panic!",
+      "why": "4-player online co-op with very positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 86,
+      "totalReviews": 8429,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1063420/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1063420/header.jpg?t=1780298639",
+      "steamUrl": "https://store.steampowered.com/app/1063420/"
+    },
+    {
+      "steamAppId": "552500",
+      "title": "Warhammer: Vermintide 2",
+      "year": 2018,
+      "genres": [
+        "Action",
+        "Indie",
+        "RPG"
+      ],
+      "summary": "The critically acclaimed Vermintide 2 is a visually stunning and groundbreaking melee action game pushing the boundaries of the first person co-op genre. Join the fight now!",
+      "why": "4-player online co-op with very positive Steam reviews and action/indie gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 85,
+      "totalReviews": 147426,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/552500/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/552500/header.jpg?t=1764008361",
+      "steamUrl": "https://store.steampowered.com/app/552500/"
+    },
+    {
+      "steamAppId": "1361210",
+      "title": "Warhammer 40,000: Darktide",
+      "year": 2022,
+      "genres": [
+        "Action",
+        "Adventure",
+        "RPG"
+      ],
+      "summary": "Take back the city of Tertium from hordes of bloodthirsty foes in this intense and brutal action shooter. Warhammer 40,000: Darktide is the new co-op focused experience from the award-winning team behind the Vermintide series. As Tertium falls, Rejects Will Rise.",
+      "why": "4-player online co-op with mostly positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Mostly Positive",
+      "positivePercent": 72,
+      "totalReviews": 138101,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1361210/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1361210/f07ebcb73a34112ac61c54608b1f1ded7e45eb8a/header.jpg?t=1782226781",
+      "steamUrl": "https://store.steampowered.com/app/1361210/"
+    },
+    {
+      "steamAppId": "312670",
+      "title": "Strange Brigade",
+      "year": 2018,
+      "genres": [
+        "Action",
+        "Adventure"
+      ],
+      "summary": "Embark on an exotic journey into danger in this rip-roaring 1930s third person adventure for 1-4 players! Encounter pulse-pounding action, treacherous traps and tales of derring-do!",
+      "why": "4-player online co-op with very positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 84,
+      "totalReviews": 11303,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/312670/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/312670/header.jpg?t=1589878497",
+      "steamUrl": "https://store.steampowered.com/app/312670/"
+    },
+    {
+      "steamAppId": "694280",
+      "title": "Zombie Army 4: Dead War",
+      "year": 2021,
+      "genres": [
+        "Action"
+      ],
+      "summary": "Hitler’s hordes are back for more in this spine-chilling shooter from the makers of Sniper Elite 4! Abominable occult enemies, epic weapons and a harrowing new campaign for 1-4 players await in 1940s Europe, as you fight to save humankind from undead Armageddon!",
+      "why": "4-player online co-op with very positive Steam reviews and action gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 86,
+      "totalReviews": 11832,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/694280/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/694280/header.jpg?t=1786965015",
+      "steamUrl": "https://store.steampowered.com/app/694280/"
+    },
+    {
+      "steamAppId": "648800",
+      "title": "Raft",
+      "year": 2022,
+      "genres": [
+        "Adventure",
+        "Indie",
+        "Simulation"
+      ],
+      "summary": "Raft™ throws you and your friends into an epic oceanic adventure! Alone or together, players battle to survive a perilous voyage across a vast sea! Gather debris, scavenge reefs and build your own floating home, but be wary of the man-eating sharks!",
+      "why": "8-player online co-op with very positive Steam reviews and adventure/indie gameplay.",
+      "onlineCoopMax": 8,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 93,
+      "totalReviews": 377628,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/648800/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/648800/header.jpg?t=1727184011",
+      "steamUrl": "https://store.steampowered.com/app/648800/"
+    },
+    {
+      "steamAppId": "962130",
+      "title": "Grounded",
+      "year": 2022,
+      "genres": [
+        "Action",
+        "Adventure"
+      ],
+      "summary": "The world is a vast, beautiful and dangerous place – especially when you have been shrunk to the size of an ant. Can you thrive alongside the hordes of giant insects, fighting to survive the perils of the backyard?",
+      "why": "4-player online co-op with very positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 90,
+      "totalReviews": 95548,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/962130/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/962130/header.jpg?t=1768264530",
+      "steamUrl": "https://store.steampowered.com/app/962130/"
+    },
+    {
+      "steamAppId": "892970",
+      "title": "Valheim",
+      "year": 2021,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Indie",
+        "RPG",
+        "Early Access"
+      ],
+      "summary": "A brutal exploration and survival game for 1-10 players, set in a procedurally-generated purgatory inspired by viking culture. Battle, build, and conquer your way to a saga worthy of Odin’s patronage!",
+      "why": "10-player online co-op with very positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 10,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 94,
+      "totalReviews": 540921,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/892970/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/892970/de0bdcf6c008c508a79d8e75eb91fc67f4bebd5d/header.jpg?t=1786012504",
+      "steamUrl": "https://store.steampowered.com/app/892970/"
+    },
+    {
+      "steamAppId": "242760",
+      "title": "The Forest",
+      "year": 2018,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Indie",
+        "Simulation"
+      ],
+      "summary": "As the lone survivor of a passenger jet crash, you find yourself in a mysterious forest battling to stay alive against a society of cannibalistic mutants. Build, explore, survive in this terrifying first person survival horror simulator.",
+      "why": "8-player online co-op with overwhelmingly positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 8,
+      "reviewSummary": "Overwhelmingly Positive",
+      "positivePercent": 96,
+      "totalReviews": 680772,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/242760/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/242760/header.jpg?t=1699381053",
+      "steamUrl": "https://store.steampowered.com/app/242760/"
+    },
+    {
+      "steamAppId": "1326470",
+      "title": "Sons Of The Forest",
+      "year": 2024,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Indie",
+        "Simulation"
+      ],
+      "summary": "Sent to find a missing billionaire on a remote island, you find yourself in a cannibal-infested hellscape. Craft, build, and struggle to survive, alone or with friends, in this terrifying new open-world survival horror simulator.",
+      "why": "8-player online co-op with very positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 8,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 88,
+      "totalReviews": 318008,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1326470/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1326470/header.jpg?t=1708624856",
+      "steamUrl": "https://store.steampowered.com/app/1326470/"
+    },
+    {
+      "steamAppId": "1203620",
+      "title": "Enshrouded",
+      "year": 2024,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Indie",
+        "RPG",
+        "Early Access"
+      ],
+      "summary": "You are Flameborn, last ember of hope of a dying race. Awaken, survive the terror of a corrupting fog, and reclaim the lost beauty of your kingdom. Venture into a vast world, vanquish punishing bosses, build grand halls and forge your path in this co-op survival action RPG for up to 16 players.",
+      "why": "16-player online co-op with very positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 16,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 86,
+      "totalReviews": 104945,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1203620/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1203620/062c788d22ecf236269da0f115150c0d3b7055a4/header.jpg?t=1782800102",
+      "steamUrl": "https://store.steampowered.com/app/1203620/"
+    },
+    {
+      "steamAppId": "1604030",
+      "title": "V Rising",
+      "year": 2024,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Massively Multiplayer"
+      ],
+      "summary": "Awaken as a Vampire. Hunt for blood in nearby settlements to regain your strength and evade the scorching sun to survive. Raise your castle and thrive in an ever-changing, open world full of mystery. Gain allies online and conquer the land of the living.",
+      "why": "4-player online co-op with very positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 89,
+      "totalReviews": 136805,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1604030/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1604030/be49834ab147ad22ba17005fb847c93917d18b97/header.jpg?t=1787038382",
+      "steamUrl": "https://store.steampowered.com/app/1604030/"
+    },
+    {
+      "steamAppId": "526870",
+      "title": "Satisfactory",
+      "year": 2024,
+      "genres": [
+        "Adventure",
+        "Indie",
+        "Simulation",
+        "Strategy"
+      ],
+      "summary": "Satisfactory is a first-person open-world factory building game with a dash of exploration and combat. Play alone or with friends, explore an alien planet, create multi-story factories, and enter conveyor belt heaven!",
+      "why": "4-player online co-op with overwhelmingly positive Steam reviews and adventure/indie gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Overwhelmingly Positive",
+      "positivePercent": 97,
+      "totalReviews": 278557,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/526870/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/526870/header.jpg?t=1780413533",
+      "steamUrl": "https://store.steampowered.com/app/526870/"
+    },
+    {
+      "steamAppId": "728880",
+      "title": "Overcooked! 2",
+      "year": 2018,
+      "genres": [
+        "Action",
+        "Casual",
+        "Indie"
+      ],
+      "summary": "Overcooked returns with a brand-new helping of chaotic cooking action! Journey back to the Onion Kingdom and assemble your team of chefs in classic couch co-op or online play for up to four players. Hold onto your aprons… it’s time to save the world again!",
+      "why": "4-player online co-op with very positive Steam reviews and action/casual gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 90,
+      "totalReviews": 84057,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/728880/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/728880/header.jpg?t=1784805486",
+      "steamUrl": "https://store.steampowered.com/app/728880/"
+    },
+    {
+      "steamAppId": "1641700",
+      "title": "Moving Out 2",
+      "year": 2023,
+      "genres": [
+        "Action",
+        "Casual",
+        "Indie",
+        "Simulation"
+      ],
+      "summary": "Moving Out is back and wackier than ever, and now with ONLINE PLAY! Return to Packmore and use your moving skills across brand new dimensions and some old favourites. Help rebuild Smooth Moves and become an all-star F.A.R.T. (Furniture Arrangement & Relocation Technician)!",
+      "why": "4-player online co-op with mostly positive Steam reviews and action/casual gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Mostly Positive",
+      "positivePercent": 75,
+      "totalReviews": 616,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1641700/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1641700/header.jpg?t=1780480295",
+      "steamUrl": "https://store.steampowered.com/app/1641700/"
+    },
+    {
+      "steamAppId": "690640",
+      "title": "Trine 4: The Nightmare Prince",
+      "year": 2019,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Indie"
+      ],
+      "summary": "The best-selling Trine series returns to the magic of 2.5D! Join three iconic heroes as they set off on a quest through fantastical fairytale landscapes to save the world from the Nightmare Prince’s shadows.",
+      "why": "4-player online co-op with very positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 89,
+      "totalReviews": 14307,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/690640/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/690640/64169d6388ed69eb94b7c9d77e4e7fb80f597025/header.jpg?t=1776321431",
+      "steamUrl": "https://store.steampowered.com/app/690640/"
+    },
+    {
+      "steamAppId": "1676840",
+      "title": "For The King II",
+      "year": 2023,
+      "genres": [
+        "Adventure",
+        "Indie",
+        "RPG",
+        "Strategy"
+      ],
+      "summary": "Battle against Fahrul's tyrannical Queen alone or as a party of four players in the sequel to For The King, the massively popular turn-based roguelite tabletop RPG. Will you unravel the once beloved Queen's terrible secret?",
+      "why": "4-player online co-op with mostly positive Steam reviews and adventure/indie gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Mostly Positive",
+      "positivePercent": 71,
+      "totalReviews": 16091,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1676840/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1676840/146cf4b5fad9a49caea91b23c7e43bb2c74bfa85/header_alt_assets_13.jpg?t=1786013028",
+      "steamUrl": "https://store.steampowered.com/app/1676840/"
+    },
+    {
+      "steamAppId": "763890",
+      "title": "Wildermyth",
+      "year": 2021,
+      "genres": [
+        "Indie",
+        "RPG",
+        "Strategy"
+      ],
+      "summary": "Wildermyth follows heroes over their whole careers, from their pitchfork days to their powerful primes, and on into old age and memory. It’s a party-based procedural storytelling RPG where tactical combat and story decisions will alter your world and reshape your cast of characters.",
+      "why": "5-player online co-op with very positive Steam reviews and indie/rpg gameplay.",
+      "onlineCoopMax": 5,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 95,
+      "totalReviews": 18230,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/763890/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/763890/header.jpg?t=1740520937",
+      "steamUrl": "https://store.steampowered.com/app/763890/"
+    },
+    {
+      "steamAppId": "1086940",
+      "title": "Baldur's Gate 3",
+      "year": 2023,
+      "genres": [
+        "Adventure",
+        "RPG",
+        "Strategy"
+      ],
+      "summary": "Baldur’s Gate 3 is a story-rich, party-based RPG set in the universe of Dungeons & Dragons, where your choices shape a tale of fellowship and betrayal, survival and sacrifice, and the lure of absolute power.",
+      "why": "4-player online co-op with overwhelmingly positive Steam reviews and adventure/rpg gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Overwhelmingly Positive",
+      "positivePercent": 97,
+      "totalReviews": 855133,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1086940/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1086940/48a2fcbda8565bb45025e98fd8ebde8a7203f6a0/header.jpg?t=1777363040",
+      "steamUrl": "https://store.steampowered.com/app/1086940/"
+    },
+    {
+      "steamAppId": "1096530",
+      "title": "Solasta: Crown of the Magister",
+      "year": 2021,
+      "genres": [
+        "Adventure",
+        "RPG",
+        "Strategy"
+      ],
+      "summary": "Roll for initiative, take attacks of opportunity, manage player location and the verticality of the battle field in this Turn-Based Tactical RPG based on the SRD 5.1 Ruleset. In Solasta, you make the choices, dice decide your destiny.",
+      "why": "4-player online co-op with very positive Steam reviews and adventure/rpg gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 87,
+      "totalReviews": 22440,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1096530/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1096530/header.jpg?t=1772029038",
+      "steamUrl": "https://store.steampowered.com/app/1096530/"
+    },
+    {
+      "steamAppId": "413150",
+      "title": "Stardew Valley",
+      "year": 2016,
+      "genres": [
+        "Indie",
+        "RPG",
+        "Simulation"
+      ],
+      "summary": "You've inherited your grandfather's old farm plot in Stardew Valley. Armed with hand-me-down tools and a few coins, you set out to begin your new life. Can you learn to live off the land and turn these overgrown fields into a thriving home?",
+      "why": "8-player online co-op with overwhelmingly positive Steam reviews and indie/rpg gameplay.",
+      "onlineCoopMax": 8,
+      "reviewSummary": "Overwhelmingly Positive",
+      "positivePercent": 98,
+      "totalReviews": 1034960,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/413150/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/413150/header.jpg?t=1786554168",
+      "steamUrl": "https://store.steampowered.com/app/413150/"
+    },
+    {
+      "steamAppId": "322330",
+      "title": "Don't Starve Together",
+      "year": 2016,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Indie",
+        "RPG",
+        "Simulation",
+        "Strategy"
+      ],
+      "summary": "Fight, Farm, Build and Explore Together in the standalone multiplayer expansion to the uncompromising wilderness survival game, Don't Starve.",
+      "why": "6-player online co-op with very positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 6,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 95,
+      "totalReviews": 542176,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/322330/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/322330/da5d1bc20a2b35fe987c68047ba96a7f3d25c982/header_alt_assets_50.jpg?t=1782413299",
+      "steamUrl": "https://store.steampowered.com/app/322330/"
+    },
+    {
+      "steamAppId": "232090",
+      "title": "Killing Floor 2",
+      "year": 2016,
+      "genres": [
+        "Action"
+      ],
+      "summary": "In KILLING FLOOR 2, players descend into continental Europe after it has been overrun by horrific, murderous clones called Zeds that were created by rogue elements of the Horzine Corporation. 6-player Co-Op & 12-player VS Zed-slaughtering mayhem.",
+      "why": "6-player online co-op with very positive Steam reviews and action gameplay.",
+      "onlineCoopMax": 6,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 88,
+      "totalReviews": 129298,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/232090/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/232090/header.jpg?t=1774538987",
+      "steamUrl": "https://store.steampowered.com/app/232090/"
+    },
+    {
+      "steamAppId": "1144200",
+      "title": "Ready or Not",
+      "year": 2023,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Indie"
+      ],
+      "summary": "Become an elite SWAT commander and bring order to a city overwhelmed by chaos and corruption.",
+      "why": "5-player online co-op with mostly positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 5,
+      "reviewSummary": "Mostly Positive",
+      "positivePercent": 79,
+      "totalReviews": 343983,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1144200/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1144200/2b44644b033a996a9efb95051bb01809215d0d23/header.jpg?t=1781703931",
+      "steamUrl": "https://store.steampowered.com/app/1144200/"
+    },
+    {
+      "steamAppId": "477160",
+      "title": "Human Fall Flat",
+      "year": 2016,
+      "genres": [
+        "Adventure",
+        "Casual",
+        "Indie",
+        "Simulation"
+      ],
+      "summary": "Human Fall Flat is a hilarious, light-hearted platformer set in floating dreamscapes that can be played solo or with up to 8 players online. Free new levels keep its vibrant community rewarded.",
+      "why": "8-player online co-op with very positive Steam reviews and adventure/casual gameplay.",
+      "onlineCoopMax": 8,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 95,
+      "totalReviews": 226617,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/477160/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/477160/577b4a6e494dcc8029ed783c6698cd1c156fad3f/header_alt_assets_27.jpg?t=1784801515",
+      "steamUrl": "https://store.steampowered.com/app/477160/"
+    },
+    {
+      "steamAppId": "218620",
+      "title": "PAYDAY 2",
+      "year": 2013,
+      "genres": [
+        "Action",
+        "RPG"
+      ],
+      "summary": "PAYDAY 2 is an action-packed, four-player co-op shooter that once again lets gamers don the masks of the original PAYDAY crew - Dallas, Hoxton, Wolf and Chains - as they descend on Washington DC for an epic crime spree.",
+      "why": "4-player online co-op with very positive Steam reviews and action/rpg gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 89,
+      "totalReviews": 674283,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/218620/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/218620/c44949287e8ffa2518f01b5033b8431dd0f984e4/header.jpg?t=1786626315",
+      "steamUrl": "https://store.steampowered.com/app/218620/"
+    },
+    {
+      "steamAppId": "1172620",
+      "title": "Sea of Thieves: 2026 Edition",
+      "year": 2020,
+      "genres": [
+        "Action",
+        "Adventure"
+      ],
+      "summary": "Sea of Thieves is a smash-hit pirate adventure game, offering the quintessential pirate experience of plundering lost treasures, intense battles, vanquishing sea monsters and more. Dive in with this revised edition of the game, which includes access to digital bonus media.",
+      "why": "4-player online co-op with very positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 89,
+      "totalReviews": 372536,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1172620/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1172620/579c6d544424019a032f4add98e8f923925c1cef/header.jpg?t=1782135471",
+      "steamUrl": "https://store.steampowered.com/app/1172620/"
+    },
+    {
+      "steamAppId": "582010",
+      "title": "Monster Hunter: World",
+      "year": 2018,
+      "genres": [
+        "Action"
+      ],
+      "summary": "Welcome to a new world! In Monster Hunter: World, the latest installment in the series, you can enjoy the ultimate hunting experience, using everything at your disposal to hunt monsters in a new world teeming with surprises and excitement.",
+      "why": "4-player online co-op with very positive Steam reviews and action gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 89,
+      "totalReviews": 516062,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/582010/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/582010/header.jpg?t=1773328926",
+      "steamUrl": "https://store.steampowered.com/app/582010/"
+    },
+    {
+      "steamAppId": "1446780",
+      "title": "MONSTER HUNTER RISE",
+      "year": 2022,
+      "genres": [
+        "Action"
+      ],
+      "summary": "Rise to the challenge and join the hunt! In Monster Hunter Rise, the latest installment in the award-winning and top-selling Monster Hunter series, you’ll become a hunter, explore brand new maps and use a variety of weapons to take down fearsome monsters as part of an all-new storyline.",
+      "why": "4-player online co-op with very positive Steam reviews and action gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 83,
+      "totalReviews": 125832,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1446780/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1446780/header.jpg?t=1768870444",
+      "steamUrl": "https://store.steampowered.com/app/1446780/"
+    },
+    {
+      "steamAppId": "239140",
+      "title": "Dying Light",
+      "year": 2015,
+      "genres": [
+        "Action",
+        "Adventure",
+        "RPG"
+      ],
+      "summary": "First-person action survival game set in a post-apocalyptic open world overrun by flesh-hungry zombies. Roam a city devastated by a mysterious virus epidemic. Scavenge for supplies, craft weapons, and face hordes of the infected.",
+      "why": "4-player online co-op with overwhelmingly positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Overwhelmingly Positive",
+      "positivePercent": 95,
+      "totalReviews": 494522,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/239140/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/239140/9d1b810b85ae46a0acbdfddf583ccbb81271183e/header.jpg?t=1782913513",
+      "steamUrl": "https://store.steampowered.com/app/239140/"
+    },
+    {
+      "steamAppId": "534380",
+      "title": "Dying Light 2 Stay Human: Reloaded Edition",
+      "year": 2022,
+      "genres": [
+        "Action",
+        "Adventure",
+        "RPG"
+      ],
+      "summary": "Humanity is fighting a losing battle against the virus. Experience a post-apocalyptic open world overrun by hordes of zombies, where your parkour and combat skills are key to survival. Traverse the City freely during the day, but watch the monsters take over during the night.",
+      "why": "4-player online co-op with mostly positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Mostly Positive",
+      "positivePercent": 79,
+      "totalReviews": 218982,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/534380/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/534380/header.jpg?t=1784310924",
+      "steamUrl": "https://store.steampowered.com/app/534380/"
+    },
+    {
+      "steamAppId": "934700",
+      "title": "Dead Island 2",
+      "year": 2024,
+      "genres": [
+        "Action",
+        "Adventure"
+      ],
+      "summary": "A deadly virus is spreading across Los Angeles, turning its inhabitants into zombies. Bitten, infected, but more than just immune, uncover the truth behind the outbreak and discover who - or what - you are. Survive, evolve and become the ultimate Zombie Slayer.",
+      "why": "3-player online co-op with mostly positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 3,
+      "reviewSummary": "Mostly Positive",
+      "positivePercent": 77,
+      "totalReviews": 29198,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/934700/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/934700/header.jpg?t=1761231459",
+      "steamUrl": "https://store.steampowered.com/app/934700/"
+    },
+    {
+      "steamAppId": "108600",
+      "title": "Project Zomboid",
+      "year": 2013,
+      "genres": [
+        "Indie",
+        "RPG",
+        "Simulation",
+        "Early Access"
+      ],
+      "summary": "Project Zomboid is the ultimate in zombie survival. Alone or in MP: you loot, build, craft, fight, farm and fish in a struggle to survive. A hardcore RPG skillset, a vast map, massively customisable sandbox and a cute tutorial raccoon await the unwary. So how will you die? All it takes is a bite..",
+      "why": "16-player online co-op with very positive Steam reviews and indie/rpg gameplay.",
+      "onlineCoopMax": 16,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 94,
+      "totalReviews": 476412,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/108600/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/108600/header.jpg?t=1787740093",
+      "steamUrl": "https://store.steampowered.com/app/108600/"
+    },
+    {
+      "steamAppId": "251570",
+      "title": "7 Days to Die",
+      "year": 2024,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Indie",
+        "RPG",
+        "Simulation",
+        "Strategy"
+      ],
+      "summary": "7 Days to Die is an open-world game that is a unique combination of first-person shooter, survival horror, tower defense, and role-playing games. Play the definitive zombie survival sandbox RPG that came first. Navezgane awaits!",
+      "why": "8-player online co-op with very positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 8,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 87,
+      "totalReviews": 399825,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/251570/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/251570/header.jpg?t=1785351975",
+      "steamUrl": "https://store.steampowered.com/app/251570/"
+    }
+  ]
+}

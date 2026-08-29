@@ -143,3 +143,33 @@ export type GameDeal = {
   historicalLow?: number
   updatedAt: string
 }
+
+export type Recommendation = {
+  steamAppId: string
+  title: string
+  year?: number
+  genres: string[]
+  summary: string
+  why: string
+  onlineCoopMax: number
+  reviewSummary: string
+  positivePercent: number
+  totalReviews: number
+  coverUrl: string
+  headerUrl: string
+  steamUrl: string
+}
+
+export type RecommendationFeed = {
+  editionDate: string
+  generatedAt: string
+  minimumReviews: number
+  minimumOnlinePlayers: number
+  recommendations: Recommendation[]
+}
+
+export type RecommendationFeedback = Record<string, {
+  title: string
+  downvotes: string[]
+  excludedAt?: string
+}>

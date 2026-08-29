@@ -7,9 +7,10 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  runTransaction,
   type Unsubscribe,
 } from 'firebase/firestore'
-import type { Game, GameNight, Member, Persona } from '../types'
+import type { Game, GameNight, Member, Persona, RecommendationFeedback } from '../types'
 import { database } from './firebase'
 
 export type BoardConnection = {
@@ -17,6 +18,8 @@ export type BoardConnection = {
   saveGameNights: (gameNights: GameNight[]) => Promise<void>
   saveProfileImage: (customPhotoUrl: string | null) => Promise<void>
   saveSteamProfile: (profile: SteamProfile | null) => Promise<void>
+  toggleRecommendationDownvote: (steamAppId: string, title: string, memberId: string) => Promise<void>
+  restoreRecommendation: (steamAppId: string) => Promise<void>
   close: Unsubscribe
 }
 
@@ -45,6 +48,22 @@ type BoardData = {
   games?: unknown
   gameNights?: unknown
   members?: Record<string, StoredMember>
+  recommendationFeedback?: unknown
+}
+
+function recommendationFeedbackFromData(value: unknown): RecommendationFeedback {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  return Object.fromEntries(Object.entries(value).flatMap(([steamAppId, raw]) => {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return []
+    const entry = raw as { title?: unknown; downvotes?: unknown; excludedAt?: unknown }
+    if (typeof entry.title !== 'string' || !Array.isArray(entry.downvotes)) return []
+    const downvotes = [...new Set(entry.downvotes.filter((id): id is string => typeof id === 'string'))]
+    return [[steamAppId, {
+      title: entry.title,
+      downvotes,
+      excludedAt: typeof entry.excludedAt === 'string' ? entry.excludedAt : undefined,
+    }]]
+  }))
 }
 
 function isGameNightList(value: unknown): value is GameNight[] {
@@ -134,10 +153,11 @@ export async function connectBoard(
   persona: Persona,
   fallbackGames: Game[],
   fallbackGameNights: GameNight[],
-  onRemoteState: (games: Game[], members: Member[], gameNights: GameNight[]) => void,
+  onRemoteState: (games: Game[], members: Member[], gameNights: GameNight[], recommendationFeedback: RecommendationFeedback) => void,
 ): Promise<BoardConnection | null> {
   if (!database) return null
-  const boardRef = doc(database, 'boards', boardId)
+  const firestore = database
+  const boardRef = doc(firestore, 'boards', boardId)
   let latestMember: StoredMember | undefined
   let snapshot
 
@@ -216,7 +236,7 @@ export async function connectBoard(
         // board even if its matching rules update has not reached Firebase.
         await updateDoc(boardRef, { gameNights: fallbackGameNights, updatedAt: serverTimestamp() }).catch(() => undefined)
       }
-      onRemoteState(initialGames, membersFromData({ ...initialData, games: initialGames }), initialGameNights)
+      onRemoteState(initialGames, membersFromData({ ...initialData, games: initialGames }), initialGameNights, recommendationFeedbackFromData(initialData.recommendationFeedback))
     }
   }
 
@@ -224,7 +244,7 @@ export async function connectBoard(
     if (!nextSnapshot.exists()) return
     const data = nextSnapshot.data() as BoardData
     latestMember = data.members?.[user.uid]
-    if (isGameList(data.games)) onRemoteState(data.games, membersFromData(data), isGameNightList(data.gameNights) ? data.gameNights : [])
+    if (isGameList(data.games)) onRemoteState(data.games, membersFromData(data), isGameNightList(data.gameNights) ? data.gameNights : [], recommendationFeedbackFromData(data.recommendationFeedback))
   })
 
   return {
@@ -259,6 +279,31 @@ export async function connectBoard(
         serverTimestamp(),
       )
       latestMember = nextMember
+    },
+    async toggleRecommendationDownvote(steamAppId, title, memberId) {
+      await runTransaction(firestore, async (transaction) => {
+        const currentSnapshot = await transaction.get(boardRef)
+        const currentFeedback = recommendationFeedbackFromData((currentSnapshot.data() as BoardData | undefined)?.recommendationFeedback)
+        const currentEntry = currentFeedback[steamAppId] ?? { title, downvotes: [] }
+        if (currentEntry.excludedAt) return
+        const downvotes = currentEntry.downvotes.includes(memberId)
+          ? currentEntry.downvotes.filter((id) => id !== memberId)
+          : [...currentEntry.downvotes, memberId]
+        currentFeedback[steamAppId] = {
+          title,
+          downvotes,
+          excludedAt: downvotes.length >= 2 ? new Date().toISOString() : undefined,
+        }
+        transaction.update(boardRef, { recommendationFeedback: currentFeedback, updatedAt: serverTimestamp() })
+      })
+    },
+    async restoreRecommendation(steamAppId) {
+      await runTransaction(firestore, async (transaction) => {
+        const currentSnapshot = await transaction.get(boardRef)
+        const currentFeedback = recommendationFeedbackFromData((currentSnapshot.data() as BoardData | undefined)?.recommendationFeedback)
+        delete currentFeedback[steamAppId]
+        transaction.update(boardRef, { recommendationFeedback: currentFeedback, updatedAt: serverTimestamp() })
+      })
     },
     close: unsubscribe,
   }

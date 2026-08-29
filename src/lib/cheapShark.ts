@@ -90,7 +90,7 @@ async function mapFiveAtATime<T, R>(values: T[], task: (value: T) => Promise<R>)
 }
 
 export async function loadCheapSharkDeals(appIds: string[], signal?: AbortSignal) {
-  const requested = [...new Set(appIds)].slice(0, 40)
+  const requested = [...new Set(appIds)].slice(0, 80)
   if (!requested.length) return []
   const cached = readCache()
   const windowId = centralPriceWindow()

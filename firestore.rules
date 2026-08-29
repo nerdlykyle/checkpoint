@@ -20,6 +20,8 @@ service cloud.firestore {
           && request.resource.data.games.size() <= 2000
           && (!request.resource.data.keys().hasAny(['gameNights'])
             || (request.resource.data.gameNights is list && request.resource.data.gameNights.size() <= 200))
+          && (!request.resource.data.keys().hasAny(['recommendationFeedback'])
+            || (request.resource.data.recommendationFeedback is map && request.resource.data.recommendationFeedback.size() <= 500))
           && request.resource.data.members is map;
       }
 
@@ -65,7 +67,7 @@ service cloud.firestore {
         && validSelfProfile();
       allow update: if validBoardId()
         && ((isMember() && validBoard()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['games', 'gameNights', 'updatedAt']))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['games', 'gameNights', 'recommendationFeedback', 'updatedAt']))
           || joiningOnlyAsSelf());
 
       match /puzzles/{gameId} {

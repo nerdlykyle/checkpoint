@@ -11,7 +11,7 @@ import {
 import type { User } from 'firebase/auth'
 import './App.css'
 import { initialGames, members, statusLabels } from './data'
-import type { ContentType, Game, GameDeal, GameNight, GameStatus, Member, Persona, PuzzleBoard, PuzzleImage, PuzzlePage, PuzzlePoint, PuzzleStroke, SteamAchievementSnapshot, SteamCrewSnapshot } from './types'
+import type { ContentType, Game, GameDeal, GameNight, GameStatus, Member, Persona, PuzzleBoard, PuzzleImage, PuzzlePage, PuzzlePoint, PuzzleStroke, Recommendation, RecommendationFeedback, RecommendationFeed, SteamAchievementSnapshot, SteamCrewSnapshot } from './types'
 import { firebaseConfigured, signInWithGoogle, signOut, watchAuth } from './lib/firebase'
 import { parseSteamStoreLink, resolveSteamStoreLink, searchGames, type GameSearchResult } from './lib/gameSearch'
 import { connectBoard, getBoardId, getExistingPersona, type BoardConnection, type SteamProfile } from './lib/sharedBoard'
@@ -20,9 +20,11 @@ import { gameIntegrationsConfigured, loadGameAchievements, loadSteamCrew, resolv
 import { loadCheapSharkDeals } from './lib/cheapShark'
 import { manualOwnershipFor, ownershipForGame } from './lib/ownership'
 import { syncGameNightToGoogleCalendar } from './lib/googleCalendar'
+import { loadRecommendationFeed } from './lib/recommendations'
 
 const STORAGE_KEY = 'checkpoint-games-v1'
 const GAME_NIGHTS_STORAGE_KEY = 'checkpoint-game-nights-v1'
+const RECOMMENDATION_FEEDBACK_STORAGE_KEY = 'checkpoint-recommendation-feedback-v1'
 const DEMO_USER = 'local-player'
 const NERN_EMAIL = 'kjsparsons@gmail.com'
 const REMNANT_CLEANUP_KEY = 'checkpoint-cleanup-remnant-v1'
@@ -31,7 +33,7 @@ const LEGACY_PLACEHOLDER_IDS = new Set([
   'hades-ii', 'blue-prince', 'silksong', 'it-takes-two',
 ])
 const LEGACY_REMNANT_TITLES = new Set(['remnant', 'remnant ii', 'remnant 2'])
-type View = 'dashboard' | 'library' | 'calendar'
+type View = 'dashboard' | 'library' | 'discover' | 'calendar'
 type SyncStatus = 'local' | 'connecting' | 'live' | 'error'
 type SmartFilter = 'any' | 'everyone-owns' | 'needs-copy' | 'on-sale'
 
@@ -62,6 +64,15 @@ function getStoredGameNights() {
     return value ? JSON.parse(value) as GameNight[] : []
   } catch {
     return []
+  }
+}
+
+function getStoredRecommendationFeedback(): RecommendationFeedback {
+  try {
+    const value = JSON.parse(localStorage.getItem(RECOMMENDATION_FEEDBACK_STORAGE_KEY) || '{}') as RecommendationFeedback
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {}
+  } catch {
+    return {}
   }
 }
 
@@ -1081,6 +1092,33 @@ function LibraryCard({ game, onOpen, onVote }: { game: Game; onOpen: () => void;
   )
 }
 
+function RecommendationCard({ game, deal, feedback, currentUserId, onAdd, onDownvote }: { game: Recommendation; deal?: GameDeal; feedback?: RecommendationFeedback[string]; currentUserId: string; onAdd: (status: GameStatus) => void; onDownvote: () => void }) {
+  const downvotes = feedback?.downvotes ?? []
+  const downvoted = downvotes.includes(currentUserId)
+  return <article className="recommendation-card">
+    <div className="recommendation-art"><img src={game.coverUrl} alt={`${game.title} cover`} data-fallback={game.headerUrl} onError={(event) => { const fallback = event.currentTarget.dataset.fallback; if (fallback && event.currentTarget.src !== fallback) event.currentTarget.src = fallback }} /><span className="coop-pill"><Users size={12} /> Up to {game.onlineCoopMax} online</span></div>
+    <div className="recommendation-copy"><div className="recommendation-meta"><span>{game.reviewSummary}</span><strong>{game.positivePercent}%</strong><small>{game.totalReviews.toLocaleString()} reviews</small></div>
+      <h2>{game.title}</h2><p className="recommendation-genre">{[game.year, ...game.genres.slice(0, 2)].filter(Boolean).join(' · ') || 'Online co-op'}</p>
+      <p className="recommendation-summary">{game.summary}</p><p className="recommendation-why"><Sparkles size={13} /><span><strong>Why it fits</strong>{game.why}</span></p>
+      <div className="recommendation-price">{deal ? <a href={deal.dealUrl} target="_blank" rel="noreferrer"><BadgeDollarSign size={15} /><span><strong>${deal.price.toFixed(2)}</strong> at {deal.storeName}</span>{deal.savingsPercent >= 1 && <em>{Math.round(deal.savingsPercent)}% off</em>}</a> : <a href={game.steamUrl} target="_blank" rel="noreferrer"><Gamepad2 size={15} /> Check price on Steam</a>}<a className="recommendation-steam-link" href={game.steamUrl} target="_blank" rel="noreferrer" aria-label={`Open ${game.title} on Steam`}><ExternalLink size={15} /></a></div>
+      <div className="recommendation-actions"><button type="button" onClick={() => onAdd('up-next')}><BookOpen size={14} /> Up next</button><button type="button" onClick={() => onAdd('maybe')}><CircleHelp size={14} /> Maybe</button><button type="button" onClick={() => onAdd('wishlist')}><Heart size={14} /> Wishlist</button><button className={`recommendation-downvote ${downvoted ? 'active' : ''}`} type="button" onClick={onDownvote} aria-label={`${downvoted ? 'Remove thumbs-down from' : 'Thumbs-down'} ${game.title}`}><ThumbsDown size={15} /> <span>{downvotes.length}/2</span></button></div>
+      {downvotes.length > 0 && <div className="recommendation-rejections"><span>Not for us</span>{downvotes.map((memberId) => <Avatar id={memberId} small key={memberId} />)}<small>{downvotes.length === 1 ? 'One more removes it permanently' : 'Removed from recommendations'}</small></div>}
+    </div>
+  </article>
+}
+
+function RecommendationsPage({ feed, loading, error, visible, feedback, deals, currentUserId, onAdd, onDownvote, onRestore }: { feed: RecommendationFeed | null; loading: boolean; error: string | null; visible: Recommendation[]; feedback: RecommendationFeedback; deals: Record<string, GameDeal>; currentUserId: string; onAdd: (game: Recommendation, status: GameStatus) => void; onDownvote: (game: Recommendation) => void; onRestore: (steamAppId: string) => void }) {
+  const [showExcluded, setShowExcluded] = useState(false)
+  const excluded = Object.entries(feedback).filter(([, entry]) => entry.excludedAt).sort((left, right) => (right[1].excludedAt || '').localeCompare(left[1].excludedAt || ''))
+  const edition = feed ? new Date(`${feed.editionDate}T12:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : ''
+  return <div className="page recommendations-page">
+    <div className="page-title-row recommendations-title-row"><div><span className="eyebrow">Fresh co-op finds · {edition || 'Every Friday'}</span><h1>Crew recommendations</h1><p>Up to 25 well-reviewed Steam games that all three of you can play online.</p></div><button className="button button-secondary" type="button" onClick={() => setShowExcluded((current) => !current)}><ThumbsDown size={16} /> Excluded games <span>{excluded.length}</span></button></div>
+    <section className="recommendation-rules"><div><Sparkles size={18} /><span><strong>Checkpoint’s weekly filter</strong>Refreshed Fridays at noon Central</span></div><span><Check size={13} /> 70%+ positive</span><span><Check size={13} /> 25+ Steam reviews</span><span><Check size={13} /> 3+ online co-op</span><span><Check size={13} /> No tracked or rejected games</span></section>
+    {showExcluded && <section className="excluded-games"><div className="section-heading"><div><span className="eyebrow">Permanent memory</span><h2>Excluded games</h2></div></div>{excluded.length ? <div className="excluded-list">{excluded.map(([steamAppId, entry]) => <div key={steamAppId}><span className="excluded-game-mark"><ThumbsDown size={15} /></span><div><strong>{entry.title}</strong><small>Rejected by {entry.downvotes.length} crew members</small></div><button type="button" onClick={() => onRestore(steamAppId)}><RotateCcw size={14} /> Restore</button></div>)}</div> : <p className="excluded-empty">Nothing has been excluded. Two different crew members must thumbs-down the same recommendation.</p>}</section>}
+    {loading ? <div className="recommendations-loading"><RefreshCw className="spin" size={24} /><h2>Finding this week’s co-op games…</h2></div> : error ? <div className="empty-state"><CircleHelp size={28} /><h2>Recommendations need a retry</h2><p>{error}</p></div> : visible.length ? <div className="recommendation-grid">{visible.map((game) => <RecommendationCard game={game} deal={deals[game.steamAppId]} feedback={feedback[game.steamAppId]} currentUserId={currentUserId} onAdd={(status) => onAdd(game, status)} onDownvote={() => onDownvote(game)} key={game.steamAppId} />)}</div> : <div className="empty-state"><Check size={28} /><h2>You’ve reviewed every current pick</h2><p>A new batch arrives Friday at noon Central.</p></div>}
+  </div>
+}
+
 function ScheduleGameNightModal({ games, defaultDate, onClose, onSchedule }: { games: Game[]; defaultDate?: string; onClose: () => void; onSchedule: (night: Omit<GameNight, 'id' | 'createdBy' | 'createdAt' | 'responses'>) => void }) {
   const initialStart = new Date()
   initialStart.setDate(initialStart.getDate() + (initialStart.getDay() === 5 ? 7 : (12 - initialStart.getDay()) % 7))
@@ -1217,6 +1255,10 @@ function LoadingScreen() {
 function App() {
   const [games, setGames] = useState<Game[]>(getStoredGames)
   const [gameNights, setGameNights] = useState<GameNight[]>(getStoredGameNights)
+  const [recommendationFeedback, setRecommendationFeedback] = useState<RecommendationFeedback>(getStoredRecommendationFeedback)
+  const [recommendationFeed, setRecommendationFeed] = useState<RecommendationFeed | null>(null)
+  const [recommendationsLoading, setRecommendationsLoading] = useState(true)
+  const [recommendationsError, setRecommendationsError] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [authReady, setAuthReady] = useState(!firebaseConfigured)
   const [persona, setPersona] = useState<Persona | null>(firebaseConfigured ? null : 'Nern')
@@ -1258,6 +1300,18 @@ function App() {
 
   useEffect(() => localStorage.setItem(STORAGE_KEY, JSON.stringify(games)), [games])
   useEffect(() => localStorage.setItem(GAME_NIGHTS_STORAGE_KEY, JSON.stringify(gameNights)), [gameNights])
+  useEffect(() => localStorage.setItem(RECOMMENDATION_FEEDBACK_STORAGE_KEY, JSON.stringify(recommendationFeedback)), [recommendationFeedback])
+  useEffect(() => {
+    const controller = new AbortController()
+    setRecommendationsLoading(true)
+    loadRecommendationFeed(controller.signal).then((feed) => {
+      setRecommendationFeed(feed)
+      setRecommendationsError(null)
+    }).catch((error: unknown) => {
+      if (!(error instanceof DOMException && error.name === 'AbortError')) setRecommendationsError(error instanceof Error ? error.message : 'Recommendations are unavailable.')
+    }).finally(() => setRecommendationsLoading(false))
+    return () => controller.abort()
+  }, [])
   useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(null), 5000); return () => window.clearTimeout(timer) }, [toast])
   useEffect(() => watchAuth((nextUser) => { setUser(nextUser); setAuthReady(true) }), [])
   useEffect(() => {
@@ -1296,7 +1350,7 @@ function App() {
       const optimisticMember: Member = { id: user.uid, name: persona, persona, initials: persona[0], color: '#a990e8', photoUrl: user.photoURL || undefined, googlePhotoUrl: user.photoURL || undefined }
       return current.some((member) => member.id === user.uid) ? current.map((member) => member.id === user.uid ? { ...member, ...optimisticMember } : member) : [...current, optimisticMember]
     })
-    connectBoard(boardId, user, persona, initialGamesRef.current, initialGameNightsRef.current, (remoteGames, remoteMembers, remoteGameNights) => {
+    connectBoard(boardId, user, persona, initialGamesRef.current, initialGameNightsRef.current, (remoteGames, remoteMembers, remoteGameNights, remoteRecommendationFeedback) => {
       if (!active) return
       lastSyncedRef.current = JSON.stringify(remoteGames)
       lastSyncedGameNightsRef.current = JSON.stringify(remoteGameNights)
@@ -1309,6 +1363,7 @@ function App() {
         return [...merged.values()]
       })
       setGroupMembers(remoteMembers)
+      setRecommendationFeedback(remoteRecommendationFeedback)
     }).then((connection) => {
       if (!active) { connection?.close(); return }
       connectionRef.current = connection
@@ -1340,7 +1395,10 @@ function App() {
   }, [gameNights, syncStatus])
 
   const trackedAppIds = useMemo(() => [...new Set(games.flatMap((game) => game.steamAppId ? [game.steamAppId] : []))], [games])
-  const priceAppIds = useMemo(() => [...new Set(games.flatMap((game) => game.steamAppId && game.status !== 'completed' ? [game.steamAppId] : []))].slice(0, 40), [games])
+  const priceAppIds = useMemo(() => [...new Set([
+    ...games.flatMap((game) => game.steamAppId && game.status !== 'completed' ? [game.steamAppId] : []),
+    ...(recommendationFeed?.recommendations.slice(0, 25).map((game) => game.steamAppId) ?? []),
+  ])].slice(0, 80), [games, recommendationFeed])
   const linkedSteamIds = useMemo(() => [...new Set(groupMembers.flatMap((member) => member.steamId ? [member.steamId] : []))], [groupMembers])
 
   useEffect(() => {
@@ -1387,6 +1445,13 @@ function App() {
   const currentUser = user?.uid ?? DEMO_USER
   const playing = games.find((game) => game.status === 'playing')
   const upNext = games.filter((game) => game.status === 'up-next')
+  const visibleRecommendations = useMemo(() => {
+    const trackedAppIds = new Set(games.flatMap((game) => game.steamAppId ? [game.steamAppId] : []))
+    const trackedTitles = new Set(games.map((game) => game.title.trim().toLocaleLowerCase()))
+    return (recommendationFeed?.recommendations ?? []).filter((game) => !recommendationFeedback[game.steamAppId]?.excludedAt
+      && !trackedAppIds.has(game.steamAppId)
+      && !trackedTitles.has(game.title.trim().toLocaleLowerCase())).slice(0, 25)
+  }, [games, recommendationFeed, recommendationFeedback])
   const selected = games.find((game) => game.id === selectedId)
   const changeGame = games.find((game) => game.id === changeGameId)
   const puzzleGame = games.find((game) => game.id === puzzleGameId)
@@ -1403,6 +1468,52 @@ function App() {
   function openAddGame(parent?: Game) { setAddParentId(parent?.id); setSelectedId(null); setShowAdd(true) }
   function closeAddGame() { setShowAdd(false); setAddParentId(undefined) }
   function addGame(game: Game) { setGames((current) => [...current, game]); closeAddGame(); flash(`${game.title} added to ${statusLabels[game.status]}`) }
+  function addRecommendation(game: Recommendation, status: GameStatus) {
+    if (games.some((tracked) => tracked.steamAppId === game.steamAppId || tracked.title.trim().toLocaleLowerCase() === game.title.trim().toLocaleLowerCase())) {
+      flash(`${game.title} is already in the shared library`)
+      return
+    }
+    const colors = [
+      ['#34526b', '#7fc5ef'], ['#57486d', '#bfa0ef'], ['#4b624e', '#91d292'], ['#70503d', '#edac72'], ['#633f55', '#ea8cb0'],
+    ]
+    const [color, accent] = colors[games.length % colors.length]
+    setGames((current) => [...current, {
+      id: crypto.randomUUID(), title: game.title, year: game.year, status, progress: 0, note: '', votes: [], color, accent,
+      platform: 'Steam', addedBy: currentUser, genre: game.genres.slice(0, 2).join(' · ') || 'Online co-op', coverMark: game.title.slice(0, 2).toUpperCase(),
+      coverUrl: game.coverUrl, steamAppId: game.steamAppId, catalogId: game.steamAppId, catalogSource: 'steam', contentType: 'game',
+    }])
+    flash(`${game.title} added to ${statusLabels[status]}`)
+  }
+  async function toggleRecommendationDownvote(game: Recommendation) {
+    if (firebaseConfigured && !connectionRef.current) { flash('Wait for the shared board to finish connecting'); return }
+    let excluded = false
+    setRecommendationFeedback((current) => {
+      const entry = current[game.steamAppId] ?? { title: game.title, downvotes: [] }
+      if (entry.excludedAt) return current
+      const downvotes = entry.downvotes.includes(currentUser) ? entry.downvotes.filter((id) => id !== currentUser) : [...entry.downvotes, currentUser]
+      excluded = downvotes.length >= 2
+      return { ...current, [game.steamAppId]: { title: game.title, downvotes, excludedAt: excluded ? new Date().toISOString() : undefined } }
+    })
+    try {
+      await connectionRef.current?.toggleRecommendationDownvote(game.steamAppId, game.title, currentUser)
+      flash(excluded ? `${game.title} removed and excluded from future recommendations` : 'Recommendation reaction shared with the crew')
+    } catch {
+      setSyncStatus('error')
+      flash('That recommendation reaction could not be synced')
+    }
+  }
+  async function restoreRecommendation(steamAppId: string) {
+    if (firebaseConfigured && !connectionRef.current) { flash('Wait for the shared board to finish connecting'); return }
+    const title = recommendationFeedback[steamAppId]?.title || 'Game'
+    setRecommendationFeedback((current) => { const next = { ...current }; delete next[steamAppId]; return next })
+    try {
+      await connectionRef.current?.restoreRecommendation(steamAppId)
+      flash(`${title} can appear in recommendations again`)
+    } catch {
+      setSyncStatus('error')
+      flash('That excluded game could not be restored')
+    }
+  }
   function updateGame(gameId: string, updates: Partial<Game>) { setGames((current) => current.map((game) => game.id === gameId ? { ...game, ...updates } : game)); setSelectedId(null); flash('Checkpoint updated') }
   function replaceGame(gameId: string, updates: Partial<Game>) {
     setGames((current) => current.map((game) => game.id === gameId
@@ -1537,6 +1648,7 @@ function App() {
           <button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={19} /><span>Home</span></button>
           <button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('all') }}><Library size={19} /><span>Game library</span><b>{games.length}</b></button>
           <button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('up-next') }}><BookOpen size={19} /><span>Up next</span><b>{upNext.length}</b></button>
+          <button className={view === 'discover' ? 'active' : ''} onClick={() => setView('discover')}><Sparkles size={19} /><span>Discover</span><b>{visibleRecommendations.length}</b></button>
           <button className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}><CalendarDays size={19} /><span>Calendar</span><b>{gameNights.length}</b></button>
           <button onClick={() => setShowCrew(true)}><Users size={19} /><span>Players</span></button>
         </nav>
@@ -1580,8 +1692,8 @@ function App() {
           <div className="filter-tabs">{([['all', 'All games'], ...Object.entries(statusLabels)] as [GameStatus | 'all', string][]).map(([value, label]) => <button key={value} className={libraryFilter === value ? 'active' : ''} onClick={() => setLibraryFilter(value)}>{label}<span>{value === 'all' ? games.length : games.filter((game) => game.status === value).length}</span></button>)}</div>
           <div className="smart-filters"><span><ListFilter size={14} /> Steam & prices</span>{([['any', 'Any ownership'], ['everyone-owns', 'Everyone owns'], ['needs-copy', 'Someone needs it'], ['on-sale', 'On sale']] as [SmartFilter, string][]).map(([value, label]) => <button type="button" key={value} className={smartFilter === value ? 'active' : ''} onClick={() => setSmartFilter(value)}>{label}</button>)}{integrationsLoading && <RefreshCw className="spin" size={14} />}</div>
           {filteredGames.length ? <div className="library-grid">{filteredGames.map((game) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} onVote={() => vote(game.id)} />)}</div> : <div className="empty-state"><Search size={28} /><h2>No games found</h2><p>Try another search or add a new game.</p><button className="button button-primary" onClick={() => openAddGame()}>Add game</button></div>}
-        </div> : <CalendarPage gameNights={gameNights} crew={groupMembers} currentUserId={currentUser} syncingId={calendarSyncingId} calendarError={calendarError} sharedSyncError={syncStatus === 'error'} onSchedule={(date) => { setScheduleDate(date); setShowSchedule(true) }} onAccept={acceptGameNight} onDecline={(night) => setDeclineNightId(night.id)} onSyncCalendar={syncGameNightToPersonalCalendar} />}
-        <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={20} /><span>Home</span></button><button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('all') }}><Library size={20} /><span>Library</span></button><button className="mobile-add" onClick={() => openAddGame()}><Plus size={23} /></button><button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('up-next') }}><BookOpen size={20} /><span>Queue</span></button><button className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}><CalendarDays size={20} /><span>Calendar</span></button></nav>
+        </div> : view === 'discover' ? <RecommendationsPage feed={recommendationFeed} loading={recommendationsLoading} error={recommendationsError} visible={visibleRecommendations} feedback={recommendationFeedback} deals={gameDeals} currentUserId={currentUser} onAdd={addRecommendation} onDownvote={toggleRecommendationDownvote} onRestore={restoreRecommendation} /> : <CalendarPage gameNights={gameNights} crew={groupMembers} currentUserId={currentUser} syncingId={calendarSyncingId} calendarError={calendarError} sharedSyncError={syncStatus === 'error'} onSchedule={(date) => { setScheduleDate(date); setShowSchedule(true) }} onAccept={acceptGameNight} onDecline={(night) => setDeclineNightId(night.id)} onSyncCalendar={syncGameNightToPersonalCalendar} />}
+        <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={20} /><span>Home</span></button><button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('all') }}><Library size={20} /><span>Library</span></button><button className={view === 'discover' ? 'active' : ''} onClick={() => setView('discover')}><Sparkles size={20} /><span>Discover</span></button><button className="mobile-add" onClick={() => openAddGame()}><Plus size={23} /></button><button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('up-next') }}><BookOpen size={20} /><span>Queue</span></button><button className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}><CalendarDays size={20} /><span>Calendar</span></button></nav>
       </main>
       {showAdd && <AddGameModal onClose={closeAddGame} onAdd={addGame} games={games} defaultParentId={addParentId} />}
       {showSchedule && <ScheduleGameNightModal games={games} defaultDate={scheduleDate} onClose={() => { setShowSchedule(false); setScheduleDate(undefined) }} onSchedule={scheduleGameNight} />}
