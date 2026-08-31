@@ -27,6 +27,49 @@ export type GameNight = {
   version?: number
 }
 
+export type GameSession = {
+  id: string
+  gameId: string
+  gameTitle: string
+  startedAt: string
+  endedAt?: string
+  pausedAt?: string
+  pausedMilliseconds: number
+  participantIds: string[]
+  startedBy: string
+  startProgress: number
+  endProgress?: number
+  recap?: string
+  nextObjective?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type ActivitySnapshot = Game | GameNight | GameSession
+
+export type ActivityChange = {
+  entity: 'game' | 'game-night' | 'session'
+  entityId: string
+  before?: ActivitySnapshot
+  after?: ActivitySnapshot
+}
+
+export type ActivityUndo = {
+  changes: ActivityChange[]
+}
+
+export type ActivityEntry = {
+  id: string
+  actorId: string
+  actorName: string
+  action: string
+  summary: string
+  createdAt: string
+  undo?: ActivityUndo
+  undoneAt?: string
+  undoneBy?: string
+}
+
 export type PuzzlePoint = {
   x: number
   y: number

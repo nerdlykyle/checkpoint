@@ -18,7 +18,7 @@ Open the local address shown in the terminal.
 - Responsive desktop and mobile layouts
 - Dark mode by default
 - Searchable Steam catalog and exact Steam store-link matching with real titles and cover art
-- Playing, Up next, Maybe, Wishlist, and Completed statuses
+- Playing, Up next, Wishlist, and Completed statuses
 - Drag-to-reorder Up next queue
 - Per-player voting separate from official queue order
 - Progress and shared-note editing
@@ -37,6 +37,12 @@ Open the local address shown in the terminal.
 - Morning, afternoon, and evening price-cache windows in Central Time
 - Shared game-night calendar with per-player accept/decline responses and alternate-time suggestions
 - One-click personal Google Calendar copies for accepted game nights
+- Shared session timer with pause/resume, participant selection, and automatically accumulated playtime
+- Tonight Mode with the active game, live timer, session note, puzzle board, and latest recap
+- End-of-session progress, recap, and next-objective capture
+- Shared activity history with guarded undo that will not overwrite newer changes
+- Discord-formatted game-night copy with Discord-native localized timestamps
+- Optional user-installed Discord app with `/reminder`, `/checkpoint tonight`, and `/checkpoint next`
 
 ## Commands
 
@@ -52,6 +58,8 @@ Open the local address shown in the terminal.
 3. Create a Firestore database.
 4. Copy `.env.example` to `.env.local` and add the Firebase web configuration values.
 5. Deploy `firestore.rules` with the Firebase CLI or paste them into the Firestore Rules editor.
+
+The new session and activity fields require the current rules in this repository. Deploy rules and indexes together with `firebase deploy --only firestore`.
 
 The private `#board=...` portion of the Checkpoint URL identifies the board. A visitor must also sign in with Google; opening a private link lets that signed-in user join only as themselves. `kjsparsons@gmail.com` is assigned to Nern automatically, while the other two accounts choose Jern or Vern. Firestore collection listing and board deletion are denied by the included rules.
 
@@ -76,3 +84,7 @@ The included workflow builds and deploys Checkpoint to GitHub Pages whenever `ma
 1. Add the Firebase values and optional `VITE_CHECKPOINT_API_URL` from `.env.example` as GitHub repository secrets.
 2. In **Settings → Pages**, choose **GitHub Actions** as the source.
 3. Push to `main`, then share the resulting Checkpoint URL with the group.
+
+## Discord app and reminders
+
+The website’s **Copy for Discord** button works immediately and needs no bot. The optional Discord app runs on Firebase Functions so `/reminder` can wake up later even though the GitHub Pages site is closed. Central time is the default; Eastern, Mountain, and Pacific are daylight-saving aware. See [functions/README.md](functions/README.md) for the one-time Discord Developer Portal, Firebase secret, command-registration, and deployment steps.

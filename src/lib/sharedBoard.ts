@@ -10,12 +10,14 @@ import {
   runTransaction,
   type Unsubscribe,
 } from 'firebase/firestore'
-import type { Game, GameNight, Member, Persona, RecommendationFeedback } from '../types'
+import type { ActivityEntry, Game, GameNight, GameSession, Member, Persona, RecommendationFeedback } from '../types'
 import { database } from './firebase'
 
 export type BoardConnection = {
   save: (games: Game[]) => Promise<void>
   saveGameNights: (gameNights: GameNight[]) => Promise<void>
+  saveSessions: (sessions: GameSession[]) => Promise<void>
+  saveActivity: (activity: ActivityEntry[]) => Promise<void>
   saveProfileImage: (customPhotoUrl: string | null) => Promise<void>
   saveSteamProfile: (profile: SteamProfile | null) => Promise<void>
   toggleRecommendationDownvote: (steamAppId: string, title: string, memberId: string) => Promise<void>
@@ -47,6 +49,8 @@ type StoredMember = {
 type BoardData = {
   games?: unknown
   gameNights?: unknown
+  sessions?: unknown
+  activity?: unknown
   members?: Record<string, StoredMember>
   recommendationFeedback?: unknown
 }
@@ -76,6 +80,29 @@ function isGameNightList(value: unknown): value is GameNight[] {
       && typeof gameNight.endAt === 'string'
       && typeof gameNight.createdBy === 'string'
       && Boolean(gameNight.responses && typeof gameNight.responses === 'object')
+  })
+}
+
+function isSessionList(value: unknown): value is GameSession[] {
+  return Array.isArray(value) && value.every((item) => {
+    if (!item || typeof item !== 'object') return false
+    const session = item as Partial<GameSession>
+    return typeof session.id === 'string'
+      && typeof session.gameId === 'string'
+      && typeof session.gameTitle === 'string'
+      && typeof session.startedAt === 'string'
+      && Array.isArray(session.participantIds)
+  })
+}
+
+function isActivityList(value: unknown): value is ActivityEntry[] {
+  return Array.isArray(value) && value.every((item) => {
+    if (!item || typeof item !== 'object') return false
+    const entry = item as Partial<ActivityEntry>
+    return typeof entry.id === 'string'
+      && typeof entry.actorId === 'string'
+      && typeof entry.summary === 'string'
+      && typeof entry.createdAt === 'string'
   })
 }
 
@@ -153,7 +180,9 @@ export async function connectBoard(
   persona: Persona,
   fallbackGames: Game[],
   fallbackGameNights: GameNight[],
-  onRemoteState: (games: Game[], members: Member[], gameNights: GameNight[], recommendationFeedback: RecommendationFeedback) => void,
+  fallbackSessions: GameSession[],
+  fallbackActivity: ActivityEntry[],
+  onRemoteState: (games: Game[], members: Member[], gameNights: GameNight[], sessions: GameSession[], activity: ActivityEntry[], recommendationFeedback: RecommendationFeedback) => void,
 ): Promise<BoardConnection | null> {
   if (!database) return null
   const firestore = database
@@ -169,6 +198,8 @@ export async function connectBoard(
       await setDoc(boardRef, {
         games: fallbackGames,
         gameNights: fallbackGameNights,
+        sessions: fallbackSessions,
+        activity: fallbackActivity,
         ownerUid: user.uid,
         members: { [user.uid]: memberFromUser(user, persona) },
         createdAt: serverTimestamp(),
@@ -191,6 +222,8 @@ export async function connectBoard(
     await setDoc(boardRef, {
       games: fallbackGames,
       gameNights: fallbackGameNights,
+      sessions: fallbackSessions,
+      activity: fallbackActivity,
       ownerUid: user.uid,
       members: { [user.uid]: memberFromUser(user, persona) },
       createdAt: serverTimestamp(),
@@ -228,6 +261,8 @@ export async function connectBoard(
       const initialGameNights = isGameNightList(initialData.gameNights)
         ? initialData.gameNights
         : fallbackGameNights
+      const initialSessions = isSessionList(initialData.sessions) ? initialData.sessions : fallbackSessions
+      const initialActivity = isActivityList(initialData.activity) ? initialData.activity : fallbackActivity
       if (initialGames === fallbackGames) {
         await updateDoc(boardRef, { games: fallbackGames, updatedAt: serverTimestamp() })
       }
@@ -236,7 +271,9 @@ export async function connectBoard(
         // board even if its matching rules update has not reached Firebase.
         await updateDoc(boardRef, { gameNights: fallbackGameNights, updatedAt: serverTimestamp() }).catch(() => undefined)
       }
-      onRemoteState(initialGames, membersFromData({ ...initialData, games: initialGames }), initialGameNights, recommendationFeedbackFromData(initialData.recommendationFeedback))
+      if (!isSessionList(initialData.sessions)) await updateDoc(boardRef, { sessions: fallbackSessions, updatedAt: serverTimestamp() }).catch(() => undefined)
+      if (!isActivityList(initialData.activity)) await updateDoc(boardRef, { activity: fallbackActivity, updatedAt: serverTimestamp() }).catch(() => undefined)
+      onRemoteState(initialGames, membersFromData({ ...initialData, games: initialGames }), initialGameNights, initialSessions, initialActivity, recommendationFeedbackFromData(initialData.recommendationFeedback))
     }
   }
 
@@ -244,7 +281,7 @@ export async function connectBoard(
     if (!nextSnapshot.exists()) return
     const data = nextSnapshot.data() as BoardData
     latestMember = data.members?.[user.uid]
-    if (isGameList(data.games)) onRemoteState(data.games, membersFromData(data), isGameNightList(data.gameNights) ? data.gameNights : [], recommendationFeedbackFromData(data.recommendationFeedback))
+    if (isGameList(data.games)) onRemoteState(data.games, membersFromData(data), isGameNightList(data.gameNights) ? data.gameNights : [], isSessionList(data.sessions) ? data.sessions : [], isActivityList(data.activity) ? data.activity : [], recommendationFeedbackFromData(data.recommendationFeedback))
   })
 
   return {
@@ -253,6 +290,12 @@ export async function connectBoard(
     },
     async saveGameNights(gameNights) {
       await updateDoc(boardRef, { gameNights, updatedAt: serverTimestamp() })
+    },
+    async saveSessions(sessions) {
+      await updateDoc(boardRef, { sessions, updatedAt: serverTimestamp() })
+    },
+    async saveActivity(activity) {
+      await updateDoc(boardRef, { activity: activity.slice(0, 250), updatedAt: serverTimestamp() })
     },
     async saveProfileImage(customPhotoUrl) {
       const nextMember = memberFromUser(user, persona, latestMember, customPhotoUrl ?? '')
