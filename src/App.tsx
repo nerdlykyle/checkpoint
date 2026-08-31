@@ -1357,7 +1357,7 @@ function TonightPage({ game, event, activeSession, recentSession, crew, now, onB
   const eventStart = event ? new Date(event.startAt) : undefined
   const eventEnd = event ? new Date(event.endAt) : undefined
   return <div className="page tonight-page">
-    <div className="tonight-topbar"><button className="text-button" type="button" onClick={onBack}><ChevronLeft size={16} /> Home</button><div><MoonStar size={15} /><span>Tonight Mode</span></div>{event && <button className="button button-secondary discord-copy-button" type="button" onClick={onCopyDiscord}><Copy size={15} /> Copy for Discord</button>}</div>
+    <div className="tonight-topbar"><button className="text-button" type="button" onClick={onBack}><ChevronLeft size={16} /> Home</button><div><MoonStar size={15} /><span>Game Night</span></div>{event && <button className="button button-secondary discord-copy-button" type="button" onClick={onCopyDiscord}><Copy size={15} /> Copy for Discord</button>}</div>
     <section className="tonight-hero">
       <div className="tonight-art">{game ? <Cover game={game} size="large" /> : <div className="tonight-no-cover"><Gamepad2 size={38} /></div>}</div>
       <div className="tonight-main"><span className="eyebrow">{event ? event.title : activeSession ? 'Session in progress' : 'Ready when the crew is'}</span><h1>{game?.title || event?.gameTitle || 'Pick tonight’s game'}</h1>
@@ -1937,7 +1937,7 @@ function App() {
           <button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} onClick={() => openLibrary('up-next')}><BookOpen size={19} /><span>Up next</span><b>{upNext.length}</b></button>
           <button className={view === 'discover' ? 'active' : ''} onClick={() => setView('discover')}><Sparkles size={19} /><span>Discover</span><b>{Math.min(availableRecommendations.length, 25)}</b></button>
           <button className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}><CalendarDays size={19} /><span>Calendar</span><b>{gameNights.length}</b></button>
-          <button className={view === 'tonight' ? 'active' : ''} onClick={() => setView('tonight')}><MoonStar size={19} /><span>Tonight Mode</span>{activeSession && <b className="live-nav-count">Live</b>}</button>
+          <button className={view === 'tonight' ? 'active' : ''} onClick={() => setView('tonight')}><MoonStar size={19} /><span>Game Night</span>{activeSession && <b className="live-nav-count">Live</b>}</button>
           <button className={view === 'activity' ? 'active' : ''} onClick={() => setView('activity')}><History size={19} /><span>Activity</span><b>{activity.length}</b></button>
           <button onClick={() => setShowCrew(true)}><Users size={19} /><span>Players</span></button>
         </nav>
@@ -1956,7 +1956,7 @@ function App() {
         </header>
 
         {view === 'dashboard' ? <div className="page dashboard-page">
-          <div className="page-title-row"><div><span className="eyebrow">{todayLabel}</span><h1>What're we playin'?</h1><p>{dashboardSummary}</p></div><div className="dashboard-title-actions"><button className={activeSession ? 'tonight-mode-button is-live' : 'tonight-mode-button'} type="button" onClick={() => setView('tonight')}><MoonStar size={16} />{activeSession ? <><span className="live-dot" /> {stopwatchLabel(sessionElapsedMilliseconds(activeSession, nowTick))}</> : 'Tonight Mode'}</button><button className={`sync-chip sync-${syncStatus}`} onClick={copyBoardLink} type="button"><span /><strong>{syncLabel}</strong>{syncStatus === 'live' && <Share2 size={13} />}</button></div></div>
+          <div className="page-title-row"><div><span className="eyebrow">{todayLabel}</span><h1>What're we playin'?</h1><p>{dashboardSummary}</p></div><div className="dashboard-title-actions"><button className={activeSession ? 'tonight-mode-button is-live' : 'tonight-mode-button'} type="button" onClick={() => setView('tonight')}><MoonStar size={16} />{activeSession ? <><span className="live-dot" /> {stopwatchLabel(sessionElapsedMilliseconds(activeSession, nowTick))}</> : 'Game Night'}</button><button className={`sync-chip sync-${syncStatus}`} onClick={copyBoardLink} type="button"><span /><strong>{syncLabel}</strong>{syncStatus === 'live' && <Share2 size={13} />}</button></div></div>
           <section className="dashboard-grid">
             <div className="now-playing-panel"><div className="section-heading inverse"><div><span className="eyebrow">Continue playing</span><h2>Current campaign</h2></div><button className="ghost-icon" onClick={() => playing && setSelectedId(playing.id)}><MoreHorizontal size={20} /></button></div>
               {playing ? <div className="playing-content"><Cover game={playing} size="large" /><div className="playing-copy"><div className="live-pill"><span /> In progress</div><h2>{playing.title}</h2><p className="playing-meta">{playing.contentType === 'dlc' && playing.parentGameTitle ? `DLC for ${playing.parentGameTitle} · ` : ''}{[playing.genre, playing.platform, playing.year].filter(Boolean).join(' · ')}</p>
@@ -1986,7 +1986,7 @@ function App() {
         <div className="mobile-menu-heading"><div><span className="brand-mark"><Flag size={18} fill="currentColor" /></span><div><strong>checkpoint</strong><span>Where to?</span></div></div><button type="button" onClick={() => setMobileMenuOpen(false)} aria-label="Close navigation menu"><X size={20} /></button></div>
         <nav className="mobile-menu-nav" aria-label="Mobile menu">
           <button className={view === 'dashboard' ? 'active' : ''} type="button" onClick={() => { setView('dashboard'); setMobileMenuOpen(false) }}><span><LayoutDashboard size={19} /></span><strong>Home</strong></button>
-          <button className={view === 'tonight' ? 'active' : ''} type="button" onClick={() => { setView('tonight'); setMobileMenuOpen(false) }}><span><MoonStar size={19} /></span><strong>Tonight Mode</strong>{activeSession && <em>Live</em>}</button>
+          <button className={view === 'tonight' ? 'active' : ''} type="button" onClick={() => { setView('tonight'); setMobileMenuOpen(false) }}><span><MoonStar size={19} /></span><strong>Game Night</strong>{activeSession && <em>Live</em>}</button>
           <button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} type="button" onClick={() => openLibrary('all')}><span><Library size={19} /></span><strong>Game library</strong><small>{games.length}</small></button>
           <button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} type="button" onClick={() => openLibrary('up-next')}><span><BookOpen size={19} /></span><strong>Up next</strong><small>{upNext.length}</small></button>
           <button className={view === 'discover' ? 'active' : ''} type="button" onClick={() => { setView('discover'); setMobileMenuOpen(false) }}><span><Sparkles size={19} /></span><strong>Discover</strong><small>{Math.min(availableRecommendations.length, 25)}</small></button>

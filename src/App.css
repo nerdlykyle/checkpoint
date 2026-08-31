@@ -521,8 +521,10 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
   .puzzle-notes { min-height: 310px; padding: 16px 16px max(16px,env(safe-area-inset-bottom)); border-top: 1px solid var(--line); border-left: 0; }.puzzle-notes textarea { min-height: 190px; }
 }
 
-/* Sessions, Tonight Mode, Discord sharing, and reversible activity */
+/* Sessions, Game Night, Discord sharing, and reversible activity */
 .dashboard-title-actions { display: flex; align-items: center; gap: 9px; }
+.dashboard-title-actions .tonight-mode-button,
+.dashboard-title-actions .sync-chip { width: 136px; height: 36px; min-height: 36px; margin-bottom: 0; justify-content: center; }
 .tonight-mode-button { min-height: 36px; padding: 0 12px; border: 1px solid #514872; border-radius: 10px; background: #211e34; color: #b9b0f6; display: inline-flex; align-items: center; gap: 7px; font: inherit; font-size: 9px; font-weight: 800; cursor: pointer; }
 .tonight-mode-button.is-live { border-color: #3f7758; background: #183023; color: #79d09c; font-variant-numeric: tabular-nums; }
 .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #68d493; box-shadow: 0 0 0 4px rgba(104,212,147,.12); animation: livePulse 1.5s ease-in-out infinite; }
