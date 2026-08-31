@@ -62,7 +62,7 @@ function recommendationFeedbackFromData(value: unknown): RecommendationFeedback 
     return [[steamAppId, {
       title: entry.title,
       downvotes,
-      excludedAt: typeof entry.excludedAt === 'string' ? entry.excludedAt : undefined,
+      excludedAt: typeof entry.excludedAt === 'string' ? entry.excludedAt : downvotes.length > 0 ? '1970-01-01T00:00:00.000Z' : undefined,
     }]]
   }))
 }
@@ -329,7 +329,7 @@ export async function connectBoard(
         currentFeedback[steamAppId] = {
           title,
           downvotes,
-          excludedAt: downvotes.length >= 2 ? new Date().toISOString() : undefined,
+          excludedAt: downvotes.length >= 1 ? new Date().toISOString() : undefined,
         }
         transaction.update(boardRef, { recommendationFeedback: currentFeedback, updatedAt: serverTimestamp() })
       })

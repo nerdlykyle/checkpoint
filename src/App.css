@@ -178,7 +178,7 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
 .recommendation-price a strong { color: #fff1bd; font-size: 11px; }
 .recommendation-price a em { margin-left: auto; padding: 2px 5px; border-radius: 5px; background: #173324; color: #79d29d; white-space: nowrap; font-size: 7.5px; font-style: normal; font-weight: 800; }
 .recommendation-price .recommendation-steam-link { max-width: 38px; padding: 0; border-left: 1px solid #303a3e; color: #7ec5e6; display: grid; place-items: center; }
-.recommendation-actions { display: grid; grid-template-columns: repeat(3,1fr) 43px; gap: 6px; }
+.recommendation-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)) 70px; gap: 6px; }
 .recommendation-actions button { min-width: 0; height: 34px; padding: 0 7px; border: 1px solid #343e42; border-radius: 9px; background: #101618; color: #9da7a3; display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; font-size: 8px; font-weight: 750; }
 .recommendation-actions button:hover { border-color: #6f63d6; background: #24203e; color: #c5beff; }
 .recommendation-actions .recommendation-downvote { padding: 0; border-color: #493238; color: #b47d84; }
@@ -213,7 +213,7 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
   .recommendation-rules { padding: 12px; gap: 6px; }.recommendation-rules > span { padding: 0 7px; font-size: 7.5px; }
   .recommendation-grid { grid-template-columns: 1fr; gap: 14px; }
   .recommendation-art { height: 245px; }
-  .recommendation-actions { grid-template-columns: repeat(3,1fr) 45px; }
+  .recommendation-actions { grid-template-columns: repeat(2,minmax(0,1fr)) 74px; }
   .recommendation-actions button { height: 38px; font-size: 8px; }
   .excluded-list { grid-template-columns: 1fr; }
 }
