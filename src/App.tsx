@@ -35,7 +35,23 @@ const LEGACY_PLACEHOLDER_IDS = new Set([
 const LEGACY_REMNANT_TITLES = new Set(['remnant', 'remnant ii', 'remnant 2'])
 type View = 'dashboard' | 'library' | 'discover' | 'calendar'
 type SyncStatus = 'local' | 'connecting' | 'live' | 'error'
-type SmartFilter = 'any' | 'everyone-owns' | 'needs-copy' | 'on-sale'
+type SmartFilter = 'any' | 'everyone-owns' | 'needs-copy' | 'on-sale' | 'free'
+type GameNightDraft = Pick<GameNight, 'title' | 'gameId' | 'gameTitle' | 'startAt' | 'endAt' | 'note'>
+
+const KNOWN_FREE_STEAM_APP_IDS = new Set(['230410', '3564740'])
+const KNOWN_FREE_GAME_TITLES = new Set(['warframe', 'where winds meet'])
+
+function knownFreeGame(steamAppId?: string, title?: string) {
+  return Boolean((steamAppId && KNOWN_FREE_STEAM_APP_IDS.has(steamAppId)) || (title && KNOWN_FREE_GAME_TITLES.has(title.trim().toLowerCase())))
+}
+
+function isFreeGame(game: Pick<Game, 'isFree' | 'steamAppId' | 'title'>) {
+  return Boolean(game.isFree || knownFreeGame(game.steamAppId, game.title))
+}
+
+function migrateLegacyGame(game: Game): Game {
+  return (game.status as string) === 'maybe' ? { ...game, status: 'wishlist' } : game
+}
 
 const CurrentUserContext = createContext(DEMO_USER)
 const MembersContext = createContext<Member[]>(members)
@@ -52,7 +68,7 @@ function getStoredGames() {
   try {
     const value = localStorage.getItem(STORAGE_KEY)
     const stored = value ? (JSON.parse(value) as Game[]) : initialGames
-    return stored.filter((game) => !LEGACY_PLACEHOLDER_IDS.has(game.id))
+    return stored.filter((game) => !LEGACY_PLACEHOLDER_IDS.has(game.id)).map(migrateLegacyGame)
   } catch {
     return initialGames
   }
@@ -97,14 +113,15 @@ function friendlyCalendarError(error: unknown) {
 }
 
 function gameNightCalendarState(gameNight: GameNight, crew: Member[]) {
-  const responses = crew.map((member) => gameNight.responses[member.id])
+  const version = gameNight.version ?? 1
+  const responses = crew.map((member) => gameNight.responses[member.id]).map((response) => response && (response.responseVersion ?? 1) === version ? response : undefined)
   if (responses.some((response) => response?.status === 'declined' && (response.suggestedStartAt || response.suggestedEndAt))) return 'denied'
   if (crew.length && responses.every((response) => response?.status === 'accepted')) return 'approved'
   return 'pending'
 }
 
 function cleanRemoteGames(games: Game[]) {
-  const withoutPlaceholders = games.filter((game) => !LEGACY_PLACEHOLDER_IDS.has(game.id))
+  const withoutPlaceholders = games.filter((game) => !LEGACY_PLACEHOLDER_IDS.has(game.id)).map(migrateLegacyGame)
   if (localStorage.getItem(REMNANT_CLEANUP_KEY)) return withoutPlaceholders
   const cleaned = withoutPlaceholders.filter((game) => {
     const normalizedTitle = game.title.trim().toLowerCase()
@@ -881,6 +898,7 @@ function AddGameModal({ onClose, onAdd, games, defaultParentId }: { onClose: () 
       steamAppId: catalogGame?.steamAppId, catalogId: catalogGame?.catalogId,
       catalogSource: catalogGame ? 'steam' : undefined, contentType,
       parentGameId: parentGame?.id, parentGameTitle: parentGame?.title,
+      isFree: knownFreeGame(catalogGame?.steamAppId, cleanTitle),
       completedAt: status === 'completed' ? new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined,
     })
   }
@@ -979,6 +997,7 @@ function ChangeGameModal({ game, onClose, onChange }: { game: Game; onClose: () 
       catalogId: catalogGame?.catalogId,
       catalogSource: catalogGame ? 'steam' : undefined,
       contentType: nextType,
+      isFree: knownFreeGame(catalogGame?.steamAppId, cleanTitle),
       parentGameId: nextType === 'dlc' ? game.parentGameId : undefined,
       parentGameTitle: nextType === 'dlc' ? game.parentGameTitle : undefined,
       manualOwnership: {},
@@ -1084,7 +1103,7 @@ function QueueItem({ game, rank, onVote, onOpen, onDragStart, onDrop }: { game: 
 function LibraryCard({ game, onOpen, onVote }: { game: Game; onOpen: () => void; onVote: () => void }) {
   return (
     <article className="library-card" onClick={onOpen}><Cover game={game} size="medium" /><div className="library-card-copy">
-      <div className="library-card-topline"><span className={`status-dot status-${game.status}`} /><span>{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="dlc-card-label"><Puzzle size={9} /> DLC</span>}<button className="more-button" type="button" aria-label="More options"><MoreHorizontal size={17} /></button></div>
+      <div className="library-card-topline"><span className={`status-dot status-${game.status}`} /><span>{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="dlc-card-label"><Puzzle size={9} /> DLC</span>}{isFreeGame(game) && <span className="free-game-label">Free</span>}<button className="more-button" type="button" aria-label="More options"><MoreHorizontal size={17} /></button></div>
       <h3>{game.title}</h3><p>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle}` : game.genre} · {game.platform}</p>
       <div className="card-integrations"><OwnershipBadge game={game} compact /><DealBadge game={game} compact /></div>
       {game.status === 'playing' ? <div className="mini-progress"><span style={{ width: `${game.progress}%` }} /></div> : <div className="library-card-footer"><span>Added by <Avatar id={game.addedBy} small /></span><VoteButton game={game} onVote={onVote} compact /></div>}
@@ -1100,8 +1119,8 @@ function RecommendationCard({ game, deal, feedback, currentUserId, onAdd, onDown
     <div className="recommendation-copy"><div className="recommendation-meta"><span>{game.reviewSummary}</span><strong>{game.positivePercent}%</strong><small>{game.totalReviews.toLocaleString()} reviews</small></div>
       <h2>{game.title}</h2><p className="recommendation-genre">{[game.year, ...game.genres.slice(0, 2)].filter(Boolean).join(' · ') || 'Online co-op'}</p>
       <p className="recommendation-summary">{game.summary}</p><p className="recommendation-why"><Sparkles size={13} /><span><strong>Why it fits</strong>{game.why}</span></p>
-      <div className="recommendation-price">{deal ? <a href={deal.dealUrl} target="_blank" rel="noreferrer"><BadgeDollarSign size={15} /><span><strong>${deal.price.toFixed(2)}</strong> at {deal.storeName}</span>{deal.savingsPercent >= 1 && <em>{Math.round(deal.savingsPercent)}% off</em>}</a> : <a href={game.steamUrl} target="_blank" rel="noreferrer"><Gamepad2 size={15} /> Check price on Steam</a>}<a className="recommendation-steam-link" href={game.steamUrl} target="_blank" rel="noreferrer" aria-label={`Open ${game.title} on Steam`}><ExternalLink size={15} /></a></div>
-      <div className="recommendation-actions"><button type="button" onClick={() => onAdd('up-next')}><BookOpen size={14} /> Up next</button><button type="button" onClick={() => onAdd('maybe')}><CircleHelp size={14} /> Maybe</button><button type="button" onClick={() => onAdd('wishlist')}><Heart size={14} /> Wishlist</button><button className={`recommendation-downvote ${downvoted ? 'active' : ''}`} type="button" onClick={onDownvote} aria-label={`${downvoted ? 'Remove thumbs-down from' : 'Thumbs-down'} ${game.title}`}><ThumbsDown size={15} /> <span>{downvotes.length}/2</span></button></div>
+      <div className="recommendation-price">{game.isFree ? <a href={game.steamUrl} target="_blank" rel="noreferrer"><BadgeDollarSign size={15} /><span><strong>Free to play</strong> on Steam</span></a> : deal ? <a href={deal.dealUrl} target="_blank" rel="noreferrer"><BadgeDollarSign size={15} /><span><strong>${deal.price.toFixed(2)}</strong> at {deal.storeName}</span>{deal.savingsPercent >= 1 && <em>{Math.round(deal.savingsPercent)}% off</em>}</a> : <a href={game.steamUrl} target="_blank" rel="noreferrer"><Gamepad2 size={15} /> Check price on Steam</a>}<a className="recommendation-steam-link" href={game.steamUrl} target="_blank" rel="noreferrer" aria-label={`Open ${game.title} on Steam`}><ExternalLink size={15} /></a></div>
+      <div className="recommendation-actions"><button type="button" onClick={() => onAdd('up-next')}><BookOpen size={14} /> Up next</button><button type="button" onClick={() => onAdd('wishlist')}><Heart size={14} /> Wishlist</button><button className={`recommendation-downvote ${downvoted ? 'active' : ''}`} type="button" onClick={onDownvote} aria-label={`${downvoted ? 'Remove thumbs-down from' : 'Thumbs-down'} ${game.title}`}><ThumbsDown size={15} /> <span>{downvotes.length}/2</span></button></div>
       {downvotes.length > 0 && <div className="recommendation-rejections"><span>Not for us</span>{downvotes.map((memberId) => <Avatar id={memberId} small key={memberId} />)}<small>{downvotes.length === 1 ? 'One more removes it permanently' : 'Removed from recommendations'}</small></div>}
     </div>
   </article>
@@ -1109,27 +1128,32 @@ function RecommendationCard({ game, deal, feedback, currentUserId, onAdd, onDown
 
 function RecommendationsPage({ feed, loading, error, visible, feedback, deals, currentUserId, onAdd, onDownvote, onRestore }: { feed: RecommendationFeed | null; loading: boolean; error: string | null; visible: Recommendation[]; feedback: RecommendationFeedback; deals: Record<string, GameDeal>; currentUserId: string; onAdd: (game: Recommendation, status: GameStatus) => void; onDownvote: (game: Recommendation) => void; onRestore: (steamAppId: string) => void }) {
   const [showExcluded, setShowExcluded] = useState(false)
+  const [freeOnly, setFreeOnly] = useState(false)
   const excluded = Object.entries(feedback).filter(([, entry]) => entry.excludedAt).sort((left, right) => (right[1].excludedAt || '').localeCompare(left[1].excludedAt || ''))
+  const shown = (freeOnly ? visible.filter((game) => game.isFree || knownFreeGame(game.steamAppId, game.title)) : visible).slice(0, 25)
   const edition = feed ? new Date(`${feed.editionDate}T12:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : ''
   return <div className="page recommendations-page">
     <div className="page-title-row recommendations-title-row"><div><span className="eyebrow">Fresh co-op finds · {edition || 'Every Friday'}</span><h1>Crew recommendations</h1><p>Up to 25 well-reviewed Steam games that all three of you can play online.</p></div><button className="button button-secondary" type="button" onClick={() => setShowExcluded((current) => !current)}><ThumbsDown size={16} /> Excluded games <span>{excluded.length}</span></button></div>
     <section className="recommendation-rules"><div><Sparkles size={18} /><span><strong>Checkpoint’s weekly filter</strong>Refreshed Fridays at noon Central</span></div><span><Check size={13} /> 70%+ positive</span><span><Check size={13} /> 25+ Steam reviews</span><span><Check size={13} /> 3+ online co-op</span><span><Check size={13} /> No tracked or rejected games</span></section>
+    <div className="recommendation-feed-filters" role="group" aria-label="Recommendation filters"><button className={!freeOnly ? 'active' : ''} type="button" onClick={() => setFreeOnly(false)}>All picks</button><button className={freeOnly ? 'active' : ''} type="button" onClick={() => setFreeOnly(true)}><BadgeDollarSign size={14} /> Free to play</button></div>
     {showExcluded && <section className="excluded-games"><div className="section-heading"><div><span className="eyebrow">Permanent memory</span><h2>Excluded games</h2></div></div>{excluded.length ? <div className="excluded-list">{excluded.map(([steamAppId, entry]) => <div key={steamAppId}><span className="excluded-game-mark"><ThumbsDown size={15} /></span><div><strong>{entry.title}</strong><small>Rejected by {entry.downvotes.length} crew members</small></div><button type="button" onClick={() => onRestore(steamAppId)}><RotateCcw size={14} /> Restore</button></div>)}</div> : <p className="excluded-empty">Nothing has been excluded. Two different crew members must thumbs-down the same recommendation.</p>}</section>}
-    {loading ? <div className="recommendations-loading"><RefreshCw className="spin" size={24} /><h2>Finding this week’s co-op games…</h2></div> : error ? <div className="empty-state"><CircleHelp size={28} /><h2>Recommendations need a retry</h2><p>{error}</p></div> : visible.length ? <div className="recommendation-grid">{visible.map((game) => <RecommendationCard game={game} deal={deals[game.steamAppId]} feedback={feedback[game.steamAppId]} currentUserId={currentUserId} onAdd={(status) => onAdd(game, status)} onDownvote={() => onDownvote(game)} key={game.steamAppId} />)}</div> : <div className="empty-state"><Check size={28} /><h2>You’ve reviewed every current pick</h2><p>A new batch arrives Friday at noon Central.</p></div>}
+    {loading ? <div className="recommendations-loading"><RefreshCw className="spin" size={24} /><h2>Finding this week’s co-op games…</h2></div> : error ? <div className="empty-state"><CircleHelp size={28} /><h2>Recommendations need a retry</h2><p>{error}</p></div> : shown.length ? <div className="recommendation-grid">{shown.map((game) => <RecommendationCard game={game} deal={deals[game.steamAppId]} feedback={feedback[game.steamAppId]} currentUserId={currentUserId} onAdd={(status) => onAdd(game, status)} onDownvote={() => onDownvote(game)} key={game.steamAppId} />)}</div> : <div className="empty-state"><Check size={28} /><h2>{freeOnly ? 'No free picks in this batch' : 'You’ve reviewed every current pick'}</h2><p>{freeOnly ? 'Switch to All picks or check again after Friday’s refresh.' : 'A new batch arrives Friday at noon Central.'}</p></div>}
   </div>
 }
 
-function ScheduleGameNightModal({ games, defaultDate, onClose, onSchedule }: { games: Game[]; defaultDate?: string; onClose: () => void; onSchedule: (night: Omit<GameNight, 'id' | 'createdBy' | 'createdAt' | 'responses'>) => void }) {
+function ScheduleGameNightModal({ games, defaultDate, existing, onClose, onSave }: { games: Game[]; defaultDate?: string; existing?: GameNight; onClose: () => void; onSave: (night: GameNightDraft) => void }) {
   const initialStart = new Date()
   initialStart.setDate(initialStart.getDate() + (initialStart.getDay() === 5 ? 7 : (12 - initialStart.getDay()) % 7))
   initialStart.setHours(19, 0, 0, 0)
   const initialEnd = new Date(initialStart.getTime() + 3 * 60 * 60 * 1000)
-  const [title, setTitle] = useState('Game Night')
-  const [gameQuery, setGameQuery] = useState(() => games.find((game) => game.status === 'playing')?.title ?? '')
-  const [date, setDate] = useState(defaultDate || localDateValue(initialStart))
-  const [startTime, setStartTime] = useState(localTimeValue(initialStart))
-  const [endTime, setEndTime] = useState(localTimeValue(initialEnd))
-  const [note, setNote] = useState('')
+  const existingStart = existing ? new Date(existing.startAt) : initialStart
+  const existingEnd = existing ? new Date(existing.endAt) : initialEnd
+  const [title, setTitle] = useState(existing?.title ?? 'Game Night')
+  const [gameQuery, setGameQuery] = useState(() => existing?.gameTitle ?? games.find((game) => game.status === 'playing')?.title ?? '')
+  const [date, setDate] = useState(defaultDate || localDateValue(existingStart))
+  const [startTime, setStartTime] = useState(localTimeValue(existingStart))
+  const [endTime, setEndTime] = useState(localTimeValue(existingEnd))
+  const [note, setNote] = useState(existing?.note ?? '')
   const [error, setError] = useState('')
 
   function submit(event: FormEvent) {
@@ -1142,18 +1166,19 @@ function ScheduleGameNightModal({ games, defaultDate, onClose, onSchedule }: { g
     }
     const selectedTitle = gameQuery.trim()
     const game = games.find((item) => item.title.localeCompare(selectedTitle, undefined, { sensitivity: 'accent' }) === 0)
-    onSchedule({ title: title.trim() || 'Game Night', gameId: game?.id, gameTitle: game?.title || selectedTitle || undefined, startAt, endAt, note: note.trim() })
+    onSave({ title: title.trim() || 'Game Night', gameId: game?.id, gameTitle: game?.title || selectedTitle || undefined, startAt, endAt, note: note.trim() })
   }
 
   return <div className="modal-backdrop" onMouseDown={onClose}><section className="modal schedule-modal" onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-modal="true">
-    <div className="modal-heading"><div><span className="eyebrow">Roll call</span><h2>Schedule a game night</h2></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
+    <div className="modal-heading"><div><span className="eyebrow">{existing ? 'Change of plans' : 'Roll call'}</span><h2>{existing ? 'Edit game night' : 'Schedule a game night'}</h2></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
     <form onSubmit={submit}>
       <label className="field field-full"><span>Event name</span><input value={title} maxLength={80} onChange={(event) => setTitle(event.target.value)} required /></label>
       <label className="field field-full"><span>Game <em>optional · type to search</em></span><input list="checkpoint-game-night-games" value={gameQuery} maxLength={140} onChange={(event) => setGameQuery(event.target.value)} placeholder="Start typing a game title or decide later" /><datalist id="checkpoint-game-night-games">{games.map((game) => <option key={game.id} value={game.title}>{statusLabels[game.status]}</option>)}</datalist></label>
       <div className="form-grid"><label className="field"><span>Day</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)} required /></label><label className="field"><span>Starts</span><input type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} required /></label><label className="field"><span>Ends</span><input type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} required /></label></div>
       <label className="field field-full"><span>Details <em>optional</em></span><textarea rows={3} maxLength={1000} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Voice channel, what to bring, or the plan for the night…" /></label>
+      {existing && <p className="schedule-edit-note">Changing the game or time clears the ready check so everyone can RSVP to the updated plan. Existing personal calendar copies can be updated afterward.</p>}
       {error && <p className="calendar-form-error">{error}</p>}
-      <div className="modal-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit"><CalendarDays size={17} /> Schedule</button></div>
+      <div className="modal-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit"><CalendarDays size={17} /> {existing ? 'Save changes' : 'Schedule'}</button></div>
     </form>
   </section></div>
 }
@@ -1181,21 +1206,23 @@ function SuggestTimeModal({ gameNight, onClose, onSuggest }: { gameNight: GameNi
   </section></div>
 }
 
-function GameNightCard({ gameNight, currentUserId, crew, syncing, onAccept, onDecline, onSyncCalendar }: { gameNight: GameNight; currentUserId: string; crew: Member[]; syncing: boolean; onAccept: () => void; onDecline: () => void; onSyncCalendar: () => void }) {
-  const response = gameNight.responses[currentUserId]
+function GameNightCard({ gameNight, currentUserId, crew, syncing, onEdit, onAccept, onDecline, onSyncCalendar }: { gameNight: GameNight; currentUserId: string; crew: Member[]; syncing: boolean; onEdit: () => void; onAccept: () => void; onDecline: () => void; onSyncCalendar: () => void }) {
+  const version = gameNight.version ?? 1
+  const storedResponse = gameNight.responses[currentUserId]
+  const response = storedResponse && (storedResponse.responseVersion ?? 1) === version ? storedResponse : undefined
   const start = new Date(gameNight.startAt)
   const end = new Date(gameNight.endAt)
   return <article className="game-night-card">
     <div className="game-night-date"><strong>{start.toLocaleDateString('en-US', { month: 'short' })}</strong><span>{start.getDate()}</span></div>
-    <div className="game-night-main"><span className="game-night-time">{start.toLocaleDateString('en-US', { weekday: 'long' })} · {start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}–{end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span><h3>{gameNight.title}</h3>{gameNight.gameTitle && <p className="game-night-game"><Gamepad2 size={13} /> {gameNight.gameTitle}</p>}{gameNight.note && <p className="game-night-note">{gameNight.note}</p>}
-      <div className="game-night-responses">{crew.map((member) => { const answer = gameNight.responses[member.id]; return <span className={answer ? `is-${answer.status}` : ''} title={`${member.name}: ${answer?.status ?? 'No response'}`} key={member.id}><Avatar id={member.id} small />{answer?.status === 'accepted' ? <ThumbsUp size={10} /> : answer?.status === 'declined' ? <ThumbsDown size={10} /> : null}</span> })}</div>
-      {Object.entries(gameNight.responses).map(([memberId, answer]) => answer.status === 'declined' && answer.suggestedStartAt ? <div className="time-suggestion" key={memberId}><ThumbsDown size={13} /><span><strong>{crew.find((member) => member.id === memberId)?.name ?? 'A player'} suggested</strong>{new Date(answer.suggestedStartAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} at {new Date(answer.suggestedStartAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span></div> : null)}
+    <div className="game-night-main"><div className="game-night-heading"><div><span className="game-night-time">{start.toLocaleDateString('en-US', { weekday: 'long' })} · {start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}–{end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span><h3>{gameNight.title}</h3></div><button className="game-night-edit" type="button" onClick={onEdit}><Pencil size={13} /> Edit</button></div>{gameNight.gameTitle && <p className="game-night-game"><Gamepad2 size={13} /> {gameNight.gameTitle}</p>}{gameNight.note && <p className="game-night-note">{gameNight.note}</p>}
+      <div className="game-night-responses">{crew.map((member) => { const storedAnswer = gameNight.responses[member.id]; const answer = storedAnswer && (storedAnswer.responseVersion ?? 1) === version ? storedAnswer : undefined; return <span className={answer ? `is-${answer.status}` : ''} title={`${member.name}: ${answer?.status ?? 'Needs a new response'}`} key={member.id}><Avatar id={member.id} small />{answer?.status === 'accepted' ? <ThumbsUp size={10} /> : answer?.status === 'declined' ? <ThumbsDown size={10} /> : null}</span> })}</div>
+      {Object.entries(gameNight.responses).map(([memberId, answer]) => (answer.responseVersion ?? 1) === version && answer.status === 'declined' && answer.suggestedStartAt ? <div className="time-suggestion" key={memberId}><ThumbsDown size={13} /><span><strong>{crew.find((member) => member.id === memberId)?.name ?? 'A player'} suggested</strong>{new Date(answer.suggestedStartAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} at {new Date(answer.suggestedStartAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span></div> : null)}
     </div>
-    <div className="rsvp-actions"><span>Your RSVP</span><div><button className={response?.status === 'accepted' ? 'active accept' : 'accept'} type="button" onClick={onAccept} disabled={syncing} aria-label="Accept game night in Checkpoint"><ThumbsUp size={17} /></button><button className={response?.status === 'declined' ? 'active decline' : 'decline'} type="button" onClick={onDecline} disabled={syncing} aria-label="Decline and suggest a new time"><ThumbsDown size={17} /></button></div>{syncing ? <small>Connecting Google…</small> : response?.calendarSyncedAt ? <small className="calendar-synced"><Check size={11} /> In Google Calendar</small> : response?.status === 'accepted' ? <button className="calendar-retry" type="button" onClick={onSyncCalendar}>Add to Google Calendar <em>optional</em></button> : null}</div>
+    <div className="rsvp-actions"><span>Your RSVP</span><div><button className={response?.status === 'accepted' ? 'active accept' : 'accept'} type="button" onClick={onAccept} disabled={syncing} aria-label="Accept game night in Checkpoint"><ThumbsUp size={17} /></button><button className={response?.status === 'declined' ? 'active decline' : 'decline'} type="button" onClick={onDecline} disabled={syncing} aria-label="Decline and suggest a new time"><ThumbsDown size={17} /></button></div>{syncing ? <small>Connecting Google…</small> : response?.calendarSyncedAt && (response.calendarVersion ?? 1) === version ? <small className="calendar-synced"><Check size={11} /> In Google Calendar</small> : response?.status === 'accepted' ? <button className="calendar-retry" type="button" onClick={onSyncCalendar}>{storedResponse?.googleEventId ? 'Update Google Calendar' : 'Add to Google Calendar'} <em>optional</em></button> : null}</div>
   </article>
 }
 
-function CalendarPage({ gameNights, crew, currentUserId, syncingId, calendarError, sharedSyncError, onSchedule, onAccept, onDecline, onSyncCalendar }: { gameNights: GameNight[]; crew: Member[]; currentUserId: string; syncingId: string | null; calendarError: string | null; sharedSyncError: boolean; onSchedule: (date?: string) => void; onAccept: (night: GameNight) => void; onDecline: (night: GameNight) => void; onSyncCalendar: (night: GameNight) => void }) {
+function CalendarPage({ gameNights, crew, currentUserId, syncingId, calendarError, sharedSyncError, onSchedule, onEdit, onAccept, onDecline, onSyncCalendar }: { gameNights: GameNight[]; crew: Member[]; currentUserId: string; syncingId: string | null; calendarError: string | null; sharedSyncError: boolean; onSchedule: (date?: string) => void; onEdit: (night: GameNight) => void; onAccept: (night: GameNight) => void; onDecline: (night: GameNight) => void; onSyncCalendar: (night: GameNight) => void }) {
   const [visibleMonth, setVisibleMonth] = useState(() => { const date = new Date(); date.setDate(1); date.setHours(0, 0, 0, 0); return date })
   const monthStart = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1)
   const gridStart = new Date(monthStart)
@@ -1207,7 +1234,7 @@ function CalendarPage({ gameNights, crew, currentUserId, syncingId, calendarErro
     {(calendarError || sharedSyncError) && <div className="calendar-alert" role="alert"><CircleHelp size={19} /><div><strong>Calendar setup needs attention</strong>{sharedSyncError && <p>Your game night is saved on this device, but Firebase rejected the shared-calendar update.</p>}{calendarError && <p>{calendarError} Your Checkpoint RSVP is still saved.</p>}</div></div>}
     <section className="calendar-shell"><div className="calendar-toolbar"><h2>{visibleMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2><div><button type="button" onClick={() => setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1))} aria-label="Previous month"><ChevronLeft size={18} /></button><button type="button" onClick={() => { const now = new Date(); setVisibleMonth(new Date(now.getFullYear(), now.getMonth(), 1)) }}>Today</button><button type="button" onClick={() => setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1))} aria-label="Next month"><ChevronRight size={18} /></button></div></div><div className="calendar-legend" aria-label="Game night approval legend"><span className="pending"><Gamepad2 size={14} fill="none" /> Awaiting votes</span><span className="approved"><Gamepad2 size={14} fill="none" /> Everyone approved</span><span className="denied"><Gamepad2 size={14} fill="none" /> New time suggested</span></div>
       <div className="calendar-weekdays">{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => <span key={day}>{day}</span>)}</div><div className="calendar-grid">{days.map((day) => { const key = localDateValue(day); const dayEvents = gameNights.filter((night) => localDateValue(new Date(night.startAt)) === key); const today = key === localDateValue(new Date()); return <div className={`${day.getMonth() !== visibleMonth.getMonth() ? 'outside' : ''} ${today ? 'today' : ''}`} key={key}><button className="calendar-day-hitbox" type="button" onClick={() => onSchedule(key)} aria-label={`Schedule a game night on ${day.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`} /><span className="calendar-day-number">{day.getDate()}</span><div className="calendar-event-markers">{dayEvents.slice(0, 3).map((night) => { const state = gameNightCalendarState(night, crew); return <button className={`calendar-event calendar-event-${state}`} type="button" key={night.id} title={`${night.gameTitle || night.title} · ${state}`} aria-label={`${night.gameTitle || night.title}: ${state}`} onClick={() => document.getElementById(`night-${night.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}><Gamepad2 size={17} fill="none" /><span>{new Date(night.startAt).toLocaleTimeString('en-US', { hour: 'numeric' })} · {night.gameTitle || night.title}</span></button> })}</div>{dayEvents.length > 3 && <small>+{dayEvents.length - 3} more</small>}</div> })}</div></section>
-    <section className="upcoming-nights"><div className="section-heading"><div><span className="eyebrow">Ready check</span><h2>Upcoming game nights</h2></div></div>{upcoming.length ? <div className="game-night-list">{upcoming.map((night) => <div id={`night-${night.id}`} key={night.id}><GameNightCard gameNight={night} currentUserId={currentUserId} crew={crew} syncing={syncingId === night.id} onAccept={() => onAccept(night)} onDecline={() => onDecline(night)} onSyncCalendar={() => onSyncCalendar(night)} /></div>)}</div> : <div className="calendar-empty"><CalendarDays size={30} /><h3>No game nights scheduled</h3><p>Pick a day and let the crew vote on it.</p><button className="button button-primary" type="button" onClick={() => onSchedule()}>Schedule the first one</button></div>}</section>
+    <section className="upcoming-nights"><div className="section-heading"><div><span className="eyebrow">Ready check</span><h2>Upcoming game nights</h2></div></div>{upcoming.length ? <div className="game-night-list">{upcoming.map((night) => <div id={`night-${night.id}`} key={night.id}><GameNightCard gameNight={night} currentUserId={currentUserId} crew={crew} syncing={syncingId === night.id} onEdit={() => onEdit(night)} onAccept={() => onAccept(night)} onDecline={() => onDecline(night)} onSyncCalendar={() => onSyncCalendar(night)} /></div>)}</div> : <div className="calendar-empty"><CalendarDays size={30} /><h3>No game nights scheduled</h3><p>Pick a day and let the crew vote on it.</p><button className="button button-primary" type="button" onClick={() => onSchedule()}>Schedule the first one</button></div>}</section>
   </div>
 }
 
@@ -1273,6 +1300,7 @@ function App() {
   const [showCrew, setShowCrew] = useState(false)
   const [showSchedule, setShowSchedule] = useState(false)
   const [scheduleDate, setScheduleDate] = useState<string | undefined>()
+  const [editingGameNightId, setEditingGameNightId] = useState<string | null>(null)
   const [declineNightId, setDeclineNightId] = useState<string | null>(null)
   const [calendarSyncingId, setCalendarSyncingId] = useState<string | null>(null)
   const [calendarError, setCalendarError] = useState<string | null>(null)
@@ -1445,15 +1473,16 @@ function App() {
   const currentUser = user?.uid ?? DEMO_USER
   const playing = games.find((game) => game.status === 'playing')
   const upNext = games.filter((game) => game.status === 'up-next')
-  const visibleRecommendations = useMemo(() => {
+  const availableRecommendations = useMemo(() => {
     const trackedAppIds = new Set(games.flatMap((game) => game.steamAppId ? [game.steamAppId] : []))
     const trackedTitles = new Set(games.map((game) => game.title.trim().toLocaleLowerCase()))
     return (recommendationFeed?.recommendations ?? []).filter((game) => !recommendationFeedback[game.steamAppId]?.excludedAt
       && !trackedAppIds.has(game.steamAppId)
-      && !trackedTitles.has(game.title.trim().toLocaleLowerCase())).slice(0, 25)
+      && !trackedTitles.has(game.title.trim().toLocaleLowerCase()))
   }, [games, recommendationFeed, recommendationFeedback])
   const selected = games.find((game) => game.id === selectedId)
   const changeGame = games.find((game) => game.id === changeGameId)
+  const editingGameNight = gameNights.find((night) => night.id === editingGameNightId)
   const puzzleGame = games.find((game) => game.id === puzzleGameId)
   const filteredGames = useMemo(() => games.filter((game) => {
     if ((libraryFilter !== 'all' && game.status !== libraryFilter) || !game.title.toLowerCase().includes(search.toLowerCase())) return false
@@ -1461,6 +1490,7 @@ function App() {
     if (smartFilter === 'everyone-owns') return ownership.everyoneOwns
     if (smartFilter === 'needs-copy') return ownership.missing.length > 0
     if (smartFilter === 'on-sale') return Boolean(game.steamAppId && gameDeals[game.steamAppId]?.savingsPercent >= 1)
+    if (smartFilter === 'free') return isFreeGame(game)
     return true
   }), [gameDeals, games, groupMembers, libraryFilter, search, smartFilter, steamSnapshot])
   const flash = (message: string) => setToast(message)
@@ -1481,6 +1511,7 @@ function App() {
       id: crypto.randomUUID(), title: game.title, year: game.year, status, progress: 0, note: '', votes: [], color, accent,
       platform: 'Steam', addedBy: currentUser, genre: game.genres.slice(0, 2).join(' · ') || 'Online co-op', coverMark: game.title.slice(0, 2).toUpperCase(),
       coverUrl: game.coverUrl, steamAppId: game.steamAppId, catalogId: game.steamAppId, catalogSource: 'steam', contentType: 'game',
+      isFree: game.isFree || knownFreeGame(game.steamAppId, game.title),
     }])
     flash(`${game.title} added to ${statusLabels[status]}`)
   }
@@ -1542,7 +1573,7 @@ function App() {
   function acceptGameNight(gameNight: GameNight) {
     const respondedAt = new Date().toISOString()
     const priorResponse = gameNight.responses[currentUser]
-    setGameNights((current) => current.map((night) => night.id === gameNight.id ? { ...night, responses: { ...night.responses, [currentUser]: { ...priorResponse, status: 'accepted', respondedAt, suggestedStartAt: undefined, suggestedEndAt: undefined } } } : night))
+    setGameNights((current) => current.map((night) => night.id === gameNight.id ? { ...night, responses: { ...night.responses, [currentUser]: { ...priorResponse, status: 'accepted', respondedAt, responseVersion: night.version ?? 1, suggestedStartAt: undefined, suggestedEndAt: undefined } } } : night))
     flash('Game night accepted in Checkpoint')
   }
   async function syncGameNightToPersonalCalendar(gameNight: GameNight) {
@@ -1551,7 +1582,7 @@ function App() {
     setCalendarError(null)
     try {
       const result = await syncGameNightToGoogleCalendar(gameNight, priorResponse?.googleEventId)
-      setGameNights((current) => current.map((night) => night.id === gameNight.id ? { ...night, responses: { ...night.responses, [currentUser]: { ...night.responses[currentUser], status: 'accepted', respondedAt: night.responses[currentUser]?.respondedAt || new Date().toISOString(), googleEventId: result.id, calendarSyncedAt: new Date().toISOString(), suggestedStartAt: undefined, suggestedEndAt: undefined } } } : night))
+      setGameNights((current) => current.map((night) => night.id === gameNight.id ? { ...night, responses: { ...night.responses, [currentUser]: { ...night.responses[currentUser], status: 'accepted', respondedAt: night.responses[currentUser]?.respondedAt || new Date().toISOString(), responseVersion: night.version ?? 1, googleEventId: result.id, calendarSyncedAt: new Date().toISOString(), calendarVersion: night.version ?? 1, suggestedStartAt: undefined, suggestedEndAt: undefined } } } : night))
       flash(priorResponse?.googleEventId ? 'Game night updated in Google Calendar' : 'Added to your Google Calendar')
     } catch (error) {
       const message = friendlyCalendarError(error)
@@ -1562,18 +1593,36 @@ function App() {
     }
   }
   function declineGameNight(gameNightId: string, suggestedStartAt: string, suggestedEndAt: string) {
-    setGameNights((current) => current.map((night) => night.id === gameNightId ? { ...night, responses: { ...night.responses, [currentUser]: { ...night.responses[currentUser], status: 'declined', respondedAt: new Date().toISOString(), suggestedStartAt, suggestedEndAt } } } : night))
+    setGameNights((current) => current.map((night) => night.id === gameNightId ? { ...night, responses: { ...night.responses, [currentUser]: { ...night.responses[currentUser], status: 'declined', respondedAt: new Date().toISOString(), responseVersion: night.version ?? 1, suggestedStartAt, suggestedEndAt } } } : night))
     setDeclineNightId(null)
     flash('Thumbs-down and new time shared with the crew')
   }
-  function scheduleGameNight(draft: Omit<GameNight, 'id' | 'createdBy' | 'createdAt' | 'responses'>) {
+  function scheduleGameNight(draft: GameNightDraft) {
     const now = new Date().toISOString()
-    const gameNight: GameNight = { ...draft, id: crypto.randomUUID(), createdBy: currentUser, createdAt: now, responses: { [currentUser]: { status: 'accepted', respondedAt: now } } }
+    const gameNight: GameNight = { ...draft, id: crypto.randomUUID(), createdBy: currentUser, createdAt: now, version: 1, responses: { [currentUser]: { status: 'accepted', respondedAt: now, responseVersion: 1 } } }
     setGameNights((current) => [...current, gameNight])
     setShowSchedule(false)
     setScheduleDate(undefined)
     setView('calendar')
     flash('Game night scheduled in Checkpoint')
+  }
+  function saveGameNight(draft: GameNightDraft) {
+    if (!editingGameNight) {
+      scheduleGameNight(draft)
+      return
+    }
+    const planChanged = editingGameNight.title !== draft.title
+      || editingGameNight.gameId !== draft.gameId
+      || editingGameNight.gameTitle !== draft.gameTitle
+      || editingGameNight.startAt !== draft.startAt
+      || editingGameNight.endAt !== draft.endAt
+    setGameNights((current) => current.map((night) => night.id === editingGameNight.id
+      ? { ...night, ...draft, version: planChanged ? (night.version ?? 1) + 1 : night.version }
+      : night))
+    setEditingGameNightId(null)
+    setShowSchedule(false)
+    setScheduleDate(undefined)
+    flash(planChanged ? 'Game night updated — the crew can RSVP to the new plan' : 'Game night details updated')
   }
   function reorderQueue(sourceId: string, targetId: string) {
     if (sourceId === targetId) return
@@ -1648,13 +1697,12 @@ function App() {
           <button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={19} /><span>Home</span></button>
           <button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('all') }}><Library size={19} /><span>Game library</span><b>{games.length}</b></button>
           <button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('up-next') }}><BookOpen size={19} /><span>Up next</span><b>{upNext.length}</b></button>
-          <button className={view === 'discover' ? 'active' : ''} onClick={() => setView('discover')}><Sparkles size={19} /><span>Discover</span><b>{visibleRecommendations.length}</b></button>
+          <button className={view === 'discover' ? 'active' : ''} onClick={() => setView('discover')}><Sparkles size={19} /><span>Discover</span><b>{Math.min(availableRecommendations.length, 25)}</b></button>
           <button className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}><CalendarDays size={19} /><span>Calendar</span><b>{gameNights.length}</b></button>
           <button onClick={() => setShowCrew(true)}><Users size={19} /><span>Players</span></button>
         </nav>
         <div className="sidebar-section"><span className="sidebar-label">Quick filters</span>
           <button onClick={() => { setView('library'); setLibraryFilter('playing') }}><span className="nav-dot purple" />Playing</button>
-          <button onClick={() => { setView('library'); setLibraryFilter('maybe') }}><span className="nav-dot amber" />Maybe</button>
           <button onClick={() => { setView('library'); setLibraryFilter('wishlist') }}><span className="nav-dot pink" />Wishlist</button>
           <button onClick={() => { setView('library'); setLibraryFilter('completed') }}><span className="nav-dot green" />Completed</button>
         </div>
@@ -1683,20 +1731,20 @@ function App() {
               </div><button className="queue-add" type="button" onClick={() => openAddGame()}><Plus size={17} /> Add another contender</button></div>
           </section>
           <section className="lower-section"><div className="section-heading"><div><span className="eyebrow">Worth a look</span><h2>On the radar</h2></div><button className="filter-button" onClick={() => setView('library')}><ListFilter size={16} /> Browse library</button></div><div className="radar-grid">
-            {games.filter((game) => game.status === 'maybe' || game.status === 'wishlist').slice(0, 4).map((game) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} onVote={() => vote(game.id)} />)}
+            {games.filter((game) => game.status === 'wishlist').slice(0, 4).map((game) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} onVote={() => vote(game.id)} />)}
             <button className="radar-add" type="button" onClick={() => openAddGame()}><span><Plus size={21} /></span><strong>Add to the radar</strong><small>Suggest something new</small></button>
           </div></section>
           <section className="stats-strip"><div><span className="stat-icon purple-bg"><Gamepad2 size={20} /></span><p><strong>{games.length}</strong><span>Games tracked</span></p></div><div><span className="stat-icon amber-bg"><Heart size={20} /></span><p><strong>{games.reduce((sum, game) => sum + game.votes.length, 0)}</strong><span>Votes cast</span></p></div><div><span className="stat-icon green-bg"><Trophy size={20} /></span><p><strong>{games.filter((game) => game.status === 'completed').length}</strong><span>Games finished</span></p></div><div><span className="stat-icon blue-bg"><Users size={20} /></span><p><strong>{groupMembers.length}</strong><span>Players synced</span></p></div></section>
         </div> : view === 'library' ? <div className="page library-page">
           <div className="page-title-row library-title-row"><div><span className="eyebrow">The collection</span><h1>Game library</h1><p>Every campaign, DLC, contender, and completed adventure in one place.</p></div><button className="button button-primary" onClick={() => openAddGame()}><Plus size={18} /> Add game</button></div>
           <div className="filter-tabs">{([['all', 'All games'], ...Object.entries(statusLabels)] as [GameStatus | 'all', string][]).map(([value, label]) => <button key={value} className={libraryFilter === value ? 'active' : ''} onClick={() => setLibraryFilter(value)}>{label}<span>{value === 'all' ? games.length : games.filter((game) => game.status === value).length}</span></button>)}</div>
-          <div className="smart-filters"><span><ListFilter size={14} /> Steam & prices</span>{([['any', 'Any ownership'], ['everyone-owns', 'Everyone owns'], ['needs-copy', 'Someone needs it'], ['on-sale', 'On sale']] as [SmartFilter, string][]).map(([value, label]) => <button type="button" key={value} className={smartFilter === value ? 'active' : ''} onClick={() => setSmartFilter(value)}>{label}</button>)}{integrationsLoading && <RefreshCw className="spin" size={14} />}</div>
+          <div className="smart-filters"><span><ListFilter size={14} /> Steam & prices</span>{([['any', 'Any ownership'], ['everyone-owns', 'Everyone owns'], ['needs-copy', 'Someone needs it'], ['on-sale', 'On sale'], ['free', 'Free to play']] as [SmartFilter, string][]).map(([value, label]) => <button type="button" key={value} className={smartFilter === value ? 'active' : ''} onClick={() => setSmartFilter(value)}>{label}</button>)}{integrationsLoading && <RefreshCw className="spin" size={14} />}</div>
           {filteredGames.length ? <div className="library-grid">{filteredGames.map((game) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} onVote={() => vote(game.id)} />)}</div> : <div className="empty-state"><Search size={28} /><h2>No games found</h2><p>Try another search or add a new game.</p><button className="button button-primary" onClick={() => openAddGame()}>Add game</button></div>}
-        </div> : view === 'discover' ? <RecommendationsPage feed={recommendationFeed} loading={recommendationsLoading} error={recommendationsError} visible={visibleRecommendations} feedback={recommendationFeedback} deals={gameDeals} currentUserId={currentUser} onAdd={addRecommendation} onDownvote={toggleRecommendationDownvote} onRestore={restoreRecommendation} /> : <CalendarPage gameNights={gameNights} crew={groupMembers} currentUserId={currentUser} syncingId={calendarSyncingId} calendarError={calendarError} sharedSyncError={syncStatus === 'error'} onSchedule={(date) => { setScheduleDate(date); setShowSchedule(true) }} onAccept={acceptGameNight} onDecline={(night) => setDeclineNightId(night.id)} onSyncCalendar={syncGameNightToPersonalCalendar} />}
+        </div> : view === 'discover' ? <RecommendationsPage feed={recommendationFeed} loading={recommendationsLoading} error={recommendationsError} visible={availableRecommendations} feedback={recommendationFeedback} deals={gameDeals} currentUserId={currentUser} onAdd={addRecommendation} onDownvote={toggleRecommendationDownvote} onRestore={restoreRecommendation} /> : <CalendarPage gameNights={gameNights} crew={groupMembers} currentUserId={currentUser} syncingId={calendarSyncingId} calendarError={calendarError} sharedSyncError={syncStatus === 'error'} onSchedule={(date) => { setEditingGameNightId(null); setScheduleDate(date); setShowSchedule(true) }} onEdit={(night) => { setEditingGameNightId(night.id); setScheduleDate(undefined); setShowSchedule(true) }} onAccept={acceptGameNight} onDecline={(night) => setDeclineNightId(night.id)} onSyncCalendar={syncGameNightToPersonalCalendar} />}
         <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={20} /><span>Home</span></button><button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('all') }}><Library size={20} /><span>Library</span></button><button className={view === 'discover' ? 'active' : ''} onClick={() => setView('discover')}><Sparkles size={20} /><span>Discover</span></button><button className="mobile-add" onClick={() => openAddGame()}><Plus size={23} /></button><button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('up-next') }}><BookOpen size={20} /><span>Queue</span></button><button className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}><CalendarDays size={20} /><span>Calendar</span></button></nav>
       </main>
       {showAdd && <AddGameModal onClose={closeAddGame} onAdd={addGame} games={games} defaultParentId={addParentId} />}
-      {showSchedule && <ScheduleGameNightModal games={games} defaultDate={scheduleDate} onClose={() => { setShowSchedule(false); setScheduleDate(undefined) }} onSchedule={scheduleGameNight} />}
+      {showSchedule && <ScheduleGameNightModal key={editingGameNight?.id ?? scheduleDate ?? 'new'} games={games} defaultDate={scheduleDate} existing={editingGameNight} onClose={() => { setShowSchedule(false); setScheduleDate(undefined); setEditingGameNightId(null) }} onSave={saveGameNight} />}
       {declineNightId && gameNights.find((night) => night.id === declineNightId) && <SuggestTimeModal gameNight={gameNights.find((night) => night.id === declineNightId)!} onClose={() => setDeclineNightId(null)} onSuggest={(startAt, endAt) => declineGameNight(declineNightId, startAt, endAt)} />}
       {showCrew && <CrewModal members={groupMembers} currentUserId={currentUser} googlePhotoUrl={user?.photoURL} integrationError={integrationError} onClose={() => setShowCrew(false)} onSavePhoto={saveProfileImage} onResolveSteam={resolveSteamLink} onSaveSteam={saveSteamProfile} />}
       {selected && <GameDetailsModal game={selected} onClose={() => setSelectedId(null)} onVote={() => vote(selected.id)} onSave={(updates) => updateGame(selected.id, updates)} onRemove={() => removeGame(selected)} onChangeGame={() => { setChangeGameId(selected.id); setSelectedId(null) }} onAddDlc={() => openAddGame(selected)} onOpenPuzzle={() => { setPuzzleGameId(selected.id); setSelectedId(null) }} onManualOwnershipChange={(memberId, owned) => updateManualOwnership(selected.id, memberId, owned)} />}

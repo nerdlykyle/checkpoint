@@ -1,9 +1,56 @@
 {
   "editionDate": "2026-08-28",
-  "generatedAt": "2026-08-29T14:22:09.375Z",
+  "generatedAt": "2026-08-31T02:24:07.720Z",
   "minimumReviews": 25,
   "minimumOnlinePlayers": 3,
   "recommendations": [
+    {
+      "steamAppId": "230410",
+      "title": "Warframe",
+      "year": 2013,
+      "genres": [
+        "Action",
+        "RPG",
+        "Free To Play"
+      ],
+      "summary": "Awaken as an unstoppable warrior and battle alongside your friends in this story-driven free-to-play online action game",
+      "why": "4-player online co-op with very positive Steam reviews and action/rpg gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 88,
+      "totalReviews": 675644,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/230410/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/230410/a000b4bf98dde5d51cd44206f1ac21d04841017e/header.jpg?t=1786540562",
+      "steamUrl": "https://store.steampowered.com/app/230410/",
+      "isFree": true
+    },
+    {
+      "steamAppId": "3564740",
+      "title": "Where Winds Meet",
+      "year": 2025,
+      "genres": [
+        "Action",
+        "Adventure",
+        "Casual",
+        "Indie",
+        "Massively Multiplayer",
+        "Racing",
+        "RPG",
+        "Simulation",
+        "Strategy",
+        "Free To Play"
+      ],
+      "summary": "Step into an open-world action-adventure RPG set in ancient China. Uncover the secrets of your own identity as you rise from a humble village wanderer to the sword master of the imperial capital. Learn martial arts and build your reputation as a hero or a bringer of chaos in this free wuxia world.",
+      "why": "4-player online co-op with very positive Steam reviews and action/adventure gameplay.",
+      "onlineCoopMax": 4,
+      "reviewSummary": "Very Positive",
+      "positivePercent": 87,
+      "totalReviews": 114149,
+      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3564740/library_600x900_2x.jpg",
+      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3564740/640329dbc0083cb8d529340137c80963d87f97e0/header.jpg?t=1787327185",
+      "steamUrl": "https://store.steampowered.com/app/3564740/",
+      "isFree": true
+    },
     {
       "steamAppId": "427410",
       "title": "Abiotic Factor",
@@ -19,10 +66,11 @@
       "onlineCoopMax": 6,
       "reviewSummary": "Overwhelmingly Positive",
       "positivePercent": 96,
-      "totalReviews": 58518,
+      "totalReviews": 58564,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/427410/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/427410/afe0e6c04aaa67d511a7fffe630aa8a54788c3b3/header.jpg?t=1785170446",
-      "steamUrl": "https://store.steampowered.com/app/427410/"
+      "steamUrl": "https://store.steampowered.com/app/427410/",
+      "isFree": false
     },
     {
       "steamAppId": "1385380",
@@ -39,10 +87,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 80,
-      "totalReviews": 13080,
+      "totalReviews": 13086,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1385380/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1385380/header.jpg?t=1781697686",
-      "steamUrl": "https://store.steampowered.com/app/1385380/"
+      "steamUrl": "https://store.steampowered.com/app/1385380/",
+      "isFree": false
     },
     {
       "steamAppId": "602960",
@@ -59,10 +108,11 @@
       "onlineCoopMax": 16,
       "reviewSummary": "Very Positive",
       "positivePercent": 94,
-      "totalReviews": 89401,
+      "totalReviews": 89444,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/602960/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/602960/header.jpg?t=1776271911",
-      "steamUrl": "https://store.steampowered.com/app/602960/"
+      "steamUrl": "https://store.steampowered.com/app/602960/",
+      "isFree": false
     },
     {
       "steamAppId": "274190",
@@ -79,10 +129,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Overwhelmingly Positive",
       "positivePercent": 97,
-      "totalReviews": 60968,
+      "totalReviews": 60972,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/274190/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/274190/header.jpg?t=1764247760",
-      "steamUrl": "https://store.steampowered.com/app/274190/"
+      "steamUrl": "https://store.steampowered.com/app/274190/",
+      "isFree": false
     },
     {
       "steamAppId": "204360",
@@ -100,10 +151,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Overwhelmingly Positive",
       "positivePercent": 96,
-      "totalReviews": 140400,
+      "totalReviews": 140418,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/204360/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/204360/header.jpg?t=1764096331",
-      "steamUrl": "https://store.steampowered.com/app/204360/"
+      "steamUrl": "https://store.steampowered.com/app/204360/",
+      "isFree": false
     },
     {
       "steamAppId": "1621690",
@@ -121,10 +173,11 @@
       "onlineCoopMax": 8,
       "reviewSummary": "Very Positive",
       "positivePercent": 93,
-      "totalReviews": 66166,
+      "totalReviews": 66196,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1621690/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1621690/header.jpg?t=1787841024",
-      "steamUrl": "https://store.steampowered.com/app/1621690/"
+      "steamUrl": "https://store.steampowered.com/app/1621690/",
+      "isFree": false
     },
     {
       "steamAppId": "548430",
@@ -138,10 +191,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Overwhelmingly Positive",
       "positivePercent": 97,
-      "totalReviews": 379426,
+      "totalReviews": 379481,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/548430/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/548430/37b58a6c4816ee60b0ca97cb6724d6e904c58c41/header.jpg?t=1786014445",
-      "steamUrl": "https://store.steampowered.com/app/548430/"
+      "steamUrl": "https://store.steampowered.com/app/548430/",
+      "isFree": false
     },
     {
       "steamAppId": "1135230",
@@ -157,10 +211,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 94,
-      "totalReviews": 6992,
+      "totalReviews": 6998,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1135230/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1135230/header.jpg?t=1776356243",
-      "steamUrl": "https://store.steampowered.com/app/1135230/"
+      "steamUrl": "https://store.steampowered.com/app/1135230/",
+      "isFree": false
     },
     {
       "steamAppId": "1435790",
@@ -177,10 +232,11 @@
       "onlineCoopMax": 10,
       "reviewSummary": "Very Positive",
       "positivePercent": 94,
-      "totalReviews": 19333,
+      "totalReviews": 19336,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1435790/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1435790/413708a2da512607f70bb22b29270359586c6e5f/header.jpg?t=1782813501",
-      "steamUrl": "https://store.steampowered.com/app/1435790/"
+      "steamUrl": "https://store.steampowered.com/app/1435790/",
+      "isFree": false
     },
     {
       "steamAppId": "527230",
@@ -197,10 +253,11 @@
       "onlineCoopMax": 3,
       "reviewSummary": "Very Positive",
       "positivePercent": 88,
-      "totalReviews": 43728,
+      "totalReviews": 43736,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/527230/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/527230/166aff558fda0f7e13df1970c7e825805c6e52b0/header_alt_assets_14.jpg?t=1762445651",
-      "steamUrl": "https://store.steampowered.com/app/527230/"
+      "steamUrl": "https://store.steampowered.com/app/527230/",
+      "isFree": false
     },
     {
       "steamAppId": "416600",
@@ -220,7 +277,8 @@
       "totalReviews": 2924,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/416600/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/416600/header.jpg?t=1689347261",
-      "steamUrl": "https://store.steampowered.com/app/416600/"
+      "steamUrl": "https://store.steampowered.com/app/416600/",
+      "isFree": false
     },
     {
       "steamAppId": "780290",
@@ -236,10 +294,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 82,
-      "totalReviews": 16088,
+      "totalReviews": 16097,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/780290/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/780290/header.jpg?t=1786706403",
-      "steamUrl": "https://store.steampowered.com/app/780290/"
+      "steamUrl": "https://store.steampowered.com/app/780290/",
+      "isFree": false
     },
     {
       "steamAppId": "493520",
@@ -256,7 +315,8 @@
       "totalReviews": 66649,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/493520/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/493520/header.jpg?t=1773842359",
-      "steamUrl": "https://store.steampowered.com/app/493520/"
+      "steamUrl": "https://store.steampowered.com/app/493520/",
+      "isFree": false
     },
     {
       "steamAppId": "1217060",
@@ -273,10 +333,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 93,
-      "totalReviews": 103624,
+      "totalReviews": 103628,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1217060/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1217060/dd6c1906d262c38c183ccd711f192db187b5103f/header.jpg?t=1785381312",
-      "steamUrl": "https://store.steampowered.com/app/1217060/"
+      "steamUrl": "https://store.steampowered.com/app/1217060/",
+      "isFree": false
     },
     {
       "steamAppId": "1201540",
@@ -296,7 +357,8 @@
       "totalReviews": 4667,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1201540/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1201540/header.jpg?t=1778601414",
-      "steamUrl": "https://store.steampowered.com/app/1201540/"
+      "steamUrl": "https://store.steampowered.com/app/1201540/",
+      "isFree": false
     },
     {
       "steamAppId": "1062810",
@@ -318,7 +380,8 @@
       "totalReviews": 4025,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1062810/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1062810/header.jpg?t=1780422654",
-      "steamUrl": "https://store.steampowered.com/app/1062810/"
+      "steamUrl": "https://store.steampowered.com/app/1062810/",
+      "isFree": false
     },
     {
       "steamAppId": "1302240",
@@ -334,10 +397,11 @@
       "onlineCoopMax": 8,
       "reviewSummary": "Very Positive",
       "positivePercent": 84,
-      "totalReviews": 17453,
+      "totalReviews": 17458,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1302240/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1302240/header.jpg?t=1764093777",
-      "steamUrl": "https://store.steampowered.com/app/1302240/"
+      "steamUrl": "https://store.steampowered.com/app/1302240/",
+      "isFree": false
     },
     {
       "steamAppId": "1966720",
@@ -354,10 +418,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Overwhelmingly Positive",
       "positivePercent": 97,
-      "totalReviews": 510562,
+      "totalReviews": 510592,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1966720/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1966720/header.jpg?t=1775380053",
-      "steamUrl": "https://store.steampowered.com/app/1966720/"
+      "steamUrl": "https://store.steampowered.com/app/1966720/",
+      "isFree": false
     },
     {
       "steamAppId": "471550",
@@ -372,10 +437,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Mostly Positive",
       "positivePercent": 77,
-      "totalReviews": 4735,
+      "totalReviews": 4736,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/471550/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/471550/header.jpg?t=1725007138",
-      "steamUrl": "https://store.steampowered.com/app/471550/"
+      "steamUrl": "https://store.steampowered.com/app/471550/",
+      "isFree": false
     },
     {
       "steamAppId": "739630",
@@ -391,10 +457,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 94,
-      "totalReviews": 838091,
+      "totalReviews": 838245,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/739630/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/739630/3dab2169bcaac566718921c87f5982560123e8bf/header_alt_assets_12.jpg?t=1787675345",
-      "steamUrl": "https://store.steampowered.com/app/739630/"
+      "steamUrl": "https://store.steampowered.com/app/739630/",
+      "isFree": false
     },
     {
       "steamAppId": "1599600",
@@ -411,10 +478,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 95,
-      "totalReviews": 27056,
+      "totalReviews": 27073,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1599600/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1599600/eb8fa3ad44fb5b4e4de4ef402101a55063797958/header.jpg?t=1786533482",
-      "steamUrl": "https://store.steampowered.com/app/1599600/"
+      "steamUrl": "https://store.steampowered.com/app/1599600/",
+      "isFree": false
     },
     {
       "steamAppId": "2071280",
@@ -429,10 +497,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Mostly Positive",
       "positivePercent": 80,
-      "totalReviews": 22515,
+      "totalReviews": 22535,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2071280/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2071280/header.jpg?t=1782466354",
-      "steamUrl": "https://store.steampowered.com/app/2071280/"
+      "steamUrl": "https://store.steampowered.com/app/2071280/",
+      "isFree": false
     },
     {
       "steamAppId": "632360",
@@ -447,10 +516,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 94,
-      "totalReviews": 352011,
+      "totalReviews": 352111,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/632360/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/632360/header.jpg?t=1783621122",
-      "steamUrl": "https://store.steampowered.com/app/632360/"
+      "steamUrl": "https://store.steampowered.com/app/632360/",
+      "isFree": false
     },
     {
       "steamAppId": "1492070",
@@ -466,10 +536,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 82,
-      "totalReviews": 5997,
+      "totalReviews": 6000,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1492070/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1492070/8e288958e8c203003f00852e73dba95558b94992/header.jpg?t=1786031513",
-      "steamUrl": "https://store.steampowered.com/app/1492070/"
+      "steamUrl": "https://store.steampowered.com/app/1492070/",
+      "isFree": false
     },
     {
       "steamAppId": "512900",
@@ -486,10 +557,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Overwhelmingly Positive",
       "positivePercent": 96,
-      "totalReviews": 23040,
+      "totalReviews": 23047,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/512900/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/512900/header.jpg?t=1758274145",
-      "steamUrl": "https://store.steampowered.com/app/512900/"
+      "steamUrl": "https://store.steampowered.com/app/512900/",
+      "isFree": false
     },
     {
       "steamAppId": "553850",
@@ -503,10 +575,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Mostly Positive",
       "positivePercent": 75,
-      "totalReviews": 1159016,
+      "totalReviews": 1159475,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/553850/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/553850/850e2f9e5bb15c5706bb9a1edc832f4f782e8be5/header.jpg?t=1786525389",
-      "steamUrl": "https://store.steampowered.com/app/553850/"
+      "steamUrl": "https://store.steampowered.com/app/553850/",
+      "isFree": false
     },
     {
       "steamAppId": "1063420",
@@ -521,10 +594,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 86,
-      "totalReviews": 8429,
+      "totalReviews": 8431,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1063420/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1063420/header.jpg?t=1780298639",
-      "steamUrl": "https://store.steampowered.com/app/1063420/"
+      "steamUrl": "https://store.steampowered.com/app/1063420/",
+      "isFree": false
     },
     {
       "steamAppId": "552500",
@@ -540,10 +614,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 85,
-      "totalReviews": 147426,
+      "totalReviews": 147454,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/552500/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/552500/header.jpg?t=1764008361",
-      "steamUrl": "https://store.steampowered.com/app/552500/"
+      "steamUrl": "https://store.steampowered.com/app/552500/",
+      "isFree": false
     },
     {
       "steamAppId": "1361210",
@@ -559,10 +634,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Mostly Positive",
       "positivePercent": 72,
-      "totalReviews": 138101,
+      "totalReviews": 138179,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1361210/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1361210/f07ebcb73a34112ac61c54608b1f1ded7e45eb8a/header.jpg?t=1782226781",
-      "steamUrl": "https://store.steampowered.com/app/1361210/"
+      "steamUrl": "https://store.steampowered.com/app/1361210/",
+      "isFree": false
     },
     {
       "steamAppId": "312670",
@@ -577,10 +653,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 84,
-      "totalReviews": 11303,
+      "totalReviews": 11302,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/312670/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/312670/header.jpg?t=1589878497",
-      "steamUrl": "https://store.steampowered.com/app/312670/"
+      "steamUrl": "https://store.steampowered.com/app/312670/",
+      "isFree": false
     },
     {
       "steamAppId": "694280",
@@ -594,10 +671,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 86,
-      "totalReviews": 11832,
+      "totalReviews": 11880,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/694280/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/694280/header.jpg?t=1786965015",
-      "steamUrl": "https://store.steampowered.com/app/694280/"
+      "steamUrl": "https://store.steampowered.com/app/694280/",
+      "isFree": false
     },
     {
       "steamAppId": "648800",
@@ -613,10 +691,11 @@
       "onlineCoopMax": 8,
       "reviewSummary": "Very Positive",
       "positivePercent": 93,
-      "totalReviews": 377628,
+      "totalReviews": 377711,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/648800/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/648800/header.jpg?t=1727184011",
-      "steamUrl": "https://store.steampowered.com/app/648800/"
+      "steamUrl": "https://store.steampowered.com/app/648800/",
+      "isFree": false
     },
     {
       "steamAppId": "962130",
@@ -631,10 +710,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 90,
-      "totalReviews": 95548,
+      "totalReviews": 95561,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/962130/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/962130/header.jpg?t=1768264530",
-      "steamUrl": "https://store.steampowered.com/app/962130/"
+      "steamUrl": "https://store.steampowered.com/app/962130/",
+      "isFree": false
     },
     {
       "steamAppId": "892970",
@@ -652,10 +732,11 @@
       "onlineCoopMax": 10,
       "reviewSummary": "Very Positive",
       "positivePercent": 94,
-      "totalReviews": 540921,
+      "totalReviews": 541068,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/892970/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/892970/de0bdcf6c008c508a79d8e75eb91fc67f4bebd5d/header.jpg?t=1786012504",
-      "steamUrl": "https://store.steampowered.com/app/892970/"
+      "steamUrl": "https://store.steampowered.com/app/892970/",
+      "isFree": false
     },
     {
       "steamAppId": "242760",
@@ -672,10 +753,11 @@
       "onlineCoopMax": 8,
       "reviewSummary": "Overwhelmingly Positive",
       "positivePercent": 96,
-      "totalReviews": 680772,
+      "totalReviews": 680863,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/242760/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/242760/header.jpg?t=1699381053",
-      "steamUrl": "https://store.steampowered.com/app/242760/"
+      "steamUrl": "https://store.steampowered.com/app/242760/",
+      "isFree": false
     },
     {
       "steamAppId": "1326470",
@@ -692,10 +774,11 @@
       "onlineCoopMax": 8,
       "reviewSummary": "Very Positive",
       "positivePercent": 88,
-      "totalReviews": 318008,
+      "totalReviews": 318102,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1326470/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1326470/header.jpg?t=1708624856",
-      "steamUrl": "https://store.steampowered.com/app/1326470/"
+      "steamUrl": "https://store.steampowered.com/app/1326470/",
+      "isFree": false
     },
     {
       "steamAppId": "1203620",
@@ -713,10 +796,11 @@
       "onlineCoopMax": 16,
       "reviewSummary": "Very Positive",
       "positivePercent": 86,
-      "totalReviews": 104945,
+      "totalReviews": 105005,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1203620/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1203620/062c788d22ecf236269da0f115150c0d3b7055a4/header.jpg?t=1782800102",
-      "steamUrl": "https://store.steampowered.com/app/1203620/"
+      "steamUrl": "https://store.steampowered.com/app/1203620/",
+      "isFree": false
     },
     {
       "steamAppId": "1604030",
@@ -732,10 +816,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 89,
-      "totalReviews": 136805,
+      "totalReviews": 136834,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1604030/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1604030/be49834ab147ad22ba17005fb847c93917d18b97/header.jpg?t=1787038382",
-      "steamUrl": "https://store.steampowered.com/app/1604030/"
+      "steamUrl": "https://store.steampowered.com/app/1604030/",
+      "isFree": false
     },
     {
       "steamAppId": "526870",
@@ -752,10 +837,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Overwhelmingly Positive",
       "positivePercent": 97,
-      "totalReviews": 278557,
+      "totalReviews": 278660,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/526870/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/526870/header.jpg?t=1780413533",
-      "steamUrl": "https://store.steampowered.com/app/526870/"
+      "steamUrl": "https://store.steampowered.com/app/526870/",
+      "isFree": false
     },
     {
       "steamAppId": "728880",
@@ -771,10 +857,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 90,
-      "totalReviews": 84057,
+      "totalReviews": 84092,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/728880/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/728880/header.jpg?t=1784805486",
-      "steamUrl": "https://store.steampowered.com/app/728880/"
+      "steamUrl": "https://store.steampowered.com/app/728880/",
+      "isFree": false
     },
     {
       "steamAppId": "1641700",
@@ -791,10 +878,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Mostly Positive",
       "positivePercent": 75,
-      "totalReviews": 616,
+      "totalReviews": 617,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1641700/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1641700/header.jpg?t=1780480295",
-      "steamUrl": "https://store.steampowered.com/app/1641700/"
+      "steamUrl": "https://store.steampowered.com/app/1641700/",
+      "isFree": false
     },
     {
       "steamAppId": "690640",
@@ -810,10 +898,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 89,
-      "totalReviews": 14307,
+      "totalReviews": 14311,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/690640/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/690640/64169d6388ed69eb94b7c9d77e4e7fb80f597025/header.jpg?t=1776321431",
-      "steamUrl": "https://store.steampowered.com/app/690640/"
+      "steamUrl": "https://store.steampowered.com/app/690640/",
+      "isFree": false
     },
     {
       "steamAppId": "1676840",
@@ -830,10 +919,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Mostly Positive",
       "positivePercent": 71,
-      "totalReviews": 16091,
+      "totalReviews": 16095,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1676840/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1676840/146cf4b5fad9a49caea91b23c7e43bb2c74bfa85/header_alt_assets_13.jpg?t=1786013028",
-      "steamUrl": "https://store.steampowered.com/app/1676840/"
+      "steamUrl": "https://store.steampowered.com/app/1676840/",
+      "isFree": false
     },
     {
       "steamAppId": "763890",
@@ -849,10 +939,11 @@
       "onlineCoopMax": 5,
       "reviewSummary": "Very Positive",
       "positivePercent": 95,
-      "totalReviews": 18230,
+      "totalReviews": 18232,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/763890/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/763890/header.jpg?t=1740520937",
-      "steamUrl": "https://store.steampowered.com/app/763890/"
+      "steamUrl": "https://store.steampowered.com/app/763890/",
+      "isFree": false
     },
     {
       "steamAppId": "1086940",
@@ -868,10 +959,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Overwhelmingly Positive",
       "positivePercent": 97,
-      "totalReviews": 855133,
+      "totalReviews": 855391,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1086940/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1086940/48a2fcbda8565bb45025e98fd8ebde8a7203f6a0/header.jpg?t=1777363040",
-      "steamUrl": "https://store.steampowered.com/app/1086940/"
+      "steamUrl": "https://store.steampowered.com/app/1086940/",
+      "isFree": false
     },
     {
       "steamAppId": "1096530",
@@ -887,10 +979,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 87,
-      "totalReviews": 22440,
+      "totalReviews": 22448,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1096530/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1096530/header.jpg?t=1772029038",
-      "steamUrl": "https://store.steampowered.com/app/1096530/"
+      "steamUrl": "https://store.steampowered.com/app/1096530/",
+      "isFree": false
     },
     {
       "steamAppId": "413150",
@@ -906,10 +999,11 @@
       "onlineCoopMax": 8,
       "reviewSummary": "Overwhelmingly Positive",
       "positivePercent": 98,
-      "totalReviews": 1034960,
+      "totalReviews": 1035380,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/413150/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/413150/header.jpg?t=1786554168",
-      "steamUrl": "https://store.steampowered.com/app/413150/"
+      "steamUrl": "https://store.steampowered.com/app/413150/",
+      "isFree": false
     },
     {
       "steamAppId": "322330",
@@ -928,10 +1022,11 @@
       "onlineCoopMax": 6,
       "reviewSummary": "Very Positive",
       "positivePercent": 95,
-      "totalReviews": 542176,
+      "totalReviews": 542248,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/322330/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/322330/da5d1bc20a2b35fe987c68047ba96a7f3d25c982/header_alt_assets_50.jpg?t=1782413299",
-      "steamUrl": "https://store.steampowered.com/app/322330/"
+      "steamUrl": "https://store.steampowered.com/app/322330/",
+      "isFree": false
     },
     {
       "steamAppId": "232090",
@@ -945,10 +1040,11 @@
       "onlineCoopMax": 6,
       "reviewSummary": "Very Positive",
       "positivePercent": 88,
-      "totalReviews": 129298,
+      "totalReviews": 129317,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/232090/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/232090/header.jpg?t=1774538987",
-      "steamUrl": "https://store.steampowered.com/app/232090/"
+      "steamUrl": "https://store.steampowered.com/app/232090/",
+      "isFree": false
     },
     {
       "steamAppId": "1144200",
@@ -964,10 +1060,11 @@
       "onlineCoopMax": 5,
       "reviewSummary": "Mostly Positive",
       "positivePercent": 79,
-      "totalReviews": 343983,
+      "totalReviews": 344212,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1144200/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1144200/2b44644b033a996a9efb95051bb01809215d0d23/header.jpg?t=1781703931",
-      "steamUrl": "https://store.steampowered.com/app/1144200/"
+      "steamUrl": "https://store.steampowered.com/app/1144200/",
+      "isFree": false
     },
     {
       "steamAppId": "477160",
@@ -984,10 +1081,11 @@
       "onlineCoopMax": 8,
       "reviewSummary": "Very Positive",
       "positivePercent": 95,
-      "totalReviews": 226617,
+      "totalReviews": 226635,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/477160/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/477160/577b4a6e494dcc8029ed783c6698cd1c156fad3f/header_alt_assets_27.jpg?t=1784801515",
-      "steamUrl": "https://store.steampowered.com/app/477160/"
+      "steamUrl": "https://store.steampowered.com/app/477160/",
+      "isFree": false
     },
     {
       "steamAppId": "218620",
@@ -1002,10 +1100,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 89,
-      "totalReviews": 674283,
+      "totalReviews": 674305,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/218620/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/218620/c44949287e8ffa2518f01b5033b8431dd0f984e4/header.jpg?t=1786626315",
-      "steamUrl": "https://store.steampowered.com/app/218620/"
+      "steamUrl": "https://store.steampowered.com/app/218620/",
+      "isFree": false
     },
     {
       "steamAppId": "1172620",
@@ -1020,10 +1119,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 89,
-      "totalReviews": 372536,
+      "totalReviews": 372565,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1172620/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1172620/579c6d544424019a032f4add98e8f923925c1cef/header.jpg?t=1782135471",
-      "steamUrl": "https://store.steampowered.com/app/1172620/"
+      "steamUrl": "https://store.steampowered.com/app/1172620/",
+      "isFree": false
     },
     {
       "steamAppId": "582010",
@@ -1037,10 +1137,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 89,
-      "totalReviews": 516062,
+      "totalReviews": 516156,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/582010/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/582010/header.jpg?t=1773328926",
-      "steamUrl": "https://store.steampowered.com/app/582010/"
+      "steamUrl": "https://store.steampowered.com/app/582010/",
+      "isFree": false
     },
     {
       "steamAppId": "1446780",
@@ -1054,10 +1155,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Very Positive",
       "positivePercent": 83,
-      "totalReviews": 125832,
+      "totalReviews": 125875,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1446780/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1446780/header.jpg?t=1768870444",
-      "steamUrl": "https://store.steampowered.com/app/1446780/"
+      "steamUrl": "https://store.steampowered.com/app/1446780/",
+      "isFree": false
     },
     {
       "steamAppId": "239140",
@@ -1073,10 +1175,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Overwhelmingly Positive",
       "positivePercent": 95,
-      "totalReviews": 494522,
+      "totalReviews": 494627,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/239140/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/239140/9d1b810b85ae46a0acbdfddf583ccbb81271183e/header.jpg?t=1782913513",
-      "steamUrl": "https://store.steampowered.com/app/239140/"
+      "steamUrl": "https://store.steampowered.com/app/239140/",
+      "isFree": false
     },
     {
       "steamAppId": "534380",
@@ -1092,10 +1195,11 @@
       "onlineCoopMax": 4,
       "reviewSummary": "Mostly Positive",
       "positivePercent": 79,
-      "totalReviews": 218982,
+      "totalReviews": 219044,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/534380/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/534380/header.jpg?t=1784310924",
-      "steamUrl": "https://store.steampowered.com/app/534380/"
+      "steamUrl": "https://store.steampowered.com/app/534380/",
+      "isFree": false
     },
     {
       "steamAppId": "934700",
@@ -1110,52 +1214,11 @@
       "onlineCoopMax": 3,
       "reviewSummary": "Mostly Positive",
       "positivePercent": 77,
-      "totalReviews": 29198,
+      "totalReviews": 29255,
       "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/934700/library_600x900_2x.jpg",
       "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/934700/header.jpg?t=1761231459",
-      "steamUrl": "https://store.steampowered.com/app/934700/"
-    },
-    {
-      "steamAppId": "108600",
-      "title": "Project Zomboid",
-      "year": 2013,
-      "genres": [
-        "Indie",
-        "RPG",
-        "Simulation",
-        "Early Access"
-      ],
-      "summary": "Project Zomboid is the ultimate in zombie survival. Alone or in MP: you loot, build, craft, fight, farm and fish in a struggle to survive. A hardcore RPG skillset, a vast map, massively customisable sandbox and a cute tutorial raccoon await the unwary. So how will you die? All it takes is a bite..",
-      "why": "16-player online co-op with very positive Steam reviews and indie/rpg gameplay.",
-      "onlineCoopMax": 16,
-      "reviewSummary": "Very Positive",
-      "positivePercent": 94,
-      "totalReviews": 476412,
-      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/108600/library_600x900_2x.jpg",
-      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/108600/header.jpg?t=1787740093",
-      "steamUrl": "https://store.steampowered.com/app/108600/"
-    },
-    {
-      "steamAppId": "251570",
-      "title": "7 Days to Die",
-      "year": 2024,
-      "genres": [
-        "Action",
-        "Adventure",
-        "Indie",
-        "RPG",
-        "Simulation",
-        "Strategy"
-      ],
-      "summary": "7 Days to Die is an open-world game that is a unique combination of first-person shooter, survival horror, tower defense, and role-playing games. Play the definitive zombie survival sandbox RPG that came first. Navezgane awaits!",
-      "why": "8-player online co-op with very positive Steam reviews and action/adventure gameplay.",
-      "onlineCoopMax": 8,
-      "reviewSummary": "Very Positive",
-      "positivePercent": 87,
-      "totalReviews": 399825,
-      "coverUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/251570/library_600x900_2x.jpg",
-      "headerUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/251570/header.jpg?t=1785351975",
-      "steamUrl": "https://store.steampowered.com/app/251570/"
+      "steamUrl": "https://store.steampowered.com/app/934700/",
+      "isFree": false
     }
   ]
 }

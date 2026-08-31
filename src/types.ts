@@ -1,4 +1,4 @@
-export type GameStatus = 'playing' | 'up-next' | 'maybe' | 'wishlist' | 'completed'
+export type GameStatus = 'playing' | 'up-next' | 'wishlist' | 'completed'
 export type Persona = 'Nern' | 'Jern' | 'Vern'
 export type ContentType = 'game' | 'dlc'
 
@@ -9,6 +9,8 @@ export type GameNightResponse = {
   suggestedEndAt?: string
   googleEventId?: string
   calendarSyncedAt?: string
+  responseVersion?: number
+  calendarVersion?: number
 }
 
 export type GameNight = {
@@ -22,6 +24,7 @@ export type GameNight = {
   createdBy: string
   createdAt: string
   responses: Record<string, GameNightResponse>
+  version?: number
 }
 
 export type PuzzlePoint = {
@@ -87,6 +90,7 @@ export type Game = {
   parentGameTitle?: string
   completedAt?: string
   manualOwnership?: Record<string, boolean>
+  isFree?: boolean
 }
 
 export type Member = {
@@ -158,6 +162,7 @@ export type Recommendation = {
   coverUrl: string
   headerUrl: string
   steamUrl: string
+  isFree?: boolean
 }
 
 export type RecommendationFeed = {

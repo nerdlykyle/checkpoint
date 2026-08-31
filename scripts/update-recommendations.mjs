@@ -147,6 +147,7 @@ async function steamReview(candidate) {
       coverUrl: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${candidate.steamAppId}/library_600x900_2x.jpg`,
       headerUrl: details?.header_image || `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${candidate.steamAppId}/header.jpg`,
       steamUrl: `https://store.steampowered.com/app/${candidate.steamAppId}/`,
+      isFree: Boolean(details?.is_free),
     }
   } catch (error) {
     console.warn(`Skipping Steam app ${candidate.steamAppId}:`, error instanceof Error ? error.message : error)

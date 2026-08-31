@@ -1,4 +1,6 @@
 [
+  { "steamAppId": "230410", "title": "Warframe", "onlineCoopMax": 4 },
+  { "steamAppId": "3564740", "title": "Where Winds Meet", "onlineCoopMax": 4 },
   { "steamAppId": "427410", "title": "Abiotic Factor", "onlineCoopMax": 6 },
   { "steamAppId": "1385380", "title": "Across the Obelisk", "onlineCoopMax": 4 },
   { "steamAppId": "602960", "title": "Barotrauma", "onlineCoopMax": 16 },
