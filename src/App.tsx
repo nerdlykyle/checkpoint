@@ -21,6 +21,7 @@ import { loadCheapSharkDeals } from './lib/cheapShark'
 import { manualOwnershipFor, ownershipForGame } from './lib/ownership'
 import { syncGameNightToGoogleCalendar } from './lib/googleCalendar'
 import { loadRecommendationFeed } from './lib/recommendations'
+import { recoverMissingGameAdds } from './lib/activityRecovery'
 
 const STORAGE_KEY = 'checkpoint-games-v1'
 const GAME_NIGHTS_STORAGE_KEY = 'checkpoint-game-nights-v1'
@@ -1422,16 +1423,14 @@ function App() {
   const [toast, setToast] = useState<string | null>(null)
   const [boardId] = useState(getBoardId)
   const connectionRef = useRef<BoardConnection | null>(null)
-  const lastSyncedRef = useRef('')
-  const lastSyncedGameNightsRef = useRef('')
-  const lastSyncedSessionsRef = useRef('')
-  const lastSyncedActivityRef = useRef('')
-  const pendingSessionIdsRef = useRef(new Set<string>())
-  const pendingActivityIdsRef = useRef(new Set<string>())
+  const lastSyncedBoardStateRef = useRef('')
+  const currentBoardStateRef = useRef({ games, gameNights, sessions, activity })
+  const boardHydratedRef = useRef(false)
   const initialGamesRef = useRef(games)
   const initialGameNightsRef = useRef(gameNights)
   const initialSessionsRef = useRef(sessions)
   const initialActivityRef = useRef(activity)
+  currentBoardStateRef.current = { games, gameNights, sessions, activity }
 
   useEffect(() => localStorage.setItem(STORAGE_KEY, JSON.stringify(games)), [games])
   useEffect(() => localStorage.setItem(GAME_NIGHTS_STORAGE_KEY, JSON.stringify(gameNights)), [gameNights])
@@ -1489,28 +1488,21 @@ function App() {
     })
     connectBoard(boardId, user, persona, initialGamesRef.current, initialGameNightsRef.current, initialSessionsRef.current, initialActivityRef.current, (remoteGames, remoteMembers, remoteGameNights, remoteSessions, remoteActivity, remoteRecommendationFeedback) => {
       if (!active) return
-      lastSyncedRef.current = JSON.stringify(remoteGames)
-      lastSyncedGameNightsRef.current = JSON.stringify(remoteGameNights)
-      lastSyncedSessionsRef.current = JSON.stringify(remoteSessions)
-      lastSyncedActivityRef.current = JSON.stringify(remoteActivity)
-      setGames(cleanRemoteGames(remoteGames))
-      setGameNights((current) => {
-        const merged = new Map(remoteGameNights.map((night) => [night.id, night]))
-        // Keep locally created nights until Firebase confirms them. Google
-        // reauthentication can reconnect the board before that write finishes.
-        current.forEach((night) => { if (!merged.has(night.id)) merged.set(night.id, night) })
-        return [...merged.values()]
-      })
-      setSessions((current) => {
-        const merged = new Map(remoteSessions.map((session) => [session.id, session]))
-        current.forEach((session) => { if (!merged.has(session.id) || pendingSessionIdsRef.current.has(session.id)) merged.set(session.id, session) })
-        return [...merged.values()]
-      })
-      setActivity((current) => {
-        const merged = new Map(remoteActivity.map((entry) => [entry.id, entry]))
-        current.forEach((entry) => { if (!merged.has(entry.id) || pendingActivityIdsRef.current.has(entry.id)) merged.set(entry.id, entry) })
-        return [...merged.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 250)
-      })
+      const cleanedGames = cleanRemoteGames(remoteGames)
+      const recovery = recoverMissingGameAdds(cleanedGames, remoteActivity)
+      const remoteState = { games: cleanedGames, gameNights: remoteGameNights, sessions: remoteSessions, activity: remoteActivity }
+      const remoteSerialized = JSON.stringify(remoteState)
+      const localSerialized = JSON.stringify(currentBoardStateRef.current)
+      const hasUnsavedLocalState = boardHydratedRef.current && localSerialized !== lastSyncedBoardStateRef.current
+      lastSyncedBoardStateRef.current = remoteSerialized
+      if (!hasUnsavedLocalState || remoteSerialized === localSerialized) {
+        setGames(recovery.games)
+        setGameNights(remoteGameNights)
+        setSessions(remoteSessions)
+        setActivity(remoteActivity)
+        if (recovery.recovered.length) setToast(`${recovery.recovered.map((game) => game.title).join(', ')} restored from Activity history`)
+      }
+      boardHydratedRef.current = true
       setGroupMembers(remoteMembers)
       setRecommendationFeedback(remoteRecommendationFeedback)
     }).then((connection) => {
@@ -1522,52 +1514,16 @@ function App() {
   }, [boardId, persona, user])
   useEffect(() => {
     if (syncStatus !== 'live' || !connectionRef.current) return
-    const serialized = JSON.stringify(games)
-    if (serialized === lastSyncedRef.current) return
+    const boardState = { games, gameNights, sessions, activity }
+    const serialized = JSON.stringify(boardState)
+    if (serialized === lastSyncedBoardStateRef.current) return
     const timer = window.setTimeout(() => {
-      connectionRef.current?.save(games).then(() => {
-        lastSyncedRef.current = serialized
+      connectionRef.current?.saveState(boardState).then(() => {
+        lastSyncedBoardStateRef.current = serialized
       }).catch(() => setSyncStatus('error'))
     }, 350)
     return () => window.clearTimeout(timer)
-  }, [games, syncStatus])
-  useEffect(() => {
-    if (syncStatus !== 'live' || !connectionRef.current) return
-    const serialized = JSON.stringify(gameNights)
-    if (serialized === lastSyncedGameNightsRef.current) return
-    const timer = window.setTimeout(() => {
-      connectionRef.current?.saveGameNights(gameNights).then(() => {
-        lastSyncedGameNightsRef.current = serialized
-      }).catch(() => setSyncStatus('error'))
-    }, 350)
-    return () => window.clearTimeout(timer)
-  }, [gameNights, syncStatus])
-  useEffect(() => {
-    if (syncStatus !== 'live' || !connectionRef.current) return
-    const serialized = JSON.stringify(sessions)
-    if (serialized === lastSyncedSessionsRef.current) return
-    const savingIds = [...pendingSessionIdsRef.current]
-    const timer = window.setTimeout(() => {
-      connectionRef.current?.saveSessions(sessions).then(() => {
-        lastSyncedSessionsRef.current = serialized
-        savingIds.forEach((id) => pendingSessionIdsRef.current.delete(id))
-      }).catch(() => setSyncStatus('error'))
-    }, 250)
-    return () => window.clearTimeout(timer)
-  }, [sessions, syncStatus])
-  useEffect(() => {
-    if (syncStatus !== 'live' || !connectionRef.current) return
-    const serialized = JSON.stringify(activity)
-    if (serialized === lastSyncedActivityRef.current) return
-    const savingIds = [...pendingActivityIdsRef.current]
-    const timer = window.setTimeout(() => {
-      connectionRef.current?.saveActivity(activity).then(() => {
-        lastSyncedActivityRef.current = serialized
-        savingIds.forEach((id) => pendingActivityIdsRef.current.delete(id))
-      }).catch(() => setSyncStatus('error'))
-    }, 250)
-    return () => window.clearTimeout(timer)
-  }, [activity, syncStatus])
+  }, [activity, gameNights, games, sessions, syncStatus])
 
   const trackedAppIds = useMemo(() => [...new Set(games.flatMap((game) => game.steamAppId ? [game.steamAppId] : []))], [games])
   const priceAppIds = useMemo(() => [...new Set([
@@ -1656,12 +1612,17 @@ function App() {
     return true
   }), [gameDeals, games, groupMembers, libraryFilter, search, smartFilter, steamSnapshot])
   const flash = (message: string) => setToast(message)
+  function openLibrary(filter: GameStatus | 'all' = 'all') {
+    setSearch('')
+    setSmartFilter('any')
+    setLibraryFilter(filter)
+    setView('library')
+  }
   function recordActivity(action: string, summary: string, changes?: ActivityChange[]) {
     const entry: ActivityEntry = {
       id: crypto.randomUUID(), actorId: currentUser, actorName: persona ?? 'Player', action, summary,
       createdAt: new Date().toISOString(), undo: changes?.length ? { changes } : undefined,
     }
-    pendingActivityIdsRef.current.add(entry.id)
     setActivity((current) => [entry, ...current].slice(0, 250))
   }
   function entitySnapshot(change: ActivityChange): ActivitySnapshot | undefined {
@@ -1686,10 +1647,8 @@ function App() {
       if (change.entity === 'session') setSessions((current) => change.before
         ? [...current.filter((item) => item.id !== change.entityId), change.before as GameSession]
         : current.filter((item) => item.id !== change.entityId))
-      if (change.entity === 'session') pendingSessionIdsRef.current.add(change.entityId)
     })
     const undoneAt = new Date().toISOString()
-    pendingActivityIdsRef.current.add(entry.id)
     setActivity((current) => current.map((item) => item.id === entry.id ? { ...item, undoneAt, undoneBy: currentUser } : item))
     flash(`Undid: ${entry.summary}`)
   }
@@ -1873,7 +1832,6 @@ function App() {
     if (!game) return
     const now = new Date().toISOString()
     const session: GameSession = { id: crypto.randomUUID(), gameId, gameTitle: game.title, startedAt: now, pausedMilliseconds: 0, participantIds, startedBy: currentUser, startProgress: game.progress, createdAt: now, updatedAt: now }
-    pendingSessionIdsRef.current.add(session.id)
     setSessions((current) => [session, ...current])
     recordActivity('session-started', `${game.title} session started`, [{ entity: 'session', entityId: session.id, after: session }])
     setShowStartSession(false)
@@ -1883,7 +1841,6 @@ function App() {
   function pauseSession() {
     if (!activeSession || activeSession.pausedAt) return
     const after = { ...activeSession, pausedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    pendingSessionIdsRef.current.add(activeSession.id)
     setSessions((current) => current.map((session) => session.id === activeSession.id ? after : session))
     recordActivity('session-paused', `${activeSession.gameTitle} session paused`, [{ entity: 'session', entityId: activeSession.id, before: activeSession, after }])
   }
@@ -1891,7 +1848,6 @@ function App() {
     if (!activeSession?.pausedAt) return
     const now = new Date()
     const after = { ...activeSession, pausedAt: undefined, pausedMilliseconds: activeSession.pausedMilliseconds + Math.max(0, now.getTime() - new Date(activeSession.pausedAt).getTime()), updatedAt: now.toISOString() }
-    pendingSessionIdsRef.current.add(activeSession.id)
     setSessions((current) => current.map((session) => session.id === activeSession.id ? after : session))
     recordActivity('session-resumed', `${activeSession.gameTitle} session resumed`, [{ entity: 'session', entityId: activeSession.id, before: activeSession, after }])
   }
@@ -1900,7 +1856,6 @@ function App() {
     const now = new Date()
     const pausedMilliseconds = endingSession.pausedMilliseconds + (endingSession.pausedAt ? Math.max(0, now.getTime() - new Date(endingSession.pausedAt).getTime()) : 0)
     const completed: GameSession = { ...endingSession, endedAt: now.toISOString(), pausedAt: undefined, pausedMilliseconds, endProgress: progress, recap, nextObjective, updatedAt: now.toISOString() }
-    pendingSessionIdsRef.current.add(endingSession.id)
     const gameBefore = games.find((game) => game.id === endingSession.gameId)
     const gameAfter = gameBefore ? { ...gameBefore, progress, note: nextObjective || gameBefore.note } : undefined
     setSessions((current) => current.map((session) => session.id === endingSession.id ? completed : session))
@@ -1965,8 +1920,8 @@ function App() {
         <button className="server-switcher" type="button" onClick={() => setShowCrew(true)}><div className="server-icon"><Gamepad2 size={18} /></div><div><strong>Checkpoint Crew</strong><span>{groupMembers.length} {groupMembers.length === 1 ? 'player' : 'players'}</span></div><ChevronDown size={16} /></button>
         <nav className="main-nav" aria-label="Main navigation">
           <button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={19} /><span>Home</span></button>
-          <button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('all') }}><Library size={19} /><span>Game library</span><b>{games.length}</b></button>
-          <button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('up-next') }}><BookOpen size={19} /><span>Up next</span><b>{upNext.length}</b></button>
+          <button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => openLibrary('all')}><Library size={19} /><span>Game library</span><b>{games.length}</b></button>
+          <button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} onClick={() => openLibrary('up-next')}><BookOpen size={19} /><span>Up next</span><b>{upNext.length}</b></button>
           <button className={view === 'discover' ? 'active' : ''} onClick={() => setView('discover')}><Sparkles size={19} /><span>Discover</span><b>{Math.min(availableRecommendations.length, 25)}</b></button>
           <button className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}><CalendarDays size={19} /><span>Calendar</span><b>{gameNights.length}</b></button>
           <button className={view === 'tonight' ? 'active' : ''} onClick={() => setView('tonight')}><MoonStar size={19} /><span>Tonight Mode</span>{activeSession && <b className="live-nav-count">Live</b>}</button>
@@ -1974,9 +1929,9 @@ function App() {
           <button onClick={() => setShowCrew(true)}><Users size={19} /><span>Players</span></button>
         </nav>
         <div className="sidebar-section"><span className="sidebar-label">Quick filters</span>
-          <button onClick={() => { setView('library'); setLibraryFilter('playing') }}><span className="nav-dot purple" />Playing</button>
-          <button onClick={() => { setView('library'); setLibraryFilter('wishlist') }}><span className="nav-dot pink" />Wishlist</button>
-          <button onClick={() => { setView('library'); setLibraryFilter('completed') }}><span className="nav-dot green" />Completed</button>
+          <button onClick={() => openLibrary('playing')}><span className="nav-dot purple" />Playing</button>
+          <button onClick={() => openLibrary('wishlist')}><span className="nav-dot pink" />Wishlist</button>
+          <button onClick={() => openLibrary('completed')}><span className="nav-dot green" />Completed</button>
         </div>
         <div className="sidebar-bottom">{firebaseConfigured ? <button onClick={() => signOut()}><LogOut size={18} /><span>Sign out</span></button> : <button onClick={resetLocalBoard}><Settings size={18} /><span>Clear board</span></button>}<button onClick={() => flash('Tip: drag games in Up next to reorder them')}><CircleHelp size={18} /><span>Help & tips</span></button><div className="profile-row"><Avatar id={currentUser} /><div><strong>{persona ?? 'Player'}</strong><span>Online</span></div><MoreHorizontal size={17} /></div></div>
       </aside>
@@ -1998,11 +1953,11 @@ function App() {
               </div></div> : <button className="empty-playing" onClick={() => openAddGame()}><Plus size={24} /> Choose a game to start</button>}
               <div className="playing-footer"><div className="member-stack inverse-stack">{groupMembers.map((member) => <Avatar id={member.id} small key={member.id} />)}</div><span>{playing ? 'Crew campaign' : 'Ready when you are'}</span><div className="footer-spacer" />{playing && <><Clock3 size={16} /><span>{((playing.hours ?? 0) + loggedMilliseconds(playing.id) / 3_600_000).toFixed(1).replace('.0', '')} hours logged</span></>}</div>
             </div>
-            <div className="queue-panel"><div className="section-heading"><div><span className="eyebrow">The shortlist</span><h2>Up next</h2></div><button className="text-button" onClick={() => { setView('library'); setLibraryFilter('up-next') }}>View all</button></div><p className="queue-hint"><GripVertical size={14} /> Drag to set the official play order. Votes stay separate.</p><div className="queue-list">
+            <div className="queue-panel"><div className="section-heading"><div><span className="eyebrow">The shortlist</span><h2>Up next</h2></div><button className="text-button" onClick={() => openLibrary('up-next')}>View all</button></div><p className="queue-hint"><GripVertical size={14} /> Drag to set the official play order. Votes stay separate.</p><div className="queue-list">
               {upNext.slice(0, 4).map((game, index) => <QueueItem game={game} rank={index + 1} key={game.id} onVote={() => vote(game.id)} onOpen={() => setSelectedId(game.id)} onDragStart={(event) => event.dataTransfer.setData('text/plain', game.id)} onDrop={(event) => reorderQueue(event.dataTransfer.getData('text/plain'), game.id)} />)}
               </div><button className="queue-add" type="button" onClick={() => openAddGame()}><Plus size={17} /> Add another contender</button></div>
           </section>
-          <section className="lower-section"><div className="section-heading"><div><span className="eyebrow">Worth a look</span><h2>On the radar</h2></div><button className="filter-button" onClick={() => setView('library')}><ListFilter size={16} /> Browse library</button></div><div className="radar-grid">
+          <section className="lower-section"><div className="section-heading"><div><span className="eyebrow">Worth a look</span><h2>On the radar</h2></div><button className="filter-button" onClick={() => openLibrary('all')}><ListFilter size={16} /> Browse library</button></div><div className="radar-grid">
             {games.filter((game) => game.status === 'wishlist').slice(0, 4).map((game) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} onVote={() => vote(game.id)} />)}
             <button className="radar-add" type="button" onClick={() => openAddGame()}><span><Plus size={21} /></span><strong>Add to the radar</strong><small>Suggest something new</small></button>
           </div></section>
@@ -2013,7 +1968,7 @@ function App() {
           <div className="smart-filters"><span><ListFilter size={14} /> Steam & prices</span>{([['any', 'Any ownership'], ['everyone-owns', 'Everyone owns'], ['needs-copy', 'Someone needs it'], ['on-sale', 'On sale'], ['free', 'Free to play']] as [SmartFilter, string][]).map(([value, label]) => <button type="button" key={value} className={smartFilter === value ? 'active' : ''} onClick={() => setSmartFilter(value)}>{label}</button>)}{integrationsLoading && <RefreshCw className="spin" size={14} />}</div>
           {filteredGames.length ? <div className="library-grid">{filteredGames.map((game) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} onVote={() => vote(game.id)} />)}</div> : <div className="empty-state"><Search size={28} /><h2>No games found</h2><p>Try another search or add a new game.</p><button className="button button-primary" onClick={() => openAddGame()}>Add game</button></div>}
         </div> : view === 'discover' ? <RecommendationsPage feed={recommendationFeed} loading={recommendationsLoading} error={recommendationsError} visible={availableRecommendations} feedback={recommendationFeedback} deals={gameDeals} currentUserId={currentUser} onAdd={addRecommendation} onDownvote={toggleRecommendationDownvote} onRestore={restoreRecommendation} /> : view === 'calendar' ? <CalendarPage gameNights={gameNights} crew={groupMembers} currentUserId={currentUser} syncingId={calendarSyncingId} calendarError={calendarError} sharedSyncError={syncStatus === 'error'} onSchedule={(date) => { setEditingGameNightId(null); setScheduleDate(date); setShowSchedule(true) }} onEdit={(night) => { setEditingGameNightId(night.id); setScheduleDate(undefined); setShowSchedule(true) }} onAccept={acceptGameNight} onDecline={(night) => setDeclineNightId(night.id)} onSyncCalendar={syncGameNightToPersonalCalendar} onCopyDiscord={copyGameNightForDiscord} /> : view === 'tonight' ? <TonightPage game={tonightGame} event={tonightEvent} activeSession={activeSession} recentSession={recentTonightSession} crew={groupMembers} now={nowTick} onBack={() => setView('dashboard')} onStart={() => setShowStartSession(true)} onPause={pauseSession} onResume={resumeSession} onFinish={() => activeSession && setEndingSessionId(activeSession.id)} onPuzzle={() => tonightGame && setPuzzleGameId(tonightGame.id)} onCopyDiscord={() => copyGameNightForDiscord()} onUpdateNote={(note) => tonightGame && setGames((current) => current.map((game) => game.id === tonightGame.id ? { ...game, note } : game))} /> : <ActivityPage activity={activity} onUndo={undoActivity} />}
-        <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={20} /><span>Home</span></button><button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('all') }}><Library size={20} /><span>Library</span></button><button className={view === 'discover' ? 'active' : ''} onClick={() => setView('discover')}><Sparkles size={20} /><span>Discover</span></button><button className="mobile-add" onClick={() => openAddGame()} aria-label="Add game"><Plus size={23} /></button><button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} onClick={() => { setView('library'); setLibraryFilter('up-next') }}><BookOpen size={20} /><span>Queue</span></button><button className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}><CalendarDays size={20} /><span>Calendar</span></button><button className={view === 'tonight' ? 'active' : ''} onClick={() => setView('tonight')}><MoonStar size={20} /><span>Tonight</span></button><button className={view === 'activity' ? 'active' : ''} onClick={() => setView('activity')}><History size={20} /><span>Activity</span></button></nav>
+        <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={20} /><span>Home</span></button><button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => openLibrary('all')}><Library size={20} /><span>Library</span></button><button className={view === 'discover' ? 'active' : ''} onClick={() => setView('discover')}><Sparkles size={20} /><span>Discover</span></button><button className="mobile-add" onClick={() => openAddGame()} aria-label="Add game"><Plus size={23} /></button><button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} onClick={() => openLibrary('up-next')}><BookOpen size={20} /><span>Queue</span></button><button className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}><CalendarDays size={20} /><span>Calendar</span></button><button className={view === 'tonight' ? 'active' : ''} onClick={() => setView('tonight')}><MoonStar size={20} /><span>Tonight</span></button><button className={view === 'activity' ? 'active' : ''} onClick={() => setView('activity')}><History size={20} /><span>Activity</span></button></nav>
       </main>
       {showAdd && <AddGameModal onClose={closeAddGame} onAdd={addGame} games={games} defaultParentId={addParentId} />}
       {showSchedule && <ScheduleGameNightModal key={editingGameNight?.id ?? scheduleDate ?? 'new'} games={games} defaultDate={scheduleDate} existing={editingGameNight} onClose={() => { setShowSchedule(false); setScheduleDate(undefined); setEditingGameNightId(null) }} onSave={saveGameNight} />}

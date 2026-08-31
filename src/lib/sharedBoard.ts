@@ -14,10 +14,7 @@ import type { ActivityEntry, Game, GameNight, GameSession, Member, Persona, Reco
 import { database } from './firebase'
 
 export type BoardConnection = {
-  save: (games: Game[]) => Promise<void>
-  saveGameNights: (gameNights: GameNight[]) => Promise<void>
-  saveSessions: (sessions: GameSession[]) => Promise<void>
-  saveActivity: (activity: ActivityEntry[]) => Promise<void>
+  saveState: (state: { games: Game[]; gameNights: GameNight[]; sessions: GameSession[]; activity: ActivityEntry[] }) => Promise<void>
   saveProfileImage: (customPhotoUrl: string | null) => Promise<void>
   saveSteamProfile: (profile: SteamProfile | null) => Promise<void>
   toggleRecommendationDownvote: (steamAppId: string, title: string, memberId: string) => Promise<void>
@@ -285,17 +282,14 @@ export async function connectBoard(
   })
 
   return {
-    async save(games) {
-      await updateDoc(boardRef, { games, updatedAt: serverTimestamp() })
-    },
-    async saveGameNights(gameNights) {
-      await updateDoc(boardRef, { gameNights, updatedAt: serverTimestamp() })
-    },
-    async saveSessions(sessions) {
-      await updateDoc(boardRef, { sessions, updatedAt: serverTimestamp() })
-    },
-    async saveActivity(activity) {
-      await updateDoc(boardRef, { activity: activity.slice(0, 250), updatedAt: serverTimestamp() })
+    async saveState({ games, gameNights, sessions, activity }) {
+      await updateDoc(boardRef, {
+        games,
+        gameNights,
+        sessions,
+        activity: activity.slice(0, 250),
+        updatedAt: serverTimestamp(),
+      })
     },
     async saveProfileImage(customPhotoUrl) {
       const nextMember = memberFromUser(user, persona, latestMember, customPhotoUrl ?? '')
