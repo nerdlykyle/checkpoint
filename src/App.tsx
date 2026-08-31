@@ -1,7 +1,7 @@
 import {
   BadgeDollarSign, BookOpen, BringToFront, CalendarDays, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Clock3, Crop, Eraser, ExternalLink,
   Copy, FilePlus, Flag, Gamepad2, GripVertical, Heart, History, ImagePlus, Images, LayoutDashboard, Library, Link2, ListFilter, MoreHorizontal,
-  LogOut, MoonStar, Move, NotebookPen, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Search, SendToBack, Settings, Share2, Sparkles,
+  LogOut, Menu, MoonStar, Move, NotebookPen, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Search, SendToBack, Settings, Share2, Sparkles,
   Square, Timer, ThumbsDown, ThumbsUp, Trash2, Trophy, Undo2, Unlink, Users, X, ZoomIn, ZoomOut,
 } from 'lucide-react'
 import {
@@ -1397,6 +1397,7 @@ function App() {
   const [showAdd, setShowAdd] = useState(false)
   const [addParentId, setAddParentId] = useState<string | undefined>()
   const [showCrew, setShowCrew] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showSchedule, setShowSchedule] = useState(false)
   const [scheduleDate, setScheduleDate] = useState<string | undefined>()
   const [editingGameNightId, setEditingGameNightId] = useState<string | null>(null)
@@ -1449,6 +1450,17 @@ function App() {
     return () => controller.abort()
   }, [])
   useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(null), 5000); return () => window.clearTimeout(timer) }, [toast])
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    const priorOverflow = document.body.style.overflow
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setMobileMenuOpen(false) }
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.body.style.overflow = priorOverflow
+      window.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [mobileMenuOpen])
   useEffect(() => watchAuth((nextUser) => { setUser(nextUser); setAuthReady(true) }), [])
   useEffect(() => {
     let active = true
@@ -1613,6 +1625,7 @@ function App() {
   }), [gameDeals, games, groupMembers, libraryFilter, search, smartFilter, steamSnapshot])
   const flash = (message: string) => setToast(message)
   function openLibrary(filter: GameStatus | 'all' = 'all') {
+    setMobileMenuOpen(false)
     setSearch('')
     setSmartFilter('any')
     setLibraryFilter(filter)
@@ -1939,7 +1952,7 @@ function App() {
       <main className="main-area">
         <header className="topbar"><div className="mobile-brand"><span className="brand-mark"><Flag size={18} fill="currentColor" /></span>checkpoint</div>
           <label className="search-box"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} onFocus={() => setView('library')} placeholder="Search your games" /><kbd>⌘ K</kbd></label>
-          <div className="topbar-actions"><button className="icon-button notification" type="button" onClick={() => setView('activity')} aria-label="Activity history"><History size={19} />{activity.length > 0 && <span />}</button><button className="member-stack member-stack-button" type="button" onClick={() => setShowCrew(true)} aria-label="Open Checkpoint Crew">{groupMembers.map((member) => <Avatar id={member.id} small key={member.id} />)}</button><button className="button button-primary add-button" type="button" onClick={() => openAddGame()} aria-label="Add game"><Plus size={18} /><span>Add game</span></button></div>
+          <div className="topbar-actions"><button className="icon-button notification" type="button" onClick={() => setView('activity')} aria-label="Activity history"><History size={19} />{activity.length > 0 && <span />}</button><button className="member-stack member-stack-button" type="button" onClick={() => setShowCrew(true)} aria-label="Open Checkpoint Crew">{groupMembers.map((member) => <Avatar id={member.id} small key={member.id} />)}</button><button className="button button-primary add-button" type="button" onClick={() => openAddGame()} aria-label="Add game"><Plus size={18} /><span>Add game</span></button><button className="mobile-menu-button" type="button" onClick={() => setMobileMenuOpen(true)} aria-label="Open navigation menu" aria-expanded={mobileMenuOpen}><Menu size={21} /></button></div>
         </header>
 
         {view === 'dashboard' ? <div className="page dashboard-page">
@@ -1968,8 +1981,22 @@ function App() {
           <div className="smart-filters"><span><ListFilter size={14} /> Steam & prices</span>{([['any', 'Any ownership'], ['everyone-owns', 'Everyone owns'], ['needs-copy', 'Someone needs it'], ['on-sale', 'On sale'], ['free', 'Free to play']] as [SmartFilter, string][]).map(([value, label]) => <button type="button" key={value} className={smartFilter === value ? 'active' : ''} onClick={() => setSmartFilter(value)}>{label}</button>)}{integrationsLoading && <RefreshCw className="spin" size={14} />}</div>
           {filteredGames.length ? <div className="library-grid">{filteredGames.map((game) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} onVote={() => vote(game.id)} />)}</div> : <div className="empty-state"><Search size={28} /><h2>No games found</h2><p>Try another search or add a new game.</p><button className="button button-primary" onClick={() => openAddGame()}>Add game</button></div>}
         </div> : view === 'discover' ? <RecommendationsPage feed={recommendationFeed} loading={recommendationsLoading} error={recommendationsError} visible={availableRecommendations} feedback={recommendationFeedback} deals={gameDeals} currentUserId={currentUser} onAdd={addRecommendation} onDownvote={toggleRecommendationDownvote} onRestore={restoreRecommendation} /> : view === 'calendar' ? <CalendarPage gameNights={gameNights} crew={groupMembers} currentUserId={currentUser} syncingId={calendarSyncingId} calendarError={calendarError} sharedSyncError={syncStatus === 'error'} onSchedule={(date) => { setEditingGameNightId(null); setScheduleDate(date); setShowSchedule(true) }} onEdit={(night) => { setEditingGameNightId(night.id); setScheduleDate(undefined); setShowSchedule(true) }} onAccept={acceptGameNight} onDecline={(night) => setDeclineNightId(night.id)} onSyncCalendar={syncGameNightToPersonalCalendar} onCopyDiscord={copyGameNightForDiscord} /> : view === 'tonight' ? <TonightPage game={tonightGame} event={tonightEvent} activeSession={activeSession} recentSession={recentTonightSession} crew={groupMembers} now={nowTick} onBack={() => setView('dashboard')} onStart={() => setShowStartSession(true)} onPause={pauseSession} onResume={resumeSession} onFinish={() => activeSession && setEndingSessionId(activeSession.id)} onPuzzle={() => tonightGame && setPuzzleGameId(tonightGame.id)} onCopyDiscord={() => copyGameNightForDiscord()} onUpdateNote={(note) => tonightGame && setGames((current) => current.map((game) => game.id === tonightGame.id ? { ...game, note } : game))} /> : <ActivityPage activity={activity} onUndo={undoActivity} />}
-        <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={20} /><span>Home</span></button><button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => openLibrary('all')}><Library size={20} /><span>Library</span></button><button className={view === 'discover' ? 'active' : ''} onClick={() => setView('discover')}><Sparkles size={20} /><span>Discover</span></button><button className="mobile-add" onClick={() => openAddGame()} aria-label="Add game"><Plus size={23} /></button><button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} onClick={() => openLibrary('up-next')}><BookOpen size={20} /><span>Queue</span></button><button className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}><CalendarDays size={20} /><span>Calendar</span></button><button className={view === 'tonight' ? 'active' : ''} onClick={() => setView('tonight')}><MoonStar size={20} /><span>Tonight</span></button><button className={view === 'activity' ? 'active' : ''} onClick={() => setView('activity')}><History size={20} /><span>Activity</span></button></nav>
       </main>
+      {mobileMenuOpen && <div className="mobile-menu-backdrop" role="presentation" onClick={() => setMobileMenuOpen(false)}><aside className="mobile-menu-sheet" role="dialog" aria-modal="true" aria-label="Checkpoint navigation" onClick={(event) => event.stopPropagation()}>
+        <div className="mobile-menu-heading"><div><span className="brand-mark"><Flag size={18} fill="currentColor" /></span><div><strong>checkpoint</strong><span>Where to?</span></div></div><button type="button" onClick={() => setMobileMenuOpen(false)} aria-label="Close navigation menu"><X size={20} /></button></div>
+        <nav className="mobile-menu-nav" aria-label="Mobile menu">
+          <button className={view === 'dashboard' ? 'active' : ''} type="button" onClick={() => { setView('dashboard'); setMobileMenuOpen(false) }}><span><LayoutDashboard size={19} /></span><strong>Home</strong></button>
+          <button className={view === 'tonight' ? 'active' : ''} type="button" onClick={() => { setView('tonight'); setMobileMenuOpen(false) }}><span><MoonStar size={19} /></span><strong>Tonight Mode</strong>{activeSession && <em>Live</em>}</button>
+          <button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} type="button" onClick={() => openLibrary('all')}><span><Library size={19} /></span><strong>Game library</strong><small>{games.length}</small></button>
+          <button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} type="button" onClick={() => openLibrary('up-next')}><span><BookOpen size={19} /></span><strong>Up next</strong><small>{upNext.length}</small></button>
+          <button className={view === 'discover' ? 'active' : ''} type="button" onClick={() => { setView('discover'); setMobileMenuOpen(false) }}><span><Sparkles size={19} /></span><strong>Discover</strong><small>{Math.min(availableRecommendations.length, 25)}</small></button>
+          <button className={view === 'calendar' ? 'active' : ''} type="button" onClick={() => { setView('calendar'); setMobileMenuOpen(false) }}><span><CalendarDays size={19} /></span><strong>Calendar</strong><small>{gameNights.length}</small></button>
+          <button className={view === 'activity' ? 'active' : ''} type="button" onClick={() => { setView('activity'); setMobileMenuOpen(false) }}><span><History size={19} /></span><strong>Activity</strong><small>{activity.length}</small></button>
+          <button type="button" onClick={() => { setShowCrew(true); setMobileMenuOpen(false) }}><span><Users size={19} /></span><strong>Players</strong><small>{groupMembers.length}</small></button>
+        </nav>
+        <div className="mobile-menu-library"><span>Library shortcuts</span><div><button type="button" onClick={() => openLibrary('playing')}><i className="nav-dot purple" />Playing</button><button type="button" onClick={() => openLibrary('wishlist')}><i className="nav-dot pink" />Wishlist</button><button type="button" onClick={() => openLibrary('completed')}><i className="nav-dot green" />Completed</button></div></div>
+        <div className="mobile-menu-footer"><div className="profile-row"><Avatar id={currentUser} /><div><strong>{persona ?? 'Player'}</strong><span>{syncLabel}</span></div></div>{firebaseConfigured && <button type="button" onClick={() => signOut()}><LogOut size={16} /> Sign out</button>}</div>
+      </aside></div>}
       {showAdd && <AddGameModal onClose={closeAddGame} onAdd={addGame} games={games} defaultParentId={addParentId} />}
       {showSchedule && <ScheduleGameNightModal key={editingGameNight?.id ?? scheduleDate ?? 'new'} games={games} defaultDate={scheduleDate} existing={editingGameNight} onClose={() => { setShowSchedule(false); setScheduleDate(undefined); setEditingGameNightId(null) }} onSave={saveGameNight} />}
       {showStartSession && <SessionStartModal games={games} crew={groupMembers} defaultGameId={tonightGame?.id} onClose={() => setShowStartSession(false)} onStart={startSession} />}
