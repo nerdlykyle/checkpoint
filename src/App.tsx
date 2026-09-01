@@ -970,7 +970,7 @@ function AddGameModal({ onClose, onAdd, games, defaultParentId }: { onClose: () 
             <small className={`catalog-credit ${selectedGame ? 'catalog-selected' : ''}`}>{selectedGame ? <><Check size={11} /> Exact Steam AppID and artwork connected</> : <>Paste a Steam store URL to match the exact edition, or search the <a href="https://github.com/jsnli/SteamAppIDList" target="_blank" rel="noreferrer">Steam catalog</a></>}</small>
           </label>
           <div className="form-grid">
-            <label className="field"><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value as GameStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+            <label className="field"><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value as GameStatus)}>{Object.entries(statusLabels).filter(([value]) => value !== 'archived').map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
             <label className="field"><span>Platform</span><select name="platform" defaultValue="PC"><option>PC</option><option>PlayStation</option><option>Xbox</option><option>Switch</option><option>Other</option></select></label>
             <label className="field"><span>Release year <em>optional</em></span><input name="year" inputMode="numeric" placeholder="2026" /></label>
             <label className="field"><span>Genre</span><input name="genre" placeholder="Co-op adventure" /></label>
@@ -1147,13 +1147,13 @@ function QueueItem({ game, rank, onVote, onOpen, onDragStart, onDrop }: { game: 
   )
 }
 
-function LibraryCard({ game, onOpen, onVote }: { game: Game; onOpen: () => void; onVote: () => void }) {
+function LibraryCard({ game, onOpen, onVote, onArchive, onRestore }: { game: Game; onOpen: () => void; onVote: () => void; onArchive?: () => void; onRestore?: () => void }) {
   return (
-    <article className="library-card" onClick={onOpen}><Cover game={game} size="medium" /><div className="library-card-copy">
+    <article className={`library-card${game.status === 'archived' ? ' is-archived' : ''}`} onClick={onOpen}><Cover game={game} size="medium" /><div className="library-card-copy">
       <div className="library-card-topline"><span className={`status-dot status-${game.status}`} /><span>{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="dlc-card-label"><Puzzle size={9} /> DLC</span>}{isFreeGame(game) && <span className="free-game-label">Free</span>}<button className="more-button" type="button" aria-label="More options"><MoreHorizontal size={17} /></button></div>
       <h3>{game.title}</h3><p>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle}` : game.genre} · {game.platform}</p>
       <div className="card-integrations"><OwnershipBadge game={game} compact /><DealBadge game={game} compact /></div>
-      {game.status === 'playing' ? <div className="mini-progress"><span style={{ width: `${game.progress}%` }} /></div> : <div className="library-card-footer"><span>Added by <Avatar id={game.addedBy} small /></span><VoteButton game={game} onVote={onVote} compact /></div>}
+      {game.status === 'playing' ? <div className="mini-progress"><span style={{ width: `${game.progress}%` }} /></div> : <div className="library-card-footer"><span>{game.status === 'archived' ? 'Archived' : <>Added by <Avatar id={game.addedBy} small /></>}</span><div className="library-card-actions">{game.status === 'wishlist' && onArchive && <button className="wishlist-archive-button" type="button" onClick={(event) => { event.stopPropagation(); onArchive() }} aria-label={`Thumbs down ${game.title} and archive it`} title="Thumbs down and archive"><ThumbsDown size={14} /></button>}{game.status === 'archived' && onRestore ? <button className="archive-restore-button" type="button" onClick={(event) => { event.stopPropagation(); onRestore() }}><RotateCcw size={13} /> Restore</button> : <VoteButton game={game} onVote={onVote} compact />}</div></div>}
     </div></article>
   )
 }
@@ -1538,9 +1538,10 @@ function App() {
     return () => window.clearTimeout(timer)
   }, [activity, gameNights, games, sessions, syncStatus])
 
-  const trackedAppIds = useMemo(() => [...new Set(games.flatMap((game) => game.steamAppId ? [game.steamAppId] : []))], [games])
+  const activeGames = useMemo(() => games.filter((game) => game.status !== 'archived'), [games])
+  const trackedAppIds = useMemo(() => [...new Set(activeGames.flatMap((game) => game.steamAppId ? [game.steamAppId] : []))], [activeGames])
   const priceAppIds = useMemo(() => [...new Set([
-    ...games.flatMap((game) => game.steamAppId && game.status !== 'completed' ? [game.steamAppId] : []),
+    ...games.flatMap((game) => game.steamAppId && game.status !== 'completed' && game.status !== 'archived' ? [game.steamAppId] : []),
     ...(recommendationFeed?.recommendations.slice(0, 25).map((game) => game.steamAppId) ?? []),
   ])].slice(0, 80), [games, recommendationFeed])
   const linkedSteamIds = useMemo(() => [...new Set(groupMembers.flatMap((member) => member.steamId ? [member.steamId] : []))], [groupMembers])
@@ -1616,7 +1617,7 @@ function App() {
   const recentTonightSession = [...sessions].filter((session) => session.gameId === tonightGame?.id && session.endedAt).sort((a, b) => (b.endedAt || '').localeCompare(a.endedAt || ''))[0]
   const loggedMilliseconds = (gameId: string) => sessions.filter((session) => session.gameId === gameId).reduce((total, session) => total + sessionElapsedMilliseconds(session, nowTick), 0)
   const filteredGames = useMemo(() => games.filter((game) => {
-    if ((libraryFilter !== 'all' && game.status !== libraryFilter) || !game.title.toLowerCase().includes(search.toLowerCase())) return false
+    if ((libraryFilter === 'all' && game.status === 'archived') || (libraryFilter !== 'all' && game.status !== libraryFilter) || !game.title.toLowerCase().includes(search.toLowerCase())) return false
     const ownership = ownershipForGame(game, groupMembers, steamSnapshot)
     if (smartFilter === 'everyone-owns') return ownership.everyoneOwns
     if (smartFilter === 'needs-copy') return ownership.missing.length > 0
@@ -1667,6 +1668,35 @@ function App() {
     flash(`Undid: ${entry.summary}`)
   }
   function vote(gameId: string) { setGames((current) => current.map((game) => game.id !== gameId ? game : { ...game, votes: game.votes.includes(currentUser) ? game.votes.filter((id) => id !== currentUser) : [...game.votes, currentUser] })) }
+  async function archiveWishlistGame(game: Game) {
+    if (game.status !== 'wishlist') return
+    const after: Game = { ...game, status: 'archived' }
+    setGames((current) => current.map((item) => item.id === game.id ? after : item))
+    recordActivity('game-archived', `${game.title} archived from Wishlist`, [{ entity: 'game', entityId: game.id, before: game, after }])
+    const recommendationId = game.steamAppId ?? (game.catalogSource === 'steam' ? game.catalogId : undefined)
+    if (recommendationId) {
+      setRecommendationFeedback((current) => {
+        const entry = current[recommendationId] ?? { title: game.title, downvotes: [] }
+        const downvotes = entry.downvotes.includes(currentUser) ? entry.downvotes : [...entry.downvotes, currentUser]
+        return { ...current, [recommendationId]: { ...entry, title: game.title, downvotes, excludedAt: entry.excludedAt ?? new Date().toISOString() } }
+      })
+      try {
+        await connectionRef.current?.toggleRecommendationDownvote(recommendationId, game.title, currentUser)
+      } catch {
+        setSyncStatus('error')
+        flash(`${game.title} was archived, but its Discover exclusion needs sync`)
+        return
+      }
+    }
+    flash(`${game.title} archived and removed from Discover`)
+  }
+  function restoreArchivedGame(game: Game) {
+    if (game.status !== 'archived') return
+    const after: Game = { ...game, status: 'wishlist' }
+    setGames((current) => current.map((item) => item.id === game.id ? after : item))
+    recordActivity('game-restored', `${game.title} restored to Wishlist`, [{ entity: 'game', entityId: game.id, before: game, after }])
+    flash(`${game.title} restored to Wishlist`)
+  }
   function openAddGame(parent?: Game) { setAddParentId(parent?.id); setSelectedId(null); setShowAdd(true) }
   function closeAddGame() { setShowAdd(false); setAddParentId(undefined) }
   function addGame(game: Game) { setGames((current) => [...current, game]); recordActivity('game-added', `${game.title} added to ${statusLabels[game.status]}`, [{ entity: 'game', entityId: game.id, after: game }]); closeAddGame(); flash(`${game.title} added to ${statusLabels[game.status]}`) }
@@ -1934,7 +1964,7 @@ function App() {
         <button className="server-switcher" type="button" onClick={() => setShowCrew(true)}><div className="server-icon"><Gamepad2 size={18} /></div><div><strong>Checkpoint Crew</strong><span>{groupMembers.length} {groupMembers.length === 1 ? 'player' : 'players'}</span></div><ChevronDown size={16} /></button>
         <nav className="main-nav" aria-label="Main navigation">
           <button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={19} /><span>Home</span></button>
-          <button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => openLibrary('all')}><Library size={19} /><span>Game library</span><b>{games.length}</b></button>
+          <button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => openLibrary('all')}><Library size={19} /><span>Game library</span><b>{activeGames.length}</b></button>
           <button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} onClick={() => openLibrary('up-next')}><BookOpen size={19} /><span>Up next</span><b>{upNext.length}</b></button>
           <button className={view === 'discover' ? 'active' : ''} onClick={() => setView('discover')}><Sparkles size={19} /><span>Discover</span><b>{Math.min(availableRecommendations.length, 25)}</b></button>
           <button className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}><CalendarDays size={19} /><span>Calendar</span><b>{gameNights.length}</b></button>
@@ -1946,6 +1976,7 @@ function App() {
           <button onClick={() => openLibrary('playing')}><span className="nav-dot purple" />Playing</button>
           <button onClick={() => openLibrary('wishlist')}><span className="nav-dot pink" />Wishlist</button>
           <button onClick={() => openLibrary('completed')}><span className="nav-dot green" />Completed</button>
+          <button onClick={() => openLibrary('archived')}><span className="nav-dot gray" />Archive</button>
         </div>
         <div className="sidebar-bottom">{firebaseConfigured ? <button onClick={() => signOut()}><LogOut size={18} /><span>Sign out</span></button> : <button onClick={resetLocalBoard}><Settings size={18} /><span>Clear board</span></button>}<button onClick={() => flash('Tip: drag games in Up next to reorder them')}><CircleHelp size={18} /><span>Help & tips</span></button><div className="profile-row"><Avatar id={currentUser} /><div><strong>{persona ?? 'Player'}</strong><span>Online</span></div><MoreHorizontal size={17} /></div></div>
       </aside>
@@ -1972,15 +2003,15 @@ function App() {
               </div><button className="queue-add" type="button" onClick={() => openAddGame()}><Plus size={17} /> Add another contender</button></div>
           </section>
           <section className="lower-section"><div className="section-heading"><div><span className="eyebrow">Worth a look</span><h2>On the radar</h2></div><button className="filter-button" onClick={() => openLibrary('all')}><ListFilter size={16} /> Browse library</button></div><div className="radar-grid">
-            {games.filter((game) => game.status === 'wishlist').slice(0, 4).map((game) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} onVote={() => vote(game.id)} />)}
+            {games.filter((game) => game.status === 'wishlist').slice(0, 4).map((game) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} onVote={() => vote(game.id)} onArchive={() => archiveWishlistGame(game)} />)}
             <button className="radar-add" type="button" onClick={() => openAddGame()}><span><Plus size={21} /></span><strong>Add to the radar</strong><small>Suggest something new</small></button>
           </div></section>
-          <section className="stats-strip"><div><span className="stat-icon purple-bg"><Gamepad2 size={20} /></span><p><strong>{games.length}</strong><span>Games tracked</span></p></div><div><span className="stat-icon amber-bg"><Heart size={20} /></span><p><strong>{games.reduce((sum, game) => sum + game.votes.length, 0)}</strong><span>Votes cast</span></p></div><div><span className="stat-icon green-bg"><Trophy size={20} /></span><p><strong>{games.filter((game) => game.status === 'completed').length}</strong><span>Games finished</span></p></div><div><span className="stat-icon blue-bg"><Users size={20} /></span><p><strong>{groupMembers.length}</strong><span>Players synced</span></p></div></section>
+          <section className="stats-strip"><div><span className="stat-icon purple-bg"><Gamepad2 size={20} /></span><p><strong>{activeGames.length}</strong><span>Games tracked</span></p></div><div><span className="stat-icon amber-bg"><Heart size={20} /></span><p><strong>{activeGames.reduce((sum, game) => sum + game.votes.length, 0)}</strong><span>Votes cast</span></p></div><div><span className="stat-icon green-bg"><Trophy size={20} /></span><p><strong>{games.filter((game) => game.status === 'completed').length}</strong><span>Games finished</span></p></div><div><span className="stat-icon blue-bg"><Users size={20} /></span><p><strong>{groupMembers.length}</strong><span>Players synced</span></p></div></section>
         </div> : view === 'library' ? <div className="page library-page">
           <div className="page-title-row library-title-row"><div><span className="eyebrow">The collection</span><h1>Game library</h1><p>Every campaign, DLC, contender, and completed adventure in one place.</p></div><button className="button button-primary" onClick={() => openAddGame()}><Plus size={18} /> Add game</button></div>
-          <div className="filter-tabs">{([['all', 'All games'], ...Object.entries(statusLabels)] as [GameStatus | 'all', string][]).map(([value, label]) => <button key={value} className={libraryFilter === value ? 'active' : ''} onClick={() => setLibraryFilter(value)}>{label}<span>{value === 'all' ? games.length : games.filter((game) => game.status === value).length}</span></button>)}</div>
+          <div className="filter-tabs">{([['all', 'All games'], ...Object.entries(statusLabels)] as [GameStatus | 'all', string][]).map(([value, label]) => <button key={value} className={libraryFilter === value ? 'active' : ''} onClick={() => setLibraryFilter(value)}>{label}<span>{value === 'all' ? activeGames.length : games.filter((game) => game.status === value).length}</span></button>)}</div>
           <div className="smart-filters"><span><ListFilter size={14} /> Steam & prices</span>{([['any', 'Any ownership'], ['everyone-owns', 'Everyone owns'], ['needs-copy', 'Someone needs it'], ['on-sale', 'On sale'], ['free', 'Free to play']] as [SmartFilter, string][]).map(([value, label]) => <button type="button" key={value} className={smartFilter === value ? 'active' : ''} onClick={() => setSmartFilter(value)}>{label}</button>)}{integrationsLoading && <RefreshCw className="spin" size={14} />}</div>
-          {filteredGames.length ? <div className="library-grid">{filteredGames.map((game) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} onVote={() => vote(game.id)} />)}</div> : <div className="empty-state"><Search size={28} /><h2>No games found</h2><p>Try another search or add a new game.</p><button className="button button-primary" onClick={() => openAddGame()}>Add game</button></div>}
+          {filteredGames.length ? <div className="library-grid">{filteredGames.map((game) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} onVote={() => vote(game.id)} onArchive={() => archiveWishlistGame(game)} onRestore={() => restoreArchivedGame(game)} />)}</div> : <div className="empty-state"><Search size={28} /><h2>No games found</h2><p>Try another search or add a new game.</p><button className="button button-primary" onClick={() => openAddGame()}>Add game</button></div>}
         </div> : view === 'discover' ? <RecommendationsPage feed={recommendationFeed} loading={recommendationsLoading} error={recommendationsError} visible={availableRecommendations} feedback={recommendationFeedback} deals={gameDeals} onAdd={addRecommendation} onDownvote={toggleRecommendationDownvote} onRestore={restoreRecommendation} /> : view === 'calendar' ? <CalendarPage gameNights={gameNights} crew={groupMembers} currentUserId={currentUser} syncingId={calendarSyncingId} calendarError={calendarError} sharedSyncError={syncStatus === 'error'} onSchedule={(date) => { setEditingGameNightId(null); setScheduleDate(date); setShowSchedule(true) }} onEdit={(night) => { setEditingGameNightId(night.id); setScheduleDate(undefined); setShowSchedule(true) }} onAccept={acceptGameNight} onDecline={(night) => setDeclineNightId(night.id)} onSyncCalendar={syncGameNightToPersonalCalendar} onCopyDiscord={copyGameNightForDiscord} /> : view === 'tonight' ? <TonightPage game={tonightGame} event={tonightEvent} activeSession={activeSession} recentSession={recentTonightSession} crew={groupMembers} now={nowTick} onBack={() => setView('dashboard')} onStart={() => setShowStartSession(true)} onPause={pauseSession} onResume={resumeSession} onFinish={() => activeSession && setEndingSessionId(activeSession.id)} onPuzzle={() => tonightGame && setPuzzleGameId(tonightGame.id)} onCopyDiscord={() => copyGameNightForDiscord()} onUpdateNote={(note) => tonightGame && setGames((current) => current.map((game) => game.id === tonightGame.id ? { ...game, note } : game))} /> : <ActivityPage activity={activity} onUndo={undoActivity} />}
       </main>
       {mobileMenuOpen && <div className="mobile-menu-backdrop" role="presentation" onClick={() => setMobileMenuOpen(false)}><aside className="mobile-menu-sheet" role="dialog" aria-modal="true" aria-label="Checkpoint navigation" onClick={(event) => event.stopPropagation()}>
@@ -1988,19 +2019,19 @@ function App() {
         <nav className="mobile-menu-nav" aria-label="Mobile menu">
           <button className={view === 'dashboard' ? 'active' : ''} type="button" onClick={() => { setView('dashboard'); setMobileMenuOpen(false) }}><span><LayoutDashboard size={19} /></span><strong>Home</strong></button>
           <button className={view === 'tonight' ? 'active' : ''} type="button" onClick={() => { setView('tonight'); setMobileMenuOpen(false) }}><span><MoonStar size={19} /></span><strong>Game Night</strong>{activeSession && <em>Live</em>}</button>
-          <button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} type="button" onClick={() => openLibrary('all')}><span><Library size={19} /></span><strong>Game library</strong><small>{games.length}</small></button>
+          <button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} type="button" onClick={() => openLibrary('all')}><span><Library size={19} /></span><strong>Game library</strong><small>{activeGames.length}</small></button>
           <button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} type="button" onClick={() => openLibrary('up-next')}><span><BookOpen size={19} /></span><strong>Up next</strong><small>{upNext.length}</small></button>
           <button className={view === 'discover' ? 'active' : ''} type="button" onClick={() => { setView('discover'); setMobileMenuOpen(false) }}><span><Sparkles size={19} /></span><strong>Discover</strong><small>{Math.min(availableRecommendations.length, 25)}</small></button>
           <button className={view === 'calendar' ? 'active' : ''} type="button" onClick={() => { setView('calendar'); setMobileMenuOpen(false) }}><span><CalendarDays size={19} /></span><strong>Calendar</strong><small>{gameNights.length}</small></button>
           <button className={view === 'activity' ? 'active' : ''} type="button" onClick={() => { setView('activity'); setMobileMenuOpen(false) }}><span><History size={19} /></span><strong>Activity</strong><small>{activity.length}</small></button>
           <button type="button" onClick={() => { setShowCrew(true); setMobileMenuOpen(false) }}><span><Users size={19} /></span><strong>Players</strong><small>{groupMembers.length}</small></button>
         </nav>
-        <div className="mobile-menu-library"><span>Library shortcuts</span><div><button type="button" onClick={() => openLibrary('playing')}><i className="nav-dot purple" />Playing</button><button type="button" onClick={() => openLibrary('wishlist')}><i className="nav-dot pink" />Wishlist</button><button type="button" onClick={() => openLibrary('completed')}><i className="nav-dot green" />Completed</button></div></div>
+        <div className="mobile-menu-library"><span>Library shortcuts</span><div><button type="button" onClick={() => openLibrary('playing')}><i className="nav-dot purple" />Playing</button><button type="button" onClick={() => openLibrary('wishlist')}><i className="nav-dot pink" />Wishlist</button><button type="button" onClick={() => openLibrary('completed')}><i className="nav-dot green" />Completed</button><button type="button" onClick={() => openLibrary('archived')}><i className="nav-dot gray" />Archive</button></div></div>
         <div className="mobile-menu-footer"><div className="profile-row"><Avatar id={currentUser} /><div><strong>{persona ?? 'Player'}</strong><span>{syncLabel}</span></div></div>{firebaseConfigured && <button type="button" onClick={() => signOut()}><LogOut size={16} /> Sign out</button>}</div>
       </aside></div>}
-      {showAdd && <AddGameModal onClose={closeAddGame} onAdd={addGame} games={games} defaultParentId={addParentId} />}
-      {showSchedule && <ScheduleGameNightModal key={editingGameNight?.id ?? scheduleDate ?? 'new'} games={games} defaultDate={scheduleDate} existing={editingGameNight} onClose={() => { setShowSchedule(false); setScheduleDate(undefined); setEditingGameNightId(null) }} onSave={saveGameNight} />}
-      {showStartSession && <SessionStartModal games={games} crew={groupMembers} defaultGameId={tonightGame?.id} onClose={() => setShowStartSession(false)} onStart={startSession} />}
+      {showAdd && <AddGameModal onClose={closeAddGame} onAdd={addGame} games={activeGames} defaultParentId={addParentId} />}
+      {showSchedule && <ScheduleGameNightModal key={editingGameNight?.id ?? scheduleDate ?? 'new'} games={activeGames} defaultDate={scheduleDate} existing={editingGameNight} onClose={() => { setShowSchedule(false); setScheduleDate(undefined); setEditingGameNightId(null) }} onSave={saveGameNight} />}
+      {showStartSession && <SessionStartModal games={activeGames} crew={groupMembers} defaultGameId={tonightGame?.id} onClose={() => setShowStartSession(false)} onStart={startSession} />}
       {endingSession && <SessionRecapModal session={endingSession} game={games.find((game) => game.id === endingSession.gameId)} onClose={() => setEndingSessionId(null)} onSave={finishSession} />}
       {declineNightId && gameNights.find((night) => night.id === declineNightId) && <SuggestTimeModal gameNight={gameNights.find((night) => night.id === declineNightId)!} onClose={() => setDeclineNightId(null)} onSuggest={(startAt, endAt) => declineGameNight(declineNightId, startAt, endAt)} />}
       {showCrew && <CrewModal members={groupMembers} currentUserId={currentUser} googlePhotoUrl={user?.photoURL} integrationError={integrationError} onClose={() => setShowCrew(false)} onSavePhoto={saveProfileImage} onResolveSteam={resolveSteamLink} onSaveSteam={saveSteamProfile} />}

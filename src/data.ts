@@ -9,4 +9,5 @@ export const statusLabels = {
   'up-next': 'Up next',
   wishlist: 'Wishlist',
   completed: 'Completed',
+  archived: 'Archive',
 } as const

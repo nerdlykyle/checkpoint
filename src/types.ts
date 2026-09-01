@@ -1,4 +1,4 @@
-export type GameStatus = 'playing' | 'up-next' | 'wishlist' | 'completed'
+export type GameStatus = 'playing' | 'up-next' | 'wishlist' | 'completed' | 'archived'
 export type Persona = 'Nern' | 'Jern' | 'Vern'
 export type ContentType = 'game' | 'dlc'
 
