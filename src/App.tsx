@@ -52,6 +52,14 @@ function isFreeGame(game: Pick<Game, 'isFree' | 'steamAppId' | 'title'>) {
   return Boolean(game.isFree || knownFreeGame(game.steamAppId, game.title))
 }
 
+function steamStoreHref(appId: string) {
+  const webStoreUrl = `https://store.steampowered.com/app/${encodeURIComponent(appId)}/`
+  if (typeof navigator === 'undefined') return webStoreUrl
+  const mobileUserAgent = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+  const touchMac = /Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1
+  return mobileUserAgent || touchMac ? webStoreUrl : `steam://store/${encodeURIComponent(appId)}`
+}
+
 function migrateLegacyGame(game: Game): Game {
   return (game.status as string) === 'maybe' ? { ...game, status: 'wishlist' } : game
 }
@@ -1122,7 +1130,7 @@ function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onChangeGam
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <section className="modal details-modal" onMouseDown={(event) => event.stopPropagation()} aria-modal="true" role="dialog">
-        <div className="details-hero"><Cover game={game} size="large" /><div className="details-title"><div className="details-pills"><span className="status-pill">{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="content-pill"><Puzzle size={10} /> DLC</span>}</div><h2>{game.title}</h2><p>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle} · ` : ''}{[game.year, game.genre, game.platform].filter(Boolean).join(' · ')}</p><div className="details-quick-actions"><VoteButton game={game} onVote={onVote} /><button className="change-game-button" type="button" onClick={onChangeGame}><RefreshCw size={14} /> Change game</button><button className="mobile-remove-game" type="button" onClick={onRemove}><Trash2 size={14} /> Remove game</button>{game.steamAppId && <a className="steam-store-button" href={`steam://store/${game.steamAppId}`}><Gamepad2 size={14} /> Open in Steam</a>}<button className="puzzle-board-button" type="button" onClick={onOpenPuzzle}><Pencil size={14} /> Puzzle Board</button>{game.contentType !== 'dlc' && <button className="add-dlc-button" type="button" onClick={onAddDlc}><Puzzle size={14} /> Add DLC</button>}</div></div><button className="icon-button details-close" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
+        <div className="details-hero"><Cover game={game} size="large" /><div className="details-title"><div className="details-pills"><span className="status-pill">{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="content-pill"><Puzzle size={10} /> DLC</span>}</div><h2>{game.title}</h2><p>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle} · ` : ''}{[game.year, game.genre, game.platform].filter(Boolean).join(' · ')}</p><div className="details-quick-actions"><VoteButton game={game} onVote={onVote} /><button className="change-game-button" type="button" onClick={onChangeGame}><RefreshCw size={14} /> Change game</button><button className="mobile-remove-game" type="button" onClick={onRemove}><Trash2 size={14} /> Remove game</button>{game.steamAppId && <a className="steam-store-button" href={steamStoreHref(game.steamAppId)}><Gamepad2 size={14} /> Open in Steam</a>}<button className="puzzle-board-button" type="button" onClick={onOpenPuzzle}><Pencil size={14} /> Puzzle Board</button>{game.contentType !== 'dlc' && <button className="add-dlc-button" type="button" onClick={onAddDlc}><Puzzle size={14} /> Add DLC</button>}</div></div><button className="icon-button details-close" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
         <form onSubmit={save} className="details-form">
           <div className="form-grid">
             <label className="field"><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value as GameStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
