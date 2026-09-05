@@ -11,7 +11,7 @@ import {
 import type { User } from 'firebase/auth'
 import './App.css'
 import { initialGames, members, statusLabels } from './data'
-import type { ActivityChange, ActivityEntry, ActivitySnapshot, ContentType, Game, GameDeal, GameNight, GameSession, GameStatus, Member, Persona, PuzzleBoard, PuzzleImage, PuzzlePage, PuzzlePoint, PuzzleStroke, Recommendation, RecommendationFeedback, RecommendationFeed, SteamAchievementSnapshot, SteamCrewSnapshot } from './types'
+import type { ActivityChange, ActivityEntry, ActivitySnapshot, ContentType, Game, GameDeal, GameNight, GameSession, GameStatus, Member, Persona, PuzzleBoard, PuzzleImage, PuzzlePage, PuzzlePoint, PuzzleStroke, Recommendation, RecommendationFeedback, RecommendationFeed, SteamAchievementSnapshot, SteamCrewSnapshot, SteamLinkPreference } from './types'
 import { firebaseConfigured, signInWithGoogle, signOut, watchAuth } from './lib/firebase'
 import { parseSteamStoreLink, resolveSteamStoreLink, searchGames, type GameSearchResult } from './lib/gameSearch'
 import { connectBoard, getBoardId, getExistingPersona, type BoardConnection, type SteamProfile } from './lib/sharedBoard'
@@ -52,8 +52,10 @@ function isFreeGame(game: Pick<Game, 'isFree' | 'steamAppId' | 'title'>) {
   return Boolean(game.isFree || knownFreeGame(game.steamAppId, game.title))
 }
 
-function steamStoreHref(appId: string) {
+function steamStoreHref(appId: string, preference: SteamLinkPreference = 'auto') {
   const webStoreUrl = `https://store.steampowered.com/app/${encodeURIComponent(appId)}/`
+  if (preference === 'browser') return webStoreUrl
+  if (preference === 'app') return `steam://store/${encodeURIComponent(appId)}`
   if (typeof navigator === 'undefined') return webStoreUrl
   const mobileUserAgent = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
   const touchMac = /Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1
@@ -309,7 +311,7 @@ function OwnershipBadge({ game, compact = false }: { game: Game; compact?: boole
   return <span className={`ownership-badge ${ownership.everyoneOwns ? 'is-complete' : ''} ${compact ? 'is-compact' : ''}`}><span className="owner-avatars">{ownership.owners.slice(0, 3).map((member) => <Avatar id={member.id} small key={member.id} />)}</span><span>{label}</span></span>
 }
 
-function CrewModal({ members: crew, currentUserId, googlePhotoUrl, integrationError, onClose, onSavePhoto, onResolveSteam, onSaveSteam }: {
+function CrewModal({ members: crew, currentUserId, googlePhotoUrl, integrationError, onClose, onSavePhoto, onResolveSteam, onSaveSteam, onSaveSteamLinkPreference }: {
   members: Member[]
   currentUserId: string
   googlePhotoUrl?: string | null
@@ -318,12 +320,14 @@ function CrewModal({ members: crew, currentUserId, googlePhotoUrl, integrationEr
   onSavePhoto: (photoUrl: string | null) => Promise<void>
   onResolveSteam: (profile: string) => Promise<SteamProfile>
   onSaveSteam: (profile: SteamProfile | null) => Promise<void>
+  onSaveSteamLinkPreference: (preference: SteamLinkPreference) => Promise<void>
 }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [steamInput, setSteamInput] = useState('')
   const [steamBusy, setSteamBusy] = useState(false)
   const [steamLinkError, setSteamLinkError] = useState<string | null>(null)
+  const [preferenceBusy, setPreferenceBusy] = useState(false)
   const currentMember = crew.find((member) => member.id === currentUserId)
 
   async function saveFile(file?: File) {
@@ -372,6 +376,14 @@ function CrewModal({ members: crew, currentUserId, googlePhotoUrl, integrationEr
     finally { setSteamBusy(false) }
   }
 
+  async function saveSteamLinkPreference(preference: SteamLinkPreference) {
+    setPreferenceBusy(true)
+    setSteamLinkError(null)
+    try { await onSaveSteamLinkPreference(preference) }
+    catch { setSteamLinkError('Your Steam link preference could not be saved.') }
+    finally { setPreferenceBusy(false) }
+  }
+
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <section className="modal crew-modal" onMouseDown={(event) => event.stopPropagation()} aria-modal="true" role="dialog">
@@ -382,9 +394,10 @@ function CrewModal({ members: crew, currentUserId, googlePhotoUrl, integrationEr
           <label className={`button button-secondary ${saving ? 'is-disabled' : ''}`}><Camera size={16} /> {saving ? 'Saving…' : 'Upload custom'}<input type="file" accept="image/*" disabled={saving} onChange={(event) => { void saveFile(event.target.files?.[0]); event.currentTarget.value = '' }} /></label>
           {googlePhotoUrl && currentMember.customPhotoUrl && <button className="button button-secondary" type="button" onClick={useGooglePhoto} disabled={saving}>Use Google photo</button>}
         </div>{error && <p className="profile-image-error">{error}</p>}</div>}
-        {currentMember && <div className="steam-link-panel"><div className="steam-panel-heading"><span className="steam-mark"><Gamepad2 size={18} /></span><div><strong>Steam connection</strong><span>Ownership, playtime, recent games, and achievements</span></div></div>
+        {currentMember && <div className="steam-link-panel"><div className="steam-panel-heading"><span className="steam-mark"><Gamepad2 size={18} /></span><div><strong>Steam settings</strong><span>Connection, tracking, and store links for your account</span></div></div>
           {currentMember.steamId ? <div className="linked-steam-profile">{currentMember.steamAvatarUrl ? <img src={currentMember.steamAvatarUrl} alt="" /> : <span><Gamepad2 size={18} /></span>}<div><strong>{currentMember.steamName || 'Steam profile'}</strong><a href={currentMember.steamProfileUrl} target="_blank" rel="noreferrer">View profile <ExternalLink size={11} /></a></div><button type="button" onClick={unlinkSteam} disabled={steamBusy}><Unlink size={14} /> Disconnect</button></div>
             : <form className="steam-link-form" onSubmit={linkSteam}><label><span>Your Steam profile link</span><div><Link2 size={16} /><input value={steamInput} onChange={(event) => setSteamInput(event.target.value)} placeholder="steamcommunity.com/id/your-name" autoComplete="url" /></div></label><button className="button button-primary" type="submit" disabled={steamBusy || !steamInput.trim()}>{steamBusy ? <RefreshCw className="spin" size={16} /> : <Link2 size={16} />} {steamBusy ? 'Connecting…' : 'Link Steam'}</button></form>}
+          <div className="steam-link-preference"><label htmlFor="steam-link-preference"><span>Open game links with</span><select id="steam-link-preference" value={currentMember.steamLinkPreference ?? 'auto'} disabled={preferenceBusy} onChange={(event) => void saveSteamLinkPreference(event.target.value as SteamLinkPreference)}><option value="auto">Automatic</option><option value="app">Steam app</option><option value="browser">Web browser</option></select></label><p>{currentMember.steamLinkPreference === 'app' ? 'Always try the installed Steam app.' : currentMember.steamLinkPreference === 'browser' ? 'Always open the official Steam store website.' : 'Use the Steam app on desktop and the web store on mobile.'}</p></div>
           <p className="steam-privacy-note">Public Game details enable automatic tracking. Private profiles can set ownership manually inside each game. Checkpoint never receives your Steam password.</p>{(steamLinkError || integrationError) && <p className="profile-image-error">{steamLinkError || integrationError}</p>}
         </div>}
       </section>
@@ -1119,6 +1132,9 @@ function SteamGamePanel({ game, onManualOwnershipChange }: { game: Game; onManua
 }
 
 function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onChangeGame, onAddDlc, onOpenPuzzle, onManualOwnershipChange }: { game: Game; onClose: () => void; onSave: (updates: Partial<Game>) => void; onVote: () => void; onRemove: () => void; onChangeGame: () => void; onAddDlc: () => void; onOpenPuzzle: () => void; onManualOwnershipChange: (memberId: string, owned: boolean | undefined) => void }) {
+  const currentUser = useContext(CurrentUserContext)
+  const crew = useContext(MembersContext)
+  const steamLinkPreference = crew.find((member) => member.id === currentUser)?.steamLinkPreference ?? 'auto'
   const [progress, setProgress] = useState(game.progress)
   const [status, setStatus] = useState(game.status)
   const [note, setNote] = useState(game.note)
@@ -1130,7 +1146,7 @@ function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onChangeGam
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <section className="modal details-modal" onMouseDown={(event) => event.stopPropagation()} aria-modal="true" role="dialog">
-        <div className="details-hero"><Cover game={game} size="large" /><div className="details-title"><div className="details-pills"><span className="status-pill">{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="content-pill"><Puzzle size={10} /> DLC</span>}</div><h2>{game.title}</h2><p>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle} · ` : ''}{[game.year, game.genre, game.platform].filter(Boolean).join(' · ')}</p><div className="details-quick-actions"><VoteButton game={game} onVote={onVote} /><button className="change-game-button" type="button" onClick={onChangeGame}><RefreshCw size={14} /> Change game</button><button className="mobile-remove-game" type="button" onClick={onRemove}><Trash2 size={14} /> Remove game</button>{game.steamAppId && <a className="steam-store-button" href={steamStoreHref(game.steamAppId)}><Gamepad2 size={14} /> Open in Steam</a>}<button className="puzzle-board-button" type="button" onClick={onOpenPuzzle}><Pencil size={14} /> Puzzle Board</button>{game.contentType !== 'dlc' && <button className="add-dlc-button" type="button" onClick={onAddDlc}><Puzzle size={14} /> Add DLC</button>}</div></div><button className="icon-button details-close" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
+        <div className="details-hero"><Cover game={game} size="large" /><div className="details-title"><div className="details-pills"><span className="status-pill">{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="content-pill"><Puzzle size={10} /> DLC</span>}</div><h2>{game.title}</h2><p>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle} · ` : ''}{[game.year, game.genre, game.platform].filter(Boolean).join(' · ')}</p><div className="details-quick-actions"><VoteButton game={game} onVote={onVote} /><button className="change-game-button" type="button" onClick={onChangeGame}><RefreshCw size={14} /> Change game</button><button className="mobile-remove-game" type="button" onClick={onRemove}><Trash2 size={14} /> Remove game</button>{game.steamAppId && <a className="steam-store-button" href={steamStoreHref(game.steamAppId, steamLinkPreference)}><Gamepad2 size={14} /> Open in Steam</a>}<button className="puzzle-board-button" type="button" onClick={onOpenPuzzle}><Pencil size={14} /> Puzzle Board</button>{game.contentType !== 'dlc' && <button className="add-dlc-button" type="button" onClick={onAddDlc}><Puzzle size={14} /> Add DLC</button>}</div></div><button className="icon-button details-close" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
         <form onSubmit={save} className="details-form">
           <div className="form-grid">
             <label className="field"><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value as GameStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
@@ -1941,6 +1957,13 @@ function App() {
     flash(profile ? `${profile.steamName} linked to Steam` : 'Steam profile disconnected')
   }
 
+  async function saveSteamLinkPreference(preference: SteamLinkPreference) {
+    if (!connectionRef.current) throw new Error('The shared board is still connecting.')
+    await connectionRef.current.saveSteamLinkPreference(preference)
+    setGroupMembers((current) => current.map((member) => member.id === currentUser ? { ...member, steamLinkPreference: preference } : member))
+    flash(`Steam links set to ${preference === 'browser' ? 'web browser' : preference === 'app' ? 'Steam app' : 'automatic'}`)
+  }
+
   async function resolveSteamLink(profile: string) {
     if (!gameIntegrationsConfigured) throw new Error('Steam linking is not configured yet.')
     return resolveSteamProfile(boardId, profile)
@@ -1986,7 +2009,7 @@ function App() {
           <button onClick={() => openLibrary('completed')}><span className="nav-dot green" />Completed</button>
           <button onClick={() => openLibrary('archived')}><span className="nav-dot gray" />Archive</button>
         </div>
-        <div className="sidebar-bottom">{firebaseConfigured ? <button onClick={() => signOut()}><LogOut size={18} /><span>Sign out</span></button> : <button onClick={resetLocalBoard}><Settings size={18} /><span>Clear board</span></button>}<button onClick={() => flash('Tip: drag games in Up next to reorder them')}><CircleHelp size={18} /><span>Help & tips</span></button><div className="profile-row"><Avatar id={currentUser} /><div><strong>{persona ?? 'Player'}</strong><span>Online</span></div><MoreHorizontal size={17} /></div></div>
+        <div className="sidebar-bottom"><button onClick={() => setShowCrew(true)}><Settings size={18} /><span>Settings</span></button>{firebaseConfigured ? <button onClick={() => signOut()}><LogOut size={18} /><span>Sign out</span></button> : <button onClick={resetLocalBoard}><Trash2 size={18} /><span>Clear board</span></button>}<button onClick={() => flash('Tip: drag games in Up next to reorder them')}><CircleHelp size={18} /><span>Help & tips</span></button><div className="profile-row"><Avatar id={currentUser} /><div><strong>{persona ?? 'Player'}</strong><span>Online</span></div><MoreHorizontal size={17} /></div></div>
       </aside>
 
       <main className="main-area">
@@ -2035,14 +2058,14 @@ function App() {
           <button type="button" onClick={() => { setShowCrew(true); setMobileMenuOpen(false) }}><span><Users size={19} /></span><strong>Players</strong><small>{groupMembers.length}</small></button>
         </nav>
         <div className="mobile-menu-library"><span>Library shortcuts</span><div><button type="button" onClick={() => openLibrary('playing')}><i className="nav-dot purple" />Playing</button><button type="button" onClick={() => openLibrary('wishlist')}><i className="nav-dot pink" />Wishlist</button><button type="button" onClick={() => openLibrary('completed')}><i className="nav-dot green" />Completed</button><button type="button" onClick={() => openLibrary('archived')}><i className="nav-dot gray" />Archive</button></div></div>
-        <div className="mobile-menu-footer"><div className="profile-row"><Avatar id={currentUser} /><div><strong>{persona ?? 'Player'}</strong><span>{syncLabel}</span></div></div>{firebaseConfigured && <button type="button" onClick={() => signOut()}><LogOut size={16} /> Sign out</button>}</div>
+        <div className="mobile-menu-footer"><div className="profile-row"><Avatar id={currentUser} /><div><strong>{persona ?? 'Player'}</strong><span>{syncLabel}</span></div></div><button type="button" onClick={() => { setShowCrew(true); setMobileMenuOpen(false) }}><Settings size={16} /> Settings</button>{firebaseConfigured && <button type="button" onClick={() => signOut()}><LogOut size={16} /> Sign out</button>}</div>
       </aside></div>}
       {showAdd && <AddGameModal onClose={closeAddGame} onAdd={addGame} games={activeGames} defaultParentId={addParentId} />}
       {showSchedule && <ScheduleGameNightModal key={editingGameNight?.id ?? scheduleDate ?? 'new'} games={activeGames} defaultDate={scheduleDate} existing={editingGameNight} onClose={() => { setShowSchedule(false); setScheduleDate(undefined); setEditingGameNightId(null) }} onSave={saveGameNight} />}
       {showStartSession && <SessionStartModal games={activeGames} crew={groupMembers} defaultGameId={tonightGame?.id} onClose={() => setShowStartSession(false)} onStart={startSession} />}
       {endingSession && <SessionRecapModal session={endingSession} game={games.find((game) => game.id === endingSession.gameId)} onClose={() => setEndingSessionId(null)} onSave={finishSession} />}
       {declineNightId && gameNights.find((night) => night.id === declineNightId) && <SuggestTimeModal gameNight={gameNights.find((night) => night.id === declineNightId)!} onClose={() => setDeclineNightId(null)} onSuggest={(startAt, endAt) => declineGameNight(declineNightId, startAt, endAt)} />}
-      {showCrew && <CrewModal members={groupMembers} currentUserId={currentUser} googlePhotoUrl={user?.photoURL} integrationError={integrationError} onClose={() => setShowCrew(false)} onSavePhoto={saveProfileImage} onResolveSteam={resolveSteamLink} onSaveSteam={saveSteamProfile} />}
+      {showCrew && <CrewModal members={groupMembers} currentUserId={currentUser} googlePhotoUrl={user?.photoURL} integrationError={integrationError} onClose={() => setShowCrew(false)} onSavePhoto={saveProfileImage} onResolveSteam={resolveSteamLink} onSaveSteam={saveSteamProfile} onSaveSteamLinkPreference={saveSteamLinkPreference} />}
       {selected && <GameDetailsModal game={selected} onClose={() => setSelectedId(null)} onVote={() => vote(selected.id)} onSave={(updates) => updateGame(selected.id, updates)} onRemove={() => removeGame(selected)} onChangeGame={() => { setChangeGameId(selected.id); setSelectedId(null) }} onAddDlc={() => openAddGame(selected)} onOpenPuzzle={() => { setPuzzleGameId(selected.id); setSelectedId(null) }} onManualOwnershipChange={(memberId, owned) => updateManualOwnership(selected.id, memberId, owned)} />}
       {changeGame && <ChangeGameModal game={changeGame} onClose={() => setChangeGameId(null)} onChange={(updates) => replaceGame(changeGame.id, updates)} />}
       {puzzleGame && <PuzzleBoardModal game={puzzleGame} boardId={boardId} currentUserId={currentUser} onClose={() => setPuzzleGameId(null)} />}

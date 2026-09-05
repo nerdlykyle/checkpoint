@@ -257,6 +257,13 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
 .linked-steam-profile strong { overflow: hidden; color: #f4f6f3; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .linked-steam-profile a { display: inline-flex; align-items: center; gap: 4px; color: #82cbe8; text-decoration: none; font-size: 11px; }
 .linked-steam-profile button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px; border: 1px solid #4b3c3e; border-radius: 8px; background: transparent; color: #d99ca3; font-size: 10px; }
+.steam-link-preference { margin-top: 14px; padding-top: 14px; border-top: 1px solid #303b39; }
+.steam-link-preference label { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.steam-link-preference label > span { color: #b7c1bd; font-size: 11px; font-weight: 750; }
+.steam-link-preference select { width: min(180px,48%); height: 38px; padding: 0 10px; border: 1px solid #3b4845; border-radius: 9px; outline: 0; background: #111817; color: #eef2f0; font: inherit; font-size: 11px; }
+.steam-link-preference select:focus { border-color: #6f65d8; box-shadow: 0 0 0 3px rgba(111,101,216,.12); }
+.steam-link-preference select:disabled { opacity: .55; cursor: wait; }
+.steam-link-preference p { margin: 7px 0 0; color: #71817d; font-size: 9.5px; line-height: 1.4; }
 
 .steam-game-panel { margin: 4px 0 8px; padding: 16px; border: 1px solid #dfe5e1; border-radius: 15px; background: #f8faf8; }
 .steam-game-panel.is-empty { color: #66736f; }
@@ -301,6 +308,8 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
   .steam-link-form { grid-template-columns: 1fr; }
   .linked-steam-profile { grid-template-columns: 42px 1fr; }
   .linked-steam-profile button { grid-column: 1 / -1; justify-content: center; }
+  .steam-link-preference label { align-items: stretch; flex-direction: column; gap: 7px; }
+  .steam-link-preference select { width: 100%; }
   .steam-game-panel { padding: 12px; }
   .steam-game-heading { align-items: flex-start; }
   .everyone-owns-pill { display: none; }

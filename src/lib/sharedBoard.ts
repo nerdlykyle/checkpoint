@@ -10,13 +10,14 @@ import {
   runTransaction,
   type Unsubscribe,
 } from 'firebase/firestore'
-import type { ActivityEntry, Game, GameNight, GameSession, Member, Persona, RecommendationFeedback } from '../types'
+import type { ActivityEntry, Game, GameNight, GameSession, Member, Persona, RecommendationFeedback, SteamLinkPreference } from '../types'
 import { database } from './firebase'
 
 export type BoardConnection = {
   saveState: (state: { games: Game[]; gameNights: GameNight[]; sessions: GameSession[]; activity: ActivityEntry[] }) => Promise<void>
   saveProfileImage: (customPhotoUrl: string | null) => Promise<void>
   saveSteamProfile: (profile: SteamProfile | null) => Promise<void>
+  saveSteamLinkPreference: (preference: SteamLinkPreference) => Promise<void>
   toggleRecommendationDownvote: (steamAppId: string, title: string, memberId: string) => Promise<void>
   restoreRecommendation: (steamAppId: string) => Promise<void>
   close: Unsubscribe
@@ -40,6 +41,7 @@ type StoredMember = {
   steamName?: string
   steamProfileUrl?: string
   steamAvatarUrl?: string
+  steamLinkPreference?: SteamLinkPreference
   joinedAt: string
 }
 
@@ -135,6 +137,7 @@ function memberFromUser(user: User, persona: Persona, existing?: StoredMember, c
     steamName: existing?.steamName,
     steamProfileUrl: existing?.steamProfileUrl,
     steamAvatarUrl: existing?.steamAvatarUrl,
+    steamLinkPreference: existing?.steamLinkPreference ?? 'auto',
     joinedAt: existing?.joinedAt || new Date().toISOString(),
   }
 }
@@ -153,6 +156,7 @@ function membersFromData(data: BoardData): Member[] {
     steamName: member.steamName,
     steamProfileUrl: member.steamProfileUrl,
     steamAvatarUrl: member.steamAvatarUrl,
+    steamLinkPreference: member.steamLinkPreference ?? 'auto',
   }))
 }
 
@@ -308,6 +312,18 @@ export async function connectBoard(
       nextMember.steamName = profile?.steamName
       nextMember.steamProfileUrl = profile?.steamProfileUrl
       nextMember.steamAvatarUrl = profile?.steamAvatarUrl
+      await updateDoc(
+        boardRef,
+        new FieldPath('members', user.uid),
+        nextMember,
+        'updatedAt',
+        serverTimestamp(),
+      )
+      latestMember = nextMember
+    },
+    async saveSteamLinkPreference(preference) {
+      const nextMember = memberFromUser(user, persona, latestMember)
+      nextMember.steamLinkPreference = preference
       await updateDoc(
         boardRef,
         new FieldPath('members', user.uid),

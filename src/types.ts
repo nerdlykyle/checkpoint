@@ -1,6 +1,7 @@
 export type GameStatus = 'playing' | 'up-next' | 'wishlist' | 'completed' | 'archived'
 export type Persona = 'Nern' | 'Jern' | 'Vern'
 export type ContentType = 'game' | 'dlc'
+export type SteamLinkPreference = 'auto' | 'app' | 'browser'
 
 export type GameNightResponse = {
   status: 'accepted' | 'declined'
@@ -149,6 +150,7 @@ export type Member = {
   steamName?: string
   steamProfileUrl?: string
   steamAvatarUrl?: string
+  steamLinkPreference?: SteamLinkPreference
 }
 
 export type SteamOwnership = {
