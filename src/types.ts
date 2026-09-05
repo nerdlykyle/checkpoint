@@ -110,6 +110,14 @@ export type PuzzleBoard = {
   updatedBy: string
 }
 
+export type GameLink = {
+  id: string
+  label: string
+  url: string
+  addedBy: string
+  createdAt: string
+}
+
 export type Game = {
   id: string
   title: string
@@ -135,6 +143,7 @@ export type Game = {
   completedAt?: string
   manualOwnership?: Record<string, boolean>
   isFree?: boolean
+  links?: GameLink[]
 }
 
 export type Member = {

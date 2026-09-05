@@ -265,6 +265,26 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
 .steam-link-preference select:disabled { opacity: .55; cursor: wait; }
 .steam-link-preference p { margin: 7px 0 0; color: #71817d; font-size: 9.5px; line-height: 1.4; }
 
+.game-links-panel { margin: 4px 0 14px; padding: 16px; border: 1px solid #303a3f; border-radius: 15px; background: #101619; }
+.game-links-heading { margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.game-links-heading h3 { margin: 2px 0 0; color: #eef2f0; font-size: 15px; }
+.game-links-heading > span { color: #697570; font-size: 9px; font-weight: 750; }
+.game-link-list { margin-bottom: 12px; display: grid; gap: 7px; }
+.game-link-row { min-width: 0; display: grid; grid-template-columns: minmax(0,1fr) 34px; gap: 6px; }
+.game-link-row > a { min-width: 0; min-height: 46px; padding: 7px 10px; border: 1px solid #303b40; border-radius: 10px; background: #151d20; color: #d9e0dd; display: flex; align-items: center; gap: 9px; text-decoration: none; }
+.game-link-row > a:hover { border-color: #435b64; background: #172329; }
+.game-link-row > a > span:nth-child(2) { min-width: 0; flex: 1; }
+.game-link-row strong, .game-link-row small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.game-link-row strong { font-size: 10.5px; }.game-link-row small { margin-top: 3px; color: #71807b; font-size: 8.5px; }
+.game-link-icon { width: 28px; height: 28px; flex: 0 0 auto; border-radius: 8px; background: #1e3038; color: #78c4e8; display: grid; place-items: center; }
+.game-link-row > a > svg { flex: 0 0 auto; color: #667873; }
+.game-link-row > button { width: 34px; padding: 0; border: 1px solid #423638; border-radius: 9px; background: #181416; color: #a2727a; display: grid; place-items: center; cursor: pointer; }
+.game-link-row > button:hover, .game-link-row > button:focus-visible { border-color: #804954; outline: 0; background: #2b1b20; color: #e88998; }
+.game-link-fields { display: grid; grid-template-columns: minmax(0,.8fr) minmax(0,1.25fr) auto; align-items: end; gap: 8px; }
+.game-link-fields .field { min-width: 0; }.game-link-fields .field span { color: #aab5b1; }
+.game-link-add { height: 42px; white-space: nowrap; }
+.game-link-error { margin: 8px 0 0; color: #ef8b82; font-size: 9.5px; }
+
 .steam-game-panel { margin: 4px 0 8px; padding: 16px; border: 1px solid #dfe5e1; border-radius: 15px; background: #f8faf8; }
 .steam-game-panel.is-empty { color: #66736f; }
 .steam-game-heading { display: flex; align-items: center; gap: 10px; color: #33423f; }
@@ -310,6 +330,9 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
   .linked-steam-profile button { grid-column: 1 / -1; justify-content: center; }
   .steam-link-preference label { align-items: stretch; flex-direction: column; gap: 7px; }
   .steam-link-preference select { width: 100%; }
+  .game-links-panel { padding: 13px; }
+  .game-link-fields { grid-template-columns: 1fr; }
+  .game-link-add { width: 100%; }
   .steam-game-panel { padding: 12px; }
   .steam-game-heading { align-items: flex-start; }
   .everyone-owns-pill { display: none; }

@@ -11,7 +11,7 @@ import {
 import type { User } from 'firebase/auth'
 import './App.css'
 import { initialGames, members, statusLabels } from './data'
-import type { ActivityChange, ActivityEntry, ActivitySnapshot, ContentType, Game, GameDeal, GameNight, GameSession, GameStatus, Member, Persona, PuzzleBoard, PuzzleImage, PuzzlePage, PuzzlePoint, PuzzleStroke, Recommendation, RecommendationFeedback, RecommendationFeed, SteamAchievementSnapshot, SteamCrewSnapshot, SteamLinkPreference } from './types'
+import type { ActivityChange, ActivityEntry, ActivitySnapshot, ContentType, Game, GameDeal, GameLink, GameNight, GameSession, GameStatus, Member, Persona, PuzzleBoard, PuzzleImage, PuzzlePage, PuzzlePoint, PuzzleStroke, Recommendation, RecommendationFeedback, RecommendationFeed, SteamAchievementSnapshot, SteamCrewSnapshot, SteamLinkPreference } from './types'
 import { firebaseConfigured, signInWithGoogle, signOut, watchAuth } from './lib/firebase'
 import { parseSteamStoreLink, resolveSteamStoreLink, searchGames, type GameSearchResult } from './lib/gameSearch'
 import { connectBoard, getBoardId, getExistingPersona, type BoardConnection, type SteamProfile } from './lib/sharedBoard'
@@ -60,6 +60,31 @@ function steamStoreHref(appId: string, preference: SteamLinkPreference = 'auto')
   const mobileUserAgent = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
   const touchMac = /Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1
   return mobileUserAgent || touchMac ? webStoreUrl : `steam://store/${encodeURIComponent(appId)}`
+}
+
+function normalizeGameLinkUrl(value: string) {
+  const trimmed = value.trim()
+  const candidate = /^[a-z][a-z\d+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`
+  const parsed = new URL(candidate)
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw new Error('Use an http or https link.')
+  return parsed.toString()
+}
+
+function gameLinkHost(value: string) {
+  try { return new URL(value).hostname.replace(/^www\./, '') }
+  catch { return value }
+}
+
+function safeGameLinks(value: unknown): GameLink[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((item) => {
+    if (!item || typeof item !== 'object') return []
+    const link = item as Partial<GameLink>
+    if (typeof link.id !== 'string' || typeof link.label !== 'string' || typeof link.url !== 'string') return []
+    try {
+      return [{ id: link.id, label: link.label, url: normalizeGameLinkUrl(link.url), addedBy: typeof link.addedBy === 'string' ? link.addedBy : '', createdAt: typeof link.createdAt === 'string' ? link.createdAt : '' }]
+    } catch { return [] }
+  }).slice(0, 25)
 }
 
 function migrateLegacyGame(game: Game): Game {
@@ -1138,9 +1163,27 @@ function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onChangeGam
   const [progress, setProgress] = useState(game.progress)
   const [status, setStatus] = useState(game.status)
   const [note, setNote] = useState(game.note)
+  const [links, setLinks] = useState<GameLink[]>(() => safeGameLinks(game.links))
+  const [linkLabel, setLinkLabel] = useState('')
+  const [linkUrl, setLinkUrl] = useState('')
+  const [linkError, setLinkError] = useState<string | null>(null)
+  function addLink() {
+    if (!linkUrl.trim()) { setLinkError('Enter a URL.'); return }
+    if (links.length >= 25) { setLinkError('A game can have up to 25 shared links.'); return }
+    try {
+      const url = normalizeGameLinkUrl(linkUrl)
+      if (links.some((link) => link.url === url)) { setLinkError('That link is already on this game.'); return }
+      setLinks((current) => [...current, { id: crypto.randomUUID(), label: linkLabel.trim() || gameLinkHost(url), url, addedBy: currentUser, createdAt: new Date().toISOString() }])
+      setLinkLabel('')
+      setLinkUrl('')
+      setLinkError(null)
+    } catch (error) {
+      setLinkError(error instanceof Error ? error.message : 'Enter a valid web address.')
+    }
+  }
   function save(event: FormEvent) {
     event.preventDefault()
-    onSave({ progress: status === 'completed' ? 100 : progress, status, note,
+    onSave({ progress: status === 'completed' ? 100 : progress, status, note, links,
       completedAt: status === 'completed' ? (game.completedAt ?? new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })) : undefined })
   }
   return (
@@ -1153,6 +1196,11 @@ function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onChangeGam
             <label className="field"><span>Progress · {progress}%</span><input className="range" type="range" min="0" max="100" value={progress} onChange={(event) => setProgress(Number(event.target.value))} /></label>
           </div>
           <label className="field field-full"><span>Shared notes</span><textarea value={note} onChange={(event) => setNote(event.target.value)} rows={4} placeholder="Where did we leave off?" /></label>
+          <section className="game-links-panel"><div className="game-links-heading"><div><span className="eyebrow">Shared resources</span><h3>Links</h3></div><span>{links.length}/25</span></div>
+            {links.length > 0 && <div className="game-link-list">{links.map((link) => <div className="game-link-row" key={link.id}><a href={link.url} target="_blank" rel="noreferrer"><span className="game-link-icon"><Link2 size={15} /></span><span><strong>{link.label}</strong><small>{gameLinkHost(link.url)}</small></span><ExternalLink size={14} /></a><button type="button" onClick={() => setLinks((current) => current.filter((item) => item.id !== link.id))} aria-label={`Remove ${link.label}`} title="Remove link"><Trash2 size={14} /></button></div>)}</div>}
+            <div className="game-link-fields"><label className="field"><span>Label <em>optional</em></span><input value={linkLabel} maxLength={60} onChange={(event) => { setLinkLabel(event.target.value); setLinkError(null) }} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); addLink() } }} placeholder="Official site, Nexus Mods…" /></label><label className="field"><span>URL</span><input value={linkUrl} inputMode="url" maxLength={2000} onChange={(event) => { setLinkUrl(event.target.value); setLinkError(null) }} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); addLink() } }} placeholder="https://…" /></label><button className="button button-secondary game-link-add" type="button" onClick={addLink}><Plus size={15} /> Add link</button></div>
+            {linkError && <p className="game-link-error">{linkError}</p>}
+          </section>
           <SteamGamePanel game={game} onManualOwnershipChange={onManualOwnershipChange} />
           <div className="modal-actions"><button className="button button-danger" type="button" onClick={onRemove}><Trash2 size={16} /> Remove game</button><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit">Save changes</button></div>
         </form>
