@@ -568,7 +568,9 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
 .session-participants legend { margin-bottom: 9px; color: #b1bbb7; font-size: 9px; font-weight: 800; }
 .session-participants > div { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
 .session-participants button { min-width: 0; min-height: 52px; padding: 8px 10px; border: 1px solid #303a3f; border-radius: 11px; background: #0f1517; color: #899590; display: flex; align-items: center; gap: 7px; font: inherit; font-size: 10px; font-weight: 750; cursor: pointer; }
-.session-participants button span { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.session-participants button > span:not(.avatar) { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.session-participants .avatar { width: 25px; height: 25px; aspect-ratio: 1; flex: 0 0 25px; border-radius: 50%; overflow: hidden; }
+.session-participants .avatar img { width: 100%; height: 100%; object-fit: cover; }
 .session-participants button.active { border-color: #6e62d8; background: #282343; color: #d0caff; }
 .session-helper { margin: 12px 0 0; color: #73807b; font-size: 9px; line-height: 1.5; }
 .recap-modal { width: min(620px,100%); }
@@ -590,6 +592,10 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
 .live-session-crew { min-height: 30px; display: flex; align-items: center; }.live-session-crew .avatar + .avatar { margin-left: -5px; }.live-session-crew > span { margin-left: 9px; color: #84918c; font-size: 9px; }
 .live-session-actions { margin-top: 18px; display: flex; gap: 9px; flex-wrap: wrap; }.button-finish-session { border: 1px solid #624049; background: #281b1f; color: #ec858e; }
 .tonight-start-button { min-height: 50px; margin-top: 27px; padding: 0 22px; border: 1px solid #7e71ea; border-radius: 13px; background: #7669df; color: white; display: inline-flex; align-items: center; gap: 9px; font: inherit; font-size: 12px; font-weight: 850; cursor: pointer; box-shadow: 0 12px 30px rgba(83,71,184,.28); }
+.scheduled-countdown { margin-top: 27px; display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; }
+.scheduled-countdown > span { width: 100%; color: #aaa1ec; font-size: 9px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.scheduled-countdown > strong { color: #f1f4f2; font-size: clamp(38px,5vw,58px); font-weight: 850; letter-spacing: -.05em; line-height: 1; font-variant-numeric: tabular-nums; }
+.scheduled-countdown .tonight-start-button { min-height: 42px; margin-top: 0; padding: 0 15px; font-size: 10px; }
 .tonight-grid { margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }.tonight-card { min-width: 0; min-height: 270px; padding: 21px; border: 1px solid var(--line); border-radius: 17px; background: var(--card); }.tonight-card textarea { width: 100%; min-height: 118px; margin: 12px 0; resize: vertical; padding: 12px; border: 1px solid #303a3f; border-radius: 11px; outline: none; background: #0d1315; color: var(--ink); font: inherit; font-size: 10px; line-height: 1.55; }.tonight-card textarea:focus { border-color: #7165df; }.tonight-card textarea:disabled { opacity: .45; }
 .latest-recap > span { color: #7c8884; font-size: 9px; }.latest-recap > p { margin: 13px 0; color: #bdc6c2; font-size: 11px; line-height: 1.65; white-space: pre-wrap; }.latest-recap > div { padding: 10px; border: 1px solid #393351; border-radius: 10px; background: #1a1827; color: #aaa1ec; display: flex; align-items: flex-start; gap: 7px; font-size: 9px; line-height: 1.5; }.latest-recap > div svg { flex: 0 0 auto; }.tonight-empty { min-height: 145px; color: #64716c; display: grid; place-items: center; align-content: center; gap: 8px; text-align: center; }.tonight-empty p { max-width: 260px; margin: 0; font-size: 9px; line-height: 1.5; }
 

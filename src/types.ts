@@ -30,6 +30,7 @@ export type GameNight = {
 
 export type GameSession = {
   id: string
+  gameNightId?: string
   gameId: string
   gameTitle: string
   startedAt: string

@@ -40,6 +40,7 @@ type View = 'dashboard' | 'library' | 'discover' | 'calendar' | 'tonight' | 'act
 type SyncStatus = 'local' | 'connecting' | 'live' | 'error'
 type SmartFilter = 'any' | 'everyone-owns' | 'needs-copy' | 'on-sale' | 'free'
 type GameNightDraft = Pick<GameNight, 'title' | 'gameId' | 'gameTitle' | 'startAt' | 'endAt' | 'note'>
+type SessionStartOptions = { gameNightId?: string; startedAt?: string; automatic?: boolean }
 
 const KNOWN_FREE_STEAM_APP_IDS = new Set(['230410', '3564740'])
 const KNOWN_FREE_GAME_TITLES = new Set(['warframe', 'where winds meet'])
@@ -1429,13 +1430,14 @@ function TonightPage({ game, event, activeSession, recentSession, crew, now, onB
   const sessionParticipants = activeSession?.participantIds.map((id) => crew.find((member) => member.id === id)).filter((member): member is Member => Boolean(member)) ?? []
   const eventStart = event ? new Date(event.startAt) : undefined
   const eventEnd = event ? new Date(event.endAt) : undefined
+  const countdownMilliseconds = eventStart ? eventStart.getTime() - now : 0
   return <div className="page tonight-page">
     <div className="tonight-topbar"><button className="text-button" type="button" onClick={onBack}><ChevronLeft size={16} /> Home</button><div><MoonStar size={15} /><span>Game Night</span></div>{event && <button className="button button-secondary discord-copy-button" type="button" onClick={onCopyDiscord}><Copy size={15} /> Copy for Discord</button>}</div>
     <section className="tonight-hero">
       <div className="tonight-art">{game ? <Cover game={game} size="large" /> : <div className="tonight-no-cover"><Gamepad2 size={38} /></div>}</div>
       <div className="tonight-main"><span className="eyebrow">{event ? event.title : activeSession ? 'Session in progress' : 'Ready when the crew is'}</span><h1>{game?.title || event?.gameTitle || 'Pick tonight’s game'}</h1>
         {eventStart && eventEnd && <p className="tonight-schedule"><CalendarDays size={16} /> {eventStart.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} · {eventStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}–{eventEnd.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>}
-        {activeSession ? <div className="live-session"><div className="live-session-label"><span className={activeSession.pausedAt ? 'paused' : ''} />{activeSession.pausedAt ? 'Paused' : 'Live session'}</div><strong>{stopwatchLabel(sessionElapsedMilliseconds(activeSession, now))}</strong><div className="live-session-crew">{sessionParticipants.map((member) => <Avatar id={member.id} small key={member.id} />)}<span>{sessionParticipants.map((member) => member.name).join(', ')}</span></div><div className="live-session-actions">{activeSession.pausedAt ? <button className="button button-light" type="button" onClick={onResume}><Play size={16} fill="currentColor" /> Resume</button> : <button className="button button-light" type="button" onClick={onPause}><Pause size={16} fill="currentColor" /> Pause</button>}<button className="button button-finish-session" type="button" onClick={onFinish}><Square size={14} fill="currentColor" /> Finish & recap</button></div></div> : <button className="button tonight-start-button" type="button" onClick={onStart}><Play size={19} fill="currentColor" /> Start session</button>}
+        {activeSession ? <div className="live-session"><div className="live-session-label"><span className={activeSession.pausedAt ? 'paused' : ''} />{activeSession.pausedAt ? 'Paused' : 'Live session'}</div><strong>{stopwatchLabel(sessionElapsedMilliseconds(activeSession, now))}</strong><div className="live-session-crew">{sessionParticipants.map((member) => <Avatar id={member.id} small key={member.id} />)}<span>{sessionParticipants.map((member) => member.name).join(', ')}</span></div><div className="live-session-actions">{activeSession.pausedAt ? <button className="button button-light" type="button" onClick={onResume}><Play size={16} fill="currentColor" /> Resume</button> : <button className="button button-light" type="button" onClick={onPause}><Pause size={16} fill="currentColor" /> Pause</button>}<button className="button button-finish-session" type="button" onClick={onFinish}><Square size={14} fill="currentColor" /> Finish & recap</button></div></div> : countdownMilliseconds > 0 ? <div className="scheduled-countdown"><span>Starts in</span><strong>{stopwatchLabel(countdownMilliseconds)}</strong><button className="button tonight-start-button" type="button" onClick={onStart}><Play size={16} fill="currentColor" /> Start early</button></div> : <button className="button tonight-start-button" type="button" onClick={onStart}><Play size={19} fill="currentColor" /> Start session</button>}
       </div>
     </section>
     <div className="tonight-grid"><section className="tonight-card"><div className="section-heading"><div><span className="eyebrow">Pick up here</span><h2>Shared session note</h2></div><NotebookPen size={19} /></div><textarea value={game?.note ?? ''} disabled={!game} maxLength={5000} onChange={(event) => onUpdateNote(event.target.value)} placeholder="Clues, plans, and the next objective…" /><button className="button campaign-puzzle-button" type="button" disabled={!game} onClick={onPuzzle}><Puzzle size={16} /> Open puzzle board</button></section>
@@ -1497,6 +1499,7 @@ function App() {
   const [toast, setToast] = useState<string | null>(null)
   const [boardId] = useState(getBoardId)
   const connectionRef = useRef<BoardConnection | null>(null)
+  const autoStartingGameNightRef = useRef<string | null>(null)
   const lastSyncedBoardStateRef = useRef('')
   const currentBoardStateRef = useRef({ games, gameNights, sessions, activity })
   const boardHydratedRef = useRef(false)
@@ -1662,12 +1665,14 @@ function App() {
   const currentUser = user?.uid ?? DEMO_USER
   const playing = games.find((game) => game.status === 'playing')
   const activeSession = sessions.find((session) => !session.endedAt)
+  const todayDate = localDateValue(new Date())
   useEffect(() => {
-    if (!activeSession) return
+    const hasGameNightToday = gameNights.some((night) => localDateValue(new Date(night.startAt)) === todayDate)
+    if (!activeSession && !hasGameNightToday) return
     setNowTick(Date.now())
     const timer = window.setInterval(() => setNowTick(Date.now()), 1000)
     return () => window.clearInterval(timer)
-  }, [activeSession?.id])
+  }, [activeSession?.id, gameNights, todayDate])
   const upNext = games.filter((game) => game.status === 'up-next')
   const availableRecommendations = useMemo(() => {
     const trackedAppIds = new Set(games.flatMap((game) => game.steamAppId ? [game.steamAppId] : []))
@@ -1681,13 +1686,34 @@ function App() {
   const editingGameNight = gameNights.find((night) => night.id === editingGameNightId)
   const puzzleGame = games.find((game) => game.id === puzzleGameId)
   const endingSession = sessions.find((session) => session.id === endingSessionId)
-  const todayDate = localDateValue(new Date())
-  const tonightEvent = [...gameNights].filter((night) => localDateValue(new Date(night.startAt)) === todayDate).sort((a, b) => a.startAt.localeCompare(b.startAt))[0]
+  const todaysGameNights = [...gameNights].filter((night) => localDateValue(new Date(night.startAt)) === todayDate).sort((a, b) => a.startAt.localeCompare(b.startAt))
+  const tonightEvent = todaysGameNights.find((night) => new Date(night.endAt).getTime() > nowTick) ?? todaysGameNights[todaysGameNights.length - 1]
   const tonightGame = games.find((game) => game.id === activeSession?.gameId)
     ?? games.find((game) => game.id === tonightEvent?.gameId)
     ?? playing
   const recentTonightSession = [...sessions].filter((session) => session.gameId === tonightGame?.id && session.endedAt).sort((a, b) => (b.endedAt || '').localeCompare(a.endedAt || ''))[0]
   const loggedMilliseconds = (gameId: string) => sessions.filter((session) => session.gameId === gameId).reduce((total, session) => total + sessionElapsedMilliseconds(session, nowTick), 0)
+  useEffect(() => {
+    if (!tonightEvent || activeSession || !tonightEvent.gameId || autoStartingGameNightRef.current === tonightEvent.id) return
+    if (firebaseConfigured && syncStatus !== 'live') return
+    const scheduledStart = new Date(tonightEvent.startAt).getTime()
+    const scheduledEnd = new Date(tonightEvent.endAt).getTime()
+    if (!Number.isFinite(scheduledStart) || !Number.isFinite(scheduledEnd) || nowTick < scheduledStart || nowTick >= scheduledEnd) return
+    if (gameNightCalendarState(tonightEvent, groupMembers) === 'denied') return
+    if (sessions.some((session) => session.gameNightId === tonightEvent.id
+      || (session.gameId === tonightEvent.gameId && localDateValue(new Date(session.startedAt)) === todayDate))) return
+    const game = games.find((item) => item.id === tonightEvent.gameId)
+    if (!game || game.status === 'archived') return
+    const version = tonightEvent.version ?? 1
+    const currentResponse = (memberId: string) => {
+      const response = tonightEvent.responses[memberId]
+      return response && (response.responseVersion ?? 1) === version ? response : undefined
+    }
+    const availableIds = groupMembers.filter((member) => currentResponse(member.id)?.status !== 'declined').map((member) => member.id)
+    const participantIds = availableIds.length ? availableIds : [currentUser]
+    autoStartingGameNightRef.current = tonightEvent.id
+    startSession(game.id, participantIds, { gameNightId: tonightEvent.id, startedAt: tonightEvent.startAt, automatic: true })
+  }, [activeSession, currentUser, games, groupMembers, nowTick, sessions, syncStatus, tonightEvent])
   const filteredGames = useMemo(() => games.filter((game) => {
     if ((libraryFilter === 'all' && game.status === 'archived') || (libraryFilter !== 'all' && game.status !== libraryFilter) || !game.title.toLowerCase().includes(search.toLowerCase())) return false
     const ownership = ownershipForGame(game, groupMembers, steamSnapshot)
@@ -1942,17 +1968,30 @@ function App() {
     catch { flash('Could not copy the Discord message') }
   }
 
-  function startSession(gameId: string, participantIds: string[]) {
+  function startSession(gameId: string, participantIds: string[], options: SessionStartOptions = {}) {
     if (activeSession) { flash(`${activeSession.gameTitle} already has a live session`); return }
     const game = games.find((item) => item.id === gameId)
     if (!game) return
-    const now = new Date().toISOString()
-    const session: GameSession = { id: crypto.randomUUID(), gameId, gameTitle: game.title, startedAt: now, pausedMilliseconds: 0, participantIds, startedBy: currentUser, startProgress: game.progress, createdAt: now, updatedAt: now }
+    const createdAt = new Date().toISOString()
+    const gameNightId = options.gameNightId ?? (tonightEvent?.gameId === gameId ? tonightEvent.id : undefined)
+    const session: GameSession = {
+      id: options.automatic && gameNightId ? `game-night-session:${gameNightId}` : crypto.randomUUID(),
+      ...(gameNightId ? { gameNightId } : {}),
+      gameId,
+      gameTitle: game.title,
+      startedAt: options.startedAt ?? createdAt,
+      pausedMilliseconds: 0,
+      participantIds,
+      startedBy: currentUser,
+      startProgress: game.progress,
+      createdAt,
+      updatedAt: createdAt,
+    }
     setSessions((current) => [session, ...current])
-    recordActivity('session-started', `${game.title} session started`, [{ entity: 'session', entityId: session.id, after: session }])
+    recordActivity('session-started', `${game.title} session ${options.automatic ? 'started automatically' : 'started'}`, [{ entity: 'session', entityId: session.id, after: session }])
     setShowStartSession(false)
     setView('tonight')
-    flash('Session timer started for the whole crew')
+    flash(options.automatic ? 'Scheduled session timer started for the whole crew' : 'Session timer started for the whole crew')
   }
   function pauseSession() {
     if (!activeSession || activeSession.pausedAt) return
@@ -2031,6 +2070,7 @@ function App() {
   const syncLabel = syncStatus === 'live' ? 'Shared live' : syncStatus === 'connecting' ? 'Connecting…' : syncStatus === 'error' ? 'Sync needs attention' : 'Saved on this device'
   const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   const dashboardSummary = playing ? 'Your current campaign and the crew’s ranked queue.' : 'Start with a game, then build the crew’s ranked queue.'
+  const gameNightCountdown = tonightEvent ? new Date(tonightEvent.startAt).getTime() - nowTick : 0
 
   return (
     <CurrentUserContext.Provider value={currentUser}>
@@ -2067,7 +2107,7 @@ function App() {
         </header>
 
         {view === 'dashboard' ? <div className="page dashboard-page">
-          <div className="page-title-row"><div><span className="eyebrow">{todayLabel}</span><h1>What're we playin'?</h1><p>{dashboardSummary}</p></div><div className="dashboard-title-actions"><button className={activeSession ? 'tonight-mode-button is-live' : 'tonight-mode-button'} type="button" onClick={() => setView('tonight')}><MoonStar size={16} />{activeSession ? <><span className="live-dot" /> {stopwatchLabel(sessionElapsedMilliseconds(activeSession, nowTick))}</> : 'Game Night'}</button><button className={`sync-chip sync-${syncStatus}`} onClick={copyBoardLink} type="button"><span /><strong>{syncLabel}</strong>{syncStatus === 'live' && <Share2 size={13} />}</button></div></div>
+          <div className="page-title-row"><div><span className="eyebrow">{todayLabel}</span><h1>What're we playin'?</h1><p>{dashboardSummary}</p></div><div className="dashboard-title-actions"><button className={activeSession ? 'tonight-mode-button is-live' : 'tonight-mode-button'} type="button" onClick={() => setView('tonight')}><MoonStar size={16} />{activeSession ? <><span className="live-dot" /> {stopwatchLabel(sessionElapsedMilliseconds(activeSession, nowTick))}</> : gameNightCountdown > 0 ? `Starts in ${stopwatchLabel(gameNightCountdown)}` : 'Game Night'}</button><button className={`sync-chip sync-${syncStatus}`} onClick={copyBoardLink} type="button"><span /><strong>{syncLabel}</strong>{syncStatus === 'live' && <Share2 size={13} />}</button></div></div>
           <section className="dashboard-grid">
             <div className="now-playing-panel"><div className="section-heading inverse"><div><span className="eyebrow">Continue playing</span><h2>Current campaign</h2></div><button className="ghost-icon" onClick={() => playing && setSelectedId(playing.id)}><MoreHorizontal size={20} /></button></div>
               {playing ? <div className="playing-content"><Cover game={playing} size="large" /><div className="playing-copy"><div className="live-pill"><span /> In progress</div><h2>{playing.title}</h2><p className="playing-meta">{playing.contentType === 'dlc' && playing.parentGameTitle ? `DLC for ${playing.parentGameTitle} · ` : ''}{[playing.genre, playing.platform, playing.year].filter(Boolean).join(' · ')}</p>
