@@ -1440,7 +1440,23 @@ function SessionGameModal({ session, games, onClose, onSave }: { session: GameSe
   </section></div>
 }
 
-function SessionHistoryEntry({ session, number, crew, initiallyOpen, onEdit }: { session: GameSession; number: number; crew: Member[]; initiallyOpen: boolean; onEdit: () => void }) {
+function SessionNotesModal({ session, onClose, onSave }: { session: GameSession; onClose: () => void; onSave: (note: string, nextObjective: string) => void }) {
+  const [note, setNote] = useState(session.note ?? '')
+  const [nextObjective, setNextObjective] = useState(session.nextObjective ?? '')
+  const savedNote = session.note?.trim() ?? ''
+  const savedNextObjective = session.nextObjective?.trim() ?? ''
+  const nextNote = note.trim()
+  const nextObjectiveValue = nextObjective.trim()
+  return <div className="modal-backdrop" onMouseDown={onClose}><section className="modal session-notes-modal" onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-modal="true">
+    <div className="modal-heading"><div><span className="eyebrow">Session history</span><h2>{savedNote || savedNextObjective ? 'Edit session notes' : 'Add session notes'}</h2></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
+    <div className="recap-session-summary"><NotebookPen size={18} /><div><strong>{session.gameTitle}</strong><span>{new Date(session.startedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} · {sessionDurationLabel(sessionElapsedMilliseconds(session))}</span></div></div>
+    <label className="field field-full"><span>Session notes</span><textarea rows={6} maxLength={5000} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Add clues, discoveries, decisions, or anything else worth remembering…" autoFocus /></label>
+    <div className="session-objective-edit"><label className="field field-full"><span>Next objective</span><textarea rows={3} maxLength={2000} value={nextObjective} onChange={(event) => setNextObjective(event.target.value)} placeholder="Where to pick up next time…" /></label>{nextObjective && <button className="session-objective-clear" type="button" onClick={() => setNextObjective('')}><Trash2 size={13} /> Remove next objective</button>}</div>
+    <div className="modal-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="button" disabled={nextNote === savedNote && nextObjectiveValue === savedNextObjective} onClick={() => onSave(nextNote, nextObjectiveValue)}><Check size={16} /> Save changes</button></div>
+  </section></div>
+}
+
+function SessionHistoryEntry({ session, number, crew, initiallyOpen, onEditGame, onEditNotes }: { session: GameSession; number: number; crew: Member[]; initiallyOpen: boolean; onEditGame: () => void; onEditNotes: () => void }) {
   const [open, setOpen] = useState(initiallyOpen)
   const participants = session.participantIds.map((id) => crew.find((member) => member.id === id)).filter((member): member is Member => Boolean(member))
   const notes = session.note?.trim()
@@ -1452,12 +1468,12 @@ function SessionHistoryEntry({ session, number, crew, initiallyOpen, onEdit }: {
       {recap && recap !== notes && <div className="session-history-copy"><span>Recap</span><p>{recap}</p></div>}
       {!notes && !recap && <p className="session-history-empty-note">No notes were saved for this session.</p>}
       {session.nextObjective && <div className="session-history-next"><Flag size={13} /><span><strong>Next:</strong> {session.nextObjective}</span></div>}
-      <button className="session-history-edit" type="button" onClick={onEdit}><Pencil size={13} /> Change game</button>
+      <div className="session-history-actions"><button className="session-history-edit" type="button" onClick={onEditNotes}><NotebookPen size={13} /> {notes || session.nextObjective ? 'Edit notes' : 'Add notes'}</button><button className="session-history-edit secondary" type="button" onClick={onEditGame}><Pencil size={13} /> Change game</button></div>
     </div>
   </details>
 }
 
-function TonightPage({ game, event, activeSession, sessionHistory, crew, now, onBack, onStart, onPause, onResume, onFinish, onPuzzle, onCopyDiscord, onUpdateSessionNote, onEditSession }: { game?: Game; event?: GameNight; activeSession?: GameSession; sessionHistory: GameSession[]; crew: Member[]; now: number; onBack: () => void; onStart: () => void; onPause: () => void; onResume: () => void; onFinish: () => void; onPuzzle: () => void; onCopyDiscord: () => void; onUpdateSessionNote: (note: string) => void; onEditSession: (sessionId: string) => void }) {
+function TonightPage({ game, event, activeSession, sessionHistory, crew, now, onBack, onStart, onPause, onResume, onFinish, onPuzzle, onCopyDiscord, onUpdateSessionNote, onEditSession, onEditSessionNotes }: { game?: Game; event?: GameNight; activeSession?: GameSession; sessionHistory: GameSession[]; crew: Member[]; now: number; onBack: () => void; onStart: () => void; onPause: () => void; onResume: () => void; onFinish: () => void; onPuzzle: () => void; onCopyDiscord: () => void; onUpdateSessionNote: (note: string) => void; onEditSession: (sessionId: string) => void; onEditSessionNotes: (sessionId: string) => void }) {
   const sessionParticipants = activeSession?.participantIds.map((id) => crew.find((member) => member.id === id)).filter((member): member is Member => Boolean(member)) ?? []
   const eventStart = event ? new Date(event.startAt) : undefined
   const eventEnd = event ? new Date(event.endAt) : undefined
@@ -1477,7 +1493,7 @@ function TonightPage({ game, event, activeSession, sessionHistory, crew, now, on
         <div className="session-note-footer"><span>{activeSession ? 'Shared live with the crew · saved with this session' : 'Every new session starts with a blank note'}</span><button className="button campaign-puzzle-button" type="button" disabled={!game} onClick={onPuzzle}><Puzzle size={16} /> Open puzzle board</button></div>
       </section>
       <section className="tonight-card session-history-card"><div className="section-heading"><div><span className="eyebrow">The campaign log</span><h2>Session history</h2></div><span className="session-history-count">{sessionHistory.length}</span></div>
-        {sessionHistory.length ? <div className="session-history-list">{sessionHistory.map((session, index) => <SessionHistoryEntry session={session} number={sessionHistory.length - index} crew={crew} initiallyOpen={index === 0} onEdit={() => onEditSession(session.id)} key={session.id} />)}</div> : <div className="tonight-empty"><Timer size={26} /><p>Finished sessions and their notes will appear here.</p></div>}
+        {sessionHistory.length ? <div className="session-history-list">{sessionHistory.map((session, index) => <SessionHistoryEntry session={session} number={sessionHistory.length - index} crew={crew} initiallyOpen={index === 0} onEditGame={() => onEditSession(session.id)} onEditNotes={() => onEditSessionNotes(session.id)} key={session.id} />)}</div> : <div className="tonight-empty"><Timer size={26} /><p>Finished sessions and their notes will appear here.</p></div>}
       </section>
     </div>
   </div>
@@ -1530,6 +1546,7 @@ function App() {
   const [sessionStartGameId, setSessionStartGameId] = useState<string | null>(null)
   const [endingSessionId, setEndingSessionId] = useState<string | null>(null)
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
+  const [editingSessionNotesId, setEditingSessionNotesId] = useState<string | null>(null)
   const [nowTick, setNowTick] = useState(Date.now())
   const [search, setSearch] = useState('')
   const [libraryFilter, setLibraryFilter] = useState<GameStatus | 'all'>('all')
@@ -1733,6 +1750,7 @@ function App() {
   const puzzleGame = games.find((game) => game.id === puzzleGameId)
   const endingSession = sessions.find((session) => session.id === endingSessionId)
   const editingSession = sessions.find((session) => session.id === editingSessionId)
+  const editingSessionNotes = sessions.find((session) => session.id === editingSessionNotesId)
   const todaysGameNights = [...gameNights].filter((night) => localDateValue(new Date(night.startAt)) === todayDate).sort((a, b) => a.startAt.localeCompare(b.startAt))
   const tonightEvent = todaysGameNights.find((night) => new Date(night.endAt).getTime() > nowTick) ?? todaysGameNights[todaysGameNights.length - 1]
   const tonightGame = games.find((game) => game.id === activeSession?.gameId)
@@ -2085,6 +2103,25 @@ function App() {
     setEditingSessionId(null)
     flash(`Session moved to ${game.title}`)
   }
+  function saveSessionNotes(sessionId: string, note: string, nextObjective: string) {
+    const before = sessions.find((session) => session.id === sessionId)
+    if (!before) { setEditingSessionNotesId(null); return }
+    const previousNote = before.note?.trim() ?? ''
+    const previousNextObjective = before.nextObjective?.trim() ?? ''
+    if (previousNote === note && previousNextObjective === nextObjective) { setEditingSessionNotesId(null); return }
+    const after: GameSession = { ...before, note, nextObjective, updatedAt: new Date().toISOString() }
+    setSessions((current) => current.map((session) => session.id === sessionId ? after : session))
+    const changes: ActivityChange[] = [{ entity: 'session', entityId: sessionId, before, after }]
+    const gameBefore = games.find((game) => game.id === before.gameId)
+    if (previousNextObjective !== nextObjective && gameBefore && gameBefore.note.trim() === previousNextObjective) {
+      const gameAfter: Game = { ...gameBefore, note: nextObjective }
+      setGames((current) => current.map((game) => game.id === gameAfter.id ? gameAfter : game))
+      changes.push({ entity: 'game', entityId: gameBefore.id, before: gameBefore, after: gameAfter })
+    }
+    recordActivity('session-notes-edited', `${before.gameTitle} session notes updated`, changes)
+    setEditingSessionNotesId(null)
+    flash('Session notes saved for the crew')
+  }
 
   async function saveProfileImage(customPhotoUrl: string | null) {
     if (!connectionRef.current) throw new Error('The shared board is still connecting.')
@@ -2195,7 +2232,7 @@ function App() {
           <div className="filter-tabs">{([['all', 'All games'], ...Object.entries(statusLabels)] as [GameStatus | 'all', string][]).map(([value, label]) => <button key={value} className={libraryFilter === value ? 'active' : ''} onClick={() => setLibraryFilter(value)}>{label}<span>{value === 'all' ? activeGames.length : games.filter((game) => game.status === value).length}</span></button>)}</div>
           <div className="smart-filters"><span><ListFilter size={14} /> Steam & prices</span>{([['any', 'Any ownership'], ['everyone-owns', 'Everyone owns'], ['needs-copy', 'Someone needs it'], ['on-sale', 'On sale'], ['free', 'Free to play']] as [SmartFilter, string][]).map(([value, label]) => <button type="button" key={value} className={smartFilter === value ? 'active' : ''} onClick={() => setSmartFilter(value)}>{label}</button>)}{integrationsLoading && <RefreshCw className="spin" size={14} />}</div>
           {filteredGames.length ? <div className="library-grid">{filteredGames.map((game) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} onVote={() => vote(game.id)} onArchive={() => archiveWishlistGame(game)} onRestore={() => restoreArchivedGame(game)} />)}</div> : <div className="empty-state"><Search size={28} /><h2>No games found</h2><p>Try another search or add a new game.</p><button className="button button-primary" onClick={() => openAddGame()}>Add game</button></div>}
-        </div> : view === 'discover' ? <RecommendationsPage feed={recommendationFeed} loading={recommendationsLoading} error={recommendationsError} visible={availableRecommendations} feedback={recommendationFeedback} deals={gameDeals} onAdd={addRecommendation} onDownvote={toggleRecommendationDownvote} onRestore={restoreRecommendation} /> : view === 'calendar' ? <CalendarPage gameNights={gameNights} crew={groupMembers} currentUserId={currentUser} syncingId={calendarSyncingId} calendarError={calendarError} sharedSyncError={syncStatus === 'error'} onSchedule={(date) => { setEditingGameNightId(null); setScheduleDate(date); setShowSchedule(true) }} onEdit={(night) => { setEditingGameNightId(night.id); setScheduleDate(undefined); setShowSchedule(true) }} onAccept={acceptGameNight} onDecline={(night) => setDeclineNightId(night.id)} onSyncCalendar={syncGameNightToPersonalCalendar} onCopyDiscord={copyGameNightForDiscord} /> : view === 'tonight' ? <TonightPage game={tonightGame} event={tonightEvent} activeSession={activeSession} sessionHistory={sessionHistory} crew={groupMembers} now={nowTick} onBack={() => setView('dashboard')} onStart={() => openStartSession(tonightGame?.id)} onPause={pauseSession} onResume={resumeSession} onFinish={() => activeSession && setEndingSessionId(activeSession.id)} onPuzzle={() => tonightGame && setPuzzleGameId(tonightGame.id)} onCopyDiscord={() => copyGameNightForDiscord()} onUpdateSessionNote={updateActiveSessionNote} onEditSession={setEditingSessionId} /> : <ActivityPage activity={activity} sessions={sessions} onUndo={undoActivity} onEditSession={setEditingSessionId} />}
+        </div> : view === 'discover' ? <RecommendationsPage feed={recommendationFeed} loading={recommendationsLoading} error={recommendationsError} visible={availableRecommendations} feedback={recommendationFeedback} deals={gameDeals} onAdd={addRecommendation} onDownvote={toggleRecommendationDownvote} onRestore={restoreRecommendation} /> : view === 'calendar' ? <CalendarPage gameNights={gameNights} crew={groupMembers} currentUserId={currentUser} syncingId={calendarSyncingId} calendarError={calendarError} sharedSyncError={syncStatus === 'error'} onSchedule={(date) => { setEditingGameNightId(null); setScheduleDate(date); setShowSchedule(true) }} onEdit={(night) => { setEditingGameNightId(night.id); setScheduleDate(undefined); setShowSchedule(true) }} onAccept={acceptGameNight} onDecline={(night) => setDeclineNightId(night.id)} onSyncCalendar={syncGameNightToPersonalCalendar} onCopyDiscord={copyGameNightForDiscord} /> : view === 'tonight' ? <TonightPage game={tonightGame} event={tonightEvent} activeSession={activeSession} sessionHistory={sessionHistory} crew={groupMembers} now={nowTick} onBack={() => setView('dashboard')} onStart={() => openStartSession(tonightGame?.id)} onPause={pauseSession} onResume={resumeSession} onFinish={() => activeSession && setEndingSessionId(activeSession.id)} onPuzzle={() => tonightGame && setPuzzleGameId(tonightGame.id)} onCopyDiscord={() => copyGameNightForDiscord()} onUpdateSessionNote={updateActiveSessionNote} onEditSession={setEditingSessionId} onEditSessionNotes={setEditingSessionNotesId} /> : <ActivityPage activity={activity} sessions={sessions} onUndo={undoActivity} onEditSession={setEditingSessionId} />}
       </main>
       {mobileMenuOpen && <div className="mobile-menu-backdrop" role="presentation" onClick={() => setMobileMenuOpen(false)}><aside className="mobile-menu-sheet" role="dialog" aria-modal="true" aria-label="Checkpoint navigation" onClick={(event) => event.stopPropagation()}>
         <div className="mobile-menu-heading"><MobileBrand /><button type="button" onClick={() => setMobileMenuOpen(false)} aria-label="Close navigation menu"><X size={20} /></button></div>
@@ -2217,6 +2254,7 @@ function App() {
       {showStartSession && <SessionStartModal games={activeGames} crew={groupMembers} defaultGameId={sessionStartGameId ?? tonightGame?.id ?? playing?.id} onClose={closeStartSession} onStart={startSession} />}
       {endingSession && <SessionRecapModal session={endingSession} game={games.find((game) => game.id === endingSession.gameId)} onClose={() => setEndingSessionId(null)} onSave={finishSession} />}
       {editingSession && <SessionGameModal session={editingSession} games={activeGames} onClose={() => setEditingSessionId(null)} onSave={(gameId) => changeSessionGame(editingSession.id, gameId)} />}
+      {editingSessionNotes && <SessionNotesModal session={editingSessionNotes} onClose={() => setEditingSessionNotesId(null)} onSave={(note, nextObjective) => saveSessionNotes(editingSessionNotes.id, note, nextObjective)} />}
       {declineNightId && gameNights.find((night) => night.id === declineNightId) && <SuggestTimeModal gameNight={gameNights.find((night) => night.id === declineNightId)!} onClose={() => setDeclineNightId(null)} onSuggest={(startAt, endAt) => declineGameNight(declineNightId, startAt, endAt)} />}
       {showCrew && <CrewModal members={groupMembers} currentUserId={currentUser} googlePhotoUrl={user?.photoURL} integrationError={integrationError} onClose={() => setShowCrew(false)} onSavePhoto={saveProfileImage} onResolveSteam={resolveSteamLink} onSaveSteam={saveSteamProfile} onSaveSteamLinkPreference={saveSteamLinkPreference} />}
       {selected && <GameDetailsModal game={selected} onClose={() => setSelectedId(null)} onVote={() => vote(selected.id)} onSave={(updates) => updateGame(selected.id, updates)} onRemove={() => removeGame(selected)} onChangeGame={() => { setChangeGameId(selected.id); setSelectedId(null) }} onAddDlc={() => openAddGame(selected)} onOpenPuzzle={() => { setPuzzleGameId(selected.id); setSelectedId(null) }} onManualOwnershipChange={(memberId, owned) => updateManualOwnership(selected.id, memberId, owned)} />}
