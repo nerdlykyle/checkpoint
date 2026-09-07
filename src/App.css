@@ -679,6 +679,7 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
   .mobile-menu-heading strong { color: #f1f4f3; font-size: 16px; letter-spacing: -.35px; }
   .mobile-menu-heading > div > div > span { margin-top: 2px; color: #727e79; font-size: 8.5px; }
   .mobile-menu-heading .brand-mark { width: 32px; height: 32px; }
+  .mobile-menu-heading .brand-mark svg { transform: translateX(1.5px); }
   .mobile-menu-heading > button { width: 39px; height: 39px; padding: 0; border: 1px solid #303a3f; border-radius: 11px; background: #151b1e; color: #8f9a96; display: grid; place-items: center; cursor: pointer; }
 
   .mobile-menu-nav { display: grid; gap: 4px; }
