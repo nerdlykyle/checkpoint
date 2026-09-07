@@ -312,6 +312,10 @@ function Avatar({ id, small = false }: { id: string; small?: boolean }) {
   return <span className={`avatar ${small ? 'avatar-small' : ''}`} style={{ background: member.color }} title={member.name}>{member.photoUrl ? <img src={member.photoUrl} alt="" /> : member.initials}</span>
 }
 
+function MobileBrand() {
+  return <div className="mobile-brand"><span className="brand-mark"><Flag size={18} fill="currentColor" /></span><span>checkpoint</span></div>
+}
+
 function formatPlaytime(minutes: number) {
   if (minutes < 60) return minutes ? `${minutes}m` : 'Not played'
   const hours = minutes / 60
@@ -2161,7 +2165,7 @@ function App() {
       </aside>
 
       <main className="main-area">
-        <header className="topbar"><div className="mobile-brand"><span className="brand-mark"><Flag size={18} fill="currentColor" /></span>checkpoint</div>
+        <header className="topbar"><MobileBrand />
           <label className="search-box"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} onFocus={() => setView('library')} placeholder="Search your games" /><kbd>⌘ K</kbd></label>
           <div className="topbar-actions"><button className="icon-button notification" type="button" onClick={() => setView('activity')} aria-label="Activity history"><History size={19} />{activity.length > 0 && <span />}</button><button className="member-stack member-stack-button" type="button" onClick={() => setShowCrew(true)} aria-label="Open Checkpoint Crew">{groupMembers.map((member) => <Avatar id={member.id} small key={member.id} />)}</button><button className="button button-primary add-button" type="button" onClick={() => openAddGame()} aria-label="Add game"><Plus size={18} /><span>Add game</span></button><button className="mobile-menu-button" type="button" onClick={() => setMobileMenuOpen(true)} aria-label="Open navigation menu" aria-expanded={mobileMenuOpen}><Menu size={21} /></button></div>
         </header>
@@ -2194,7 +2198,7 @@ function App() {
         </div> : view === 'discover' ? <RecommendationsPage feed={recommendationFeed} loading={recommendationsLoading} error={recommendationsError} visible={availableRecommendations} feedback={recommendationFeedback} deals={gameDeals} onAdd={addRecommendation} onDownvote={toggleRecommendationDownvote} onRestore={restoreRecommendation} /> : view === 'calendar' ? <CalendarPage gameNights={gameNights} crew={groupMembers} currentUserId={currentUser} syncingId={calendarSyncingId} calendarError={calendarError} sharedSyncError={syncStatus === 'error'} onSchedule={(date) => { setEditingGameNightId(null); setScheduleDate(date); setShowSchedule(true) }} onEdit={(night) => { setEditingGameNightId(night.id); setScheduleDate(undefined); setShowSchedule(true) }} onAccept={acceptGameNight} onDecline={(night) => setDeclineNightId(night.id)} onSyncCalendar={syncGameNightToPersonalCalendar} onCopyDiscord={copyGameNightForDiscord} /> : view === 'tonight' ? <TonightPage game={tonightGame} event={tonightEvent} activeSession={activeSession} sessionHistory={sessionHistory} crew={groupMembers} now={nowTick} onBack={() => setView('dashboard')} onStart={() => openStartSession(tonightGame?.id)} onPause={pauseSession} onResume={resumeSession} onFinish={() => activeSession && setEndingSessionId(activeSession.id)} onPuzzle={() => tonightGame && setPuzzleGameId(tonightGame.id)} onCopyDiscord={() => copyGameNightForDiscord()} onUpdateSessionNote={updateActiveSessionNote} onEditSession={setEditingSessionId} /> : <ActivityPage activity={activity} sessions={sessions} onUndo={undoActivity} onEditSession={setEditingSessionId} />}
       </main>
       {mobileMenuOpen && <div className="mobile-menu-backdrop" role="presentation" onClick={() => setMobileMenuOpen(false)}><aside className="mobile-menu-sheet" role="dialog" aria-modal="true" aria-label="Checkpoint navigation" onClick={(event) => event.stopPropagation()}>
-        <div className="mobile-menu-heading"><div><span className="brand-mark"><Flag size={18} fill="currentColor" /></span><div><strong>checkpoint</strong><span>Where to?</span></div></div><button type="button" onClick={() => setMobileMenuOpen(false)} aria-label="Close navigation menu"><X size={20} /></button></div>
+        <div className="mobile-menu-heading"><MobileBrand /><button type="button" onClick={() => setMobileMenuOpen(false)} aria-label="Close navigation menu"><X size={20} /></button></div>
         <nav className="mobile-menu-nav" aria-label="Mobile menu">
           <button className={view === 'dashboard' ? 'active' : ''} type="button" onClick={() => { setView('dashboard'); setMobileMenuOpen(false) }}><span><LayoutDashboard size={19} /></span><strong>Home</strong></button>
           <button className={view === 'tonight' ? 'active' : ''} type="button" onClick={() => { setView('tonight'); setMobileMenuOpen(false) }}><span><MoonStar size={19} /></span><strong>Game Night</strong>{activeSession && <em>Live</em>}</button>

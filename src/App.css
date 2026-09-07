@@ -673,13 +673,6 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
   .mobile-menu-sheet { width: min(88vw,360px); height: 100vh; height: 100dvh; padding: max(18px,env(safe-area-inset-top)) max(17px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) 17px; overflow-y: auto; border-left: 1px solid #303a3f; background: #101619; box-shadow: -22px 0 55px rgba(0,0,0,.45); display: flex; flex-direction: column; animation: mobile-menu-in .2s ease both; }
   .mobile-menu-heading { min-height: 51px; margin-bottom: 13px; padding: 0 2px 13px; border-bottom: 1px solid #293236; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .mobile-menu-heading > div { min-width: 0; display: flex; align-items: center; gap: 10px; }
-  .mobile-menu-heading > div > div { min-width: 0; }
-  .mobile-menu-heading strong,
-  .mobile-menu-heading span { display: block; }
-  .mobile-menu-heading strong { color: #f1f4f3; font-size: 16px; letter-spacing: -.35px; }
-  .mobile-menu-heading > div > div > span { margin-top: 2px; color: #727e79; font-size: 8.5px; }
-  .mobile-menu-heading .brand-mark { width: 32px; height: 32px; }
-  .mobile-menu-heading .brand-mark svg { transform: translateX(1.5px); }
   .mobile-menu-heading > button { width: 39px; height: 39px; padding: 0; border: 1px solid #303a3f; border-radius: 11px; background: #151b1e; color: #8f9a96; display: grid; place-items: center; cursor: pointer; }
 
   .mobile-menu-nav { display: grid; gap: 4px; }
