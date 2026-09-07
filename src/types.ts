@@ -41,6 +41,7 @@ export type GameSession = {
   startedBy: string
   startProgress: number
   endProgress?: number
+  note?: string
   recap?: string
   nextObjective?: string
   createdAt: string

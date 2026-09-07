@@ -1414,7 +1414,7 @@ function SessionStartModal({ games, crew, defaultGameId, onClose, onStart }: { g
 
 function SessionRecapModal({ session, game, onClose, onSave }: { session: GameSession; game?: Game; onClose: () => void; onSave: (progress: number, recap: string, nextObjective: string) => void }) {
   const [progress, setProgress] = useState(game?.progress ?? session.startProgress)
-  const [recap, setRecap] = useState('')
+  const [recap, setRecap] = useState(session.note ?? '')
   const [nextObjective, setNextObjective] = useState(game?.note ?? '')
   return <div className="modal-backdrop" onMouseDown={onClose}><section className="modal recap-modal" onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-modal="true">
     <div className="modal-heading"><div><span className="eyebrow">Checkpoint reached</span><h2>Session recap</h2></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
@@ -1436,7 +1436,24 @@ function SessionGameModal({ session, games, onClose, onSave }: { session: GameSe
   </section></div>
 }
 
-function TonightPage({ game, event, activeSession, recentSession, crew, now, onBack, onStart, onPause, onResume, onFinish, onPuzzle, onCopyDiscord, onUpdateNote }: { game?: Game; event?: GameNight; activeSession?: GameSession; recentSession?: GameSession; crew: Member[]; now: number; onBack: () => void; onStart: () => void; onPause: () => void; onResume: () => void; onFinish: () => void; onPuzzle: () => void; onCopyDiscord: () => void; onUpdateNote: (note: string) => void }) {
+function SessionHistoryEntry({ session, number, crew, initiallyOpen, onEdit }: { session: GameSession; number: number; crew: Member[]; initiallyOpen: boolean; onEdit: () => void }) {
+  const [open, setOpen] = useState(initiallyOpen)
+  const participants = session.participantIds.map((id) => crew.find((member) => member.id === id)).filter((member): member is Member => Boolean(member))
+  const notes = session.note?.trim()
+  const recap = session.recap?.trim()
+  return <details className="session-history-entry" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
+    <summary><span className="session-history-number">#{number}</span><span className="session-history-summary"><strong>{session.gameTitle}</strong><small>{new Date(session.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · {new Date(session.startedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</small></span><span className="session-history-duration">{sessionDurationLabel(sessionElapsedMilliseconds(session))}</span><ChevronDown size={15} /></summary>
+    <div className="session-history-body"><div className="session-history-crew">{participants.map((member) => <Avatar id={member.id} small key={member.id} />)}<span>{participants.map((member) => member.name).join(', ') || 'Crew not recorded'}</span></div>
+      {notes && <div className="session-history-copy"><span>Session notes</span><p>{notes}</p></div>}
+      {recap && recap !== notes && <div className="session-history-copy"><span>Recap</span><p>{recap}</p></div>}
+      {!notes && !recap && <p className="session-history-empty-note">No notes were saved for this session.</p>}
+      {session.nextObjective && <div className="session-history-next"><Flag size={13} /><span><strong>Next:</strong> {session.nextObjective}</span></div>}
+      <button className="session-history-edit" type="button" onClick={onEdit}><Pencil size={13} /> Change game</button>
+    </div>
+  </details>
+}
+
+function TonightPage({ game, event, activeSession, sessionHistory, crew, now, onBack, onStart, onPause, onResume, onFinish, onPuzzle, onCopyDiscord, onUpdateSessionNote, onEditSession }: { game?: Game; event?: GameNight; activeSession?: GameSession; sessionHistory: GameSession[]; crew: Member[]; now: number; onBack: () => void; onStart: () => void; onPause: () => void; onResume: () => void; onFinish: () => void; onPuzzle: () => void; onCopyDiscord: () => void; onUpdateSessionNote: (note: string) => void; onEditSession: (sessionId: string) => void }) {
   const sessionParticipants = activeSession?.participantIds.map((id) => crew.find((member) => member.id === id)).filter((member): member is Member => Boolean(member)) ?? []
   const eventStart = event ? new Date(event.startAt) : undefined
   const eventEnd = event ? new Date(event.endAt) : undefined
@@ -1450,8 +1467,15 @@ function TonightPage({ game, event, activeSession, recentSession, crew, now, onB
         {activeSession ? <div className="live-session"><div className="live-session-label"><span className={activeSession.pausedAt ? 'paused' : ''} />{activeSession.pausedAt ? 'Paused' : 'Live session'}</div><strong>{stopwatchLabel(sessionElapsedMilliseconds(activeSession, now))}</strong><div className="live-session-crew">{sessionParticipants.map((member) => <Avatar id={member.id} small key={member.id} />)}<span>{sessionParticipants.map((member) => member.name).join(', ')}</span></div><div className="live-session-actions">{activeSession.pausedAt ? <button className="button button-light" type="button" onClick={onResume}><Play size={16} fill="currentColor" /> Resume</button> : <button className="button button-light" type="button" onClick={onPause}><Pause size={16} fill="currentColor" /> Pause</button>}<button className="button button-finish-session" type="button" onClick={onFinish}><Square size={14} fill="currentColor" /> Finish & recap</button></div></div> : countdownMilliseconds > 0 ? <div className="scheduled-countdown"><span>Starts in</span><strong>{stopwatchLabel(countdownMilliseconds)}</strong><button className="button tonight-start-button" type="button" onClick={onStart}><Play size={16} fill="currentColor" /> Start early</button></div> : <button className="button tonight-start-button" type="button" onClick={onStart}><Play size={19} fill="currentColor" /> Start session</button>}
       </div>
     </section>
-    <div className="tonight-grid"><section className="tonight-card"><div className="section-heading"><div><span className="eyebrow">Pick up here</span><h2>Shared session note</h2></div><NotebookPen size={19} /></div><textarea value={game?.note ?? ''} disabled={!game} maxLength={5000} onChange={(event) => onUpdateNote(event.target.value)} placeholder="Clues, plans, and the next objective…" /><button className="button campaign-puzzle-button" type="button" disabled={!game} onClick={onPuzzle}><Puzzle size={16} /> Open puzzle board</button></section>
-      <section className="tonight-card"><div className="section-heading"><div><span className="eyebrow">Last time</span><h2>Latest recap</h2></div><History size={19} /></div>{recentSession ? <div className="latest-recap"><span>{new Date(recentSession.endedAt || recentSession.startedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} · {sessionDurationLabel(sessionElapsedMilliseconds(recentSession))}</span><p>{recentSession.recap || 'No written recap for this session.'}</p>{recentSession.nextObjective && <div><Flag size={14} /><span><strong>Next:</strong> {recentSession.nextObjective}</span></div>}</div> : <div className="tonight-empty"><Timer size={26} /><p>Your first completed session recap will appear here.</p></div>}</section></div>
+    <div className="tonight-grid">
+      <section className="tonight-card live-session-notes"><div className="section-heading"><div><span className="eyebrow">This session</span><h2>Live session notes</h2></div><NotebookPen size={19} /></div>
+        <textarea value={activeSession?.note ?? ''} disabled={!activeSession} maxLength={5000} onChange={(event) => onUpdateSessionNote(event.target.value)} placeholder={activeSession ? 'Clues, discoveries, and moments to remember…' : 'Start a session to open a fresh shared note.'} />
+        <div className="session-note-footer"><span>{activeSession ? 'Shared live with the crew · saved with this session' : 'Every new session starts with a blank note'}</span><button className="button campaign-puzzle-button" type="button" disabled={!game} onClick={onPuzzle}><Puzzle size={16} /> Open puzzle board</button></div>
+      </section>
+      <section className="tonight-card session-history-card"><div className="section-heading"><div><span className="eyebrow">The campaign log</span><h2>Session history</h2></div><span className="session-history-count">{sessionHistory.length}</span></div>
+        {sessionHistory.length ? <div className="session-history-list">{sessionHistory.map((session, index) => <SessionHistoryEntry session={session} number={sessionHistory.length - index} crew={crew} initiallyOpen={index === 0} onEdit={() => onEditSession(session.id)} key={session.id} />)}</div> : <div className="tonight-empty"><Timer size={26} /><p>Finished sessions and their notes will appear here.</p></div>}
+      </section>
+    </div>
   </div>
 }
 
@@ -1682,6 +1706,7 @@ function App() {
   const currentUser = user?.uid ?? DEMO_USER
   const playing = games.find((game) => game.status === 'playing')
   const activeSession = sessions.find((session) => !session.endedAt)
+  const playingSession = playing && activeSession?.gameId === playing.id ? activeSession : undefined
   const todayDate = localDateValue(new Date())
   useEffect(() => {
     const hasGameNightToday = gameNights.some((night) => localDateValue(new Date(night.startAt)) === todayDate)
@@ -1709,7 +1734,7 @@ function App() {
   const tonightGame = games.find((game) => game.id === activeSession?.gameId)
     ?? games.find((game) => game.id === tonightEvent?.gameId)
     ?? playing
-  const recentTonightSession = [...sessions].filter((session) => session.gameId === tonightGame?.id && session.endedAt).sort((a, b) => (b.endedAt || '').localeCompare(a.endedAt || ''))[0]
+  const sessionHistory = [...sessions].filter((session) => session.endedAt).sort((a, b) => (b.endedAt || '').localeCompare(a.endedAt || ''))
   const loggedMilliseconds = (gameId: string) => sessions.filter((session) => session.gameId === gameId).reduce((total, session) => total + sessionElapsedMilliseconds(session, nowTick), 0)
   useEffect(() => {
     if (!tonightEvent || activeSession || !tonightEvent.gameId || autoStartingGameNightRef.current === tonightEvent.id) return
@@ -2004,6 +2029,7 @@ function App() {
       participantIds,
       startedBy: currentUser,
       startProgress: game.progress,
+      note: '',
       createdAt,
       updatedAt: createdAt,
     }
@@ -2040,6 +2066,10 @@ function App() {
     recordActivity('session-completed', `${endingSession.gameTitle} session finished · ${sessionDurationLabel(sessionElapsedMilliseconds(completed))}`, changes)
     setEndingSessionId(null)
     flash('Session recap saved')
+  }
+  function updateActiveSessionNote(note: string) {
+    if (!activeSession) return
+    setSessions((current) => current.map((session) => session.id === activeSession.id ? { ...session, note, updatedAt: new Date().toISOString() } : session))
   }
   function changeSessionGame(sessionId: string, gameId: string) {
     const before = sessions.find((session) => session.id === sessionId)
@@ -2142,7 +2172,7 @@ function App() {
             <div className="now-playing-panel"><div className="section-heading inverse"><div><span className="eyebrow">Continue playing</span><h2>Current campaign</h2></div><button className="ghost-icon" onClick={() => playing && setSelectedId(playing.id)}><MoreHorizontal size={20} /></button></div>
               {playing ? <div className="playing-content"><Cover game={playing} size="large" /><div className="playing-copy"><div className="live-pill"><span /> In progress</div><h2>{playing.title}</h2><p className="playing-meta">{playing.contentType === 'dlc' && playing.parentGameTitle ? `DLC for ${playing.parentGameTitle} · ` : ''}{[playing.genre, playing.platform, playing.year].filter(Boolean).join(' · ')}</p>
                 <div className="progress-block"><div><span>Group progress</span><strong>{playing.progress}%</strong></div><div className="progress-track"><span style={{ width: `${playing.progress}%` }} /></div></div></div>
-                <div className={`session-note ${expandedCampaignNoteId === playing.id ? 'is-open' : ''}`}><NotebookPen size={18} /><div><button className="session-note-toggle" type="button" onClick={() => setExpandedCampaignNoteId((current) => current === playing.id ? null : playing.id)} aria-expanded={expandedCampaignNoteId === playing.id}><span>Shared campaign note</span><ChevronDown size={14} /></button>{expandedCampaignNoteId === playing.id ? <textarea value={playing.note} maxLength={5000} onChange={(event) => { const note = event.target.value; setGames((current) => current.map((game) => game.id === playing.id ? { ...game, note } : game)) }} placeholder="Where did we leave off? Add clues, plans, or the next objective…" rows={4} autoFocus /> : <p>{playing.note || 'Add a shared note for the next session…'}</p>}</div></div>
+                <div className={`session-note ${expandedCampaignNoteId === playing.id ? 'is-open' : ''}`}><NotebookPen size={18} /><div><button className="session-note-toggle" type="button" onClick={() => setExpandedCampaignNoteId((current) => current === playing.id ? null : playing.id)} aria-expanded={expandedCampaignNoteId === playing.id}><span>{playingSession ? 'Live session notes' : 'Shared campaign note'}</span><ChevronDown size={14} /></button>{expandedCampaignNoteId === playing.id ? <textarea value={playingSession?.note ?? playing.note} maxLength={5000} onChange={(event) => { const note = event.target.value; if (playingSession) updateActiveSessionNote(note); else setGames((current) => current.map((game) => game.id === playing.id ? { ...game, note } : game)) }} placeholder={playingSession ? 'Clues, discoveries, and moments to remember…' : 'Where did we leave off? Add clues, plans, or the next objective…'} rows={4} autoFocus /> : <p>{playingSession ? playingSession.note || 'Add notes for this session…' : playing.note || 'Add a shared note for the next session…'}</p>}</div></div>
                 <div className="playing-actions"><button className="button button-light" onClick={() => activeSession ? setView('tonight') : openStartSession(playing.id)}>{activeSession ? <Timer size={17} /> : <Play size={17} fill="currentColor" />} {activeSession ? 'Open live session' : 'Start session'}</button><button className="button campaign-puzzle-button" type="button" onClick={() => setPuzzleGameId(playing.id)}><Puzzle size={16} /> Puzzle Board</button><button className="button button-dark-ghost" onClick={() => setSelectedId(playing.id)}>View details</button></div>
               </div> : <button className="empty-playing" onClick={() => openAddGame()}><Plus size={24} /> Choose a game to start</button>}
               <div className="playing-footer"><div className="member-stack inverse-stack">{groupMembers.map((member) => <Avatar id={member.id} small key={member.id} />)}</div><span>{playing ? 'Crew campaign' : 'Ready when you are'}</span><div className="footer-spacer" />{playing && <><Clock3 size={16} /><span>{((playing.hours ?? 0) + loggedMilliseconds(playing.id) / 3_600_000).toFixed(1).replace('.0', '')} hours logged</span></>}</div>
@@ -2161,7 +2191,7 @@ function App() {
           <div className="filter-tabs">{([['all', 'All games'], ...Object.entries(statusLabels)] as [GameStatus | 'all', string][]).map(([value, label]) => <button key={value} className={libraryFilter === value ? 'active' : ''} onClick={() => setLibraryFilter(value)}>{label}<span>{value === 'all' ? activeGames.length : games.filter((game) => game.status === value).length}</span></button>)}</div>
           <div className="smart-filters"><span><ListFilter size={14} /> Steam & prices</span>{([['any', 'Any ownership'], ['everyone-owns', 'Everyone owns'], ['needs-copy', 'Someone needs it'], ['on-sale', 'On sale'], ['free', 'Free to play']] as [SmartFilter, string][]).map(([value, label]) => <button type="button" key={value} className={smartFilter === value ? 'active' : ''} onClick={() => setSmartFilter(value)}>{label}</button>)}{integrationsLoading && <RefreshCw className="spin" size={14} />}</div>
           {filteredGames.length ? <div className="library-grid">{filteredGames.map((game) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} onVote={() => vote(game.id)} onArchive={() => archiveWishlistGame(game)} onRestore={() => restoreArchivedGame(game)} />)}</div> : <div className="empty-state"><Search size={28} /><h2>No games found</h2><p>Try another search or add a new game.</p><button className="button button-primary" onClick={() => openAddGame()}>Add game</button></div>}
-        </div> : view === 'discover' ? <RecommendationsPage feed={recommendationFeed} loading={recommendationsLoading} error={recommendationsError} visible={availableRecommendations} feedback={recommendationFeedback} deals={gameDeals} onAdd={addRecommendation} onDownvote={toggleRecommendationDownvote} onRestore={restoreRecommendation} /> : view === 'calendar' ? <CalendarPage gameNights={gameNights} crew={groupMembers} currentUserId={currentUser} syncingId={calendarSyncingId} calendarError={calendarError} sharedSyncError={syncStatus === 'error'} onSchedule={(date) => { setEditingGameNightId(null); setScheduleDate(date); setShowSchedule(true) }} onEdit={(night) => { setEditingGameNightId(night.id); setScheduleDate(undefined); setShowSchedule(true) }} onAccept={acceptGameNight} onDecline={(night) => setDeclineNightId(night.id)} onSyncCalendar={syncGameNightToPersonalCalendar} onCopyDiscord={copyGameNightForDiscord} /> : view === 'tonight' ? <TonightPage game={tonightGame} event={tonightEvent} activeSession={activeSession} recentSession={recentTonightSession} crew={groupMembers} now={nowTick} onBack={() => setView('dashboard')} onStart={() => openStartSession(tonightGame?.id)} onPause={pauseSession} onResume={resumeSession} onFinish={() => activeSession && setEndingSessionId(activeSession.id)} onPuzzle={() => tonightGame && setPuzzleGameId(tonightGame.id)} onCopyDiscord={() => copyGameNightForDiscord()} onUpdateNote={(note) => tonightGame && setGames((current) => current.map((game) => game.id === tonightGame.id ? { ...game, note } : game))} /> : <ActivityPage activity={activity} sessions={sessions} onUndo={undoActivity} onEditSession={setEditingSessionId} />}
+        </div> : view === 'discover' ? <RecommendationsPage feed={recommendationFeed} loading={recommendationsLoading} error={recommendationsError} visible={availableRecommendations} feedback={recommendationFeedback} deals={gameDeals} onAdd={addRecommendation} onDownvote={toggleRecommendationDownvote} onRestore={restoreRecommendation} /> : view === 'calendar' ? <CalendarPage gameNights={gameNights} crew={groupMembers} currentUserId={currentUser} syncingId={calendarSyncingId} calendarError={calendarError} sharedSyncError={syncStatus === 'error'} onSchedule={(date) => { setEditingGameNightId(null); setScheduleDate(date); setShowSchedule(true) }} onEdit={(night) => { setEditingGameNightId(night.id); setScheduleDate(undefined); setShowSchedule(true) }} onAccept={acceptGameNight} onDecline={(night) => setDeclineNightId(night.id)} onSyncCalendar={syncGameNightToPersonalCalendar} onCopyDiscord={copyGameNightForDiscord} /> : view === 'tonight' ? <TonightPage game={tonightGame} event={tonightEvent} activeSession={activeSession} sessionHistory={sessionHistory} crew={groupMembers} now={nowTick} onBack={() => setView('dashboard')} onStart={() => openStartSession(tonightGame?.id)} onPause={pauseSession} onResume={resumeSession} onFinish={() => activeSession && setEndingSessionId(activeSession.id)} onPuzzle={() => tonightGame && setPuzzleGameId(tonightGame.id)} onCopyDiscord={() => copyGameNightForDiscord()} onUpdateSessionNote={updateActiveSessionNote} onEditSession={setEditingSessionId} /> : <ActivityPage activity={activity} sessions={sessions} onUndo={undoActivity} onEditSession={setEditingSessionId} />}
       </main>
       {mobileMenuOpen && <div className="mobile-menu-backdrop" role="presentation" onClick={() => setMobileMenuOpen(false)}><aside className="mobile-menu-sheet" role="dialog" aria-modal="true" aria-label="Checkpoint navigation" onClick={(event) => event.stopPropagation()}>
         <div className="mobile-menu-heading"><div><span className="brand-mark"><Flag size={18} fill="currentColor" /></span><div><strong>checkpoint</strong><span>Where to?</span></div></div><button type="button" onClick={() => setMobileMenuOpen(false)} aria-label="Close navigation menu"><X size={20} /></button></div>

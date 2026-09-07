@@ -601,6 +601,36 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
 .scheduled-countdown > strong { color: #f1f4f2; font-size: clamp(38px,5vw,58px); font-weight: 850; letter-spacing: -.05em; line-height: 1; font-variant-numeric: tabular-nums; }
 .scheduled-countdown .tonight-start-button { min-height: 42px; margin-top: 0; padding: 0 15px; font-size: 10px; }
 .tonight-grid { margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }.tonight-card { min-width: 0; min-height: 270px; padding: 21px; border: 1px solid var(--line); border-radius: 17px; background: var(--card); }.tonight-card textarea { width: 100%; min-height: 118px; margin: 12px 0; resize: vertical; padding: 12px; border: 1px solid #303a3f; border-radius: 11px; outline: none; background: #0d1315; color: var(--ink); font: inherit; font-size: 10px; line-height: 1.55; }.tonight-card textarea:focus { border-color: #7165df; }.tonight-card textarea:disabled { opacity: .45; }
+.live-session-notes { display: flex; flex-direction: column; }
+.live-session-notes textarea { min-height: 180px; flex: 1; }
+.session-note-footer { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.session-note-footer > span { max-width: 260px; color: #74807b; font-size: 8.5px; line-height: 1.45; }
+.session-note-footer .button { flex: 0 0 auto; }
+.session-history-card { min-height: 360px; }
+.session-history-count { min-width: 28px; height: 28px; padding: 0 8px; border: 1px solid #3b3654; border-radius: 9px; background: #24203b; color: #aaa1ec; display: grid; place-items: center; font-size: 9px; font-weight: 850; }
+.session-history-list { max-height: 410px; margin-top: 10px; padding-right: 4px; overflow-y: auto; display: grid; gap: 8px; scrollbar-width: thin; scrollbar-color: #3f4650 transparent; }
+.session-history-entry { border: 1px solid #2d363a; border-radius: 12px; background: #101619; overflow: hidden; }
+.session-history-entry summary { min-width: 0; min-height: 62px; padding: 10px 11px; list-style: none; display: grid; grid-template-columns: 28px minmax(0,1fr) auto 16px; align-items: center; gap: 9px; cursor: pointer; }
+.session-history-entry summary::-webkit-details-marker { display: none; }
+.session-history-entry summary > svg { color: #7066c4; transition: transform .18s ease; }
+.session-history-entry[open] summary > svg { transform: rotate(180deg); }
+.session-history-number { color: #7066c4; font-size: 8.5px; font-weight: 850; }
+.session-history-summary { min-width: 0; }
+.session-history-summary strong,.session-history-summary small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.session-history-summary strong { color: #dfe4e2; font-size: 10.5px; }
+.session-history-summary small { margin-top: 4px; color: #75817d; font-size: 8px; }
+.session-history-duration { color: #a69def; font-size: 9px; font-weight: 800; white-space: nowrap; }
+.session-history-body { padding: 0 12px 12px 49px; border-top: 1px solid #252e32; }
+.session-history-crew { min-height: 42px; display: flex; align-items: center; }
+.session-history-crew .avatar + .avatar { margin-left: -5px; }
+.session-history-crew > span { margin-left: 9px; color: #87938e; font-size: 8.5px; }
+.session-history-copy { margin-bottom: 10px; }
+.session-history-copy > span { color: #7e75cb; font-size: 7.5px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }
+.session-history-copy p,.session-history-empty-note { margin: 4px 0 0; color: #bac3bf; font-size: 9.5px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.session-history-empty-note { margin-bottom: 10px; color: #65716d; font-style: italic; }
+.session-history-next { margin: 9px 0; padding: 9px; border: 1px solid #393351; border-radius: 9px; background: #1a1827; color: #aaa1ec; display: flex; align-items: flex-start; gap: 7px; font-size: 8.5px; line-height: 1.45; }
+.session-history-next svg { flex: 0 0 auto; }
+.session-history-edit { min-height: 30px; padding: 0 9px; border: 1px solid #365b50; border-radius: 8px; background: #172821; color: #83c5a6; display: inline-flex; align-items: center; gap: 5px; font: inherit; font-size: 8px; font-weight: 750; cursor: pointer; }
 .latest-recap > span { color: #7c8884; font-size: 9px; }.latest-recap > p { margin: 13px 0; color: #bdc6c2; font-size: 11px; line-height: 1.65; white-space: pre-wrap; }.latest-recap > div { padding: 10px; border: 1px solid #393351; border-radius: 10px; background: #1a1827; color: #aaa1ec; display: flex; align-items: flex-start; gap: 7px; font-size: 9px; line-height: 1.5; }.latest-recap > div svg { flex: 0 0 auto; }.tonight-empty { min-height: 145px; color: #64716c; display: grid; place-items: center; align-content: center; gap: 8px; text-align: center; }.tonight-empty p { max-width: 260px; margin: 0; font-size: 9px; line-height: 1.5; }
 
 .calendar-copy-discord { padding: 0; border: 0; background: transparent; color: #8d83e7; display: inline-flex; align-items: center; gap: 4px; font-size: 8px; cursor: pointer; }
@@ -611,7 +641,7 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
   .session-participants > div { grid-template-columns: 1fr; }
   .tonight-page { padding-bottom: 92px; }.tonight-topbar { grid-template-columns: 1fr auto; }.tonight-topbar > div { display: none; }.discord-copy-button { padding: 0 10px; font-size: 8px; }
   .tonight-hero { min-height: 0; padding: 20px; grid-template-columns: 96px minmax(0,1fr); align-items: start; gap: 18px; border-radius: 18px; }.tonight-art .game-cover { max-height: 160px; }.tonight-main h1 { margin-top: 5px; font-size: clamp(27px,9vw,42px); }.tonight-schedule { align-items: flex-start; font-size: 9px; line-height: 1.45; }.live-session { grid-column: 1 / -1; margin-top: 20px; }.live-session > strong { font-size: clamp(40px,14vw,62px); }.tonight-start-button { min-height: 43px; margin-top: 18px; padding: 0 14px; font-size: 10px; }
-  .tonight-grid { grid-template-columns: 1fr; }.tonight-card { min-height: 0; }
+  .tonight-grid { grid-template-columns: 1fr; }.tonight-card { min-height: 0; }.live-session-notes textarea { min-height: 150px; }.session-note-footer { align-items: stretch; flex-direction: column; }.session-note-footer > span { max-width: none; }.session-note-footer .button { width: 100%; justify-content: center; }.session-history-list { max-height: none; }.session-history-body { padding-left: 12px; }
   .activity-entry { grid-template-columns: 32px minmax(0,1fr); }.activity-icon { width: 32px; height: 32px; }.activity-actions { grid-column: 2; justify-self: start; flex-wrap: wrap; }
   .calendar-copy-discord { margin-left: 0 !important; }
 }
