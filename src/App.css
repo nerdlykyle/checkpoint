@@ -493,6 +493,7 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
 .steam-store-button { height: 32px; padding: 0 10px; border: 1px solid #315469; border-radius: 9px; background: #15252e; color: #79c8ed; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 10px; font-weight: 750; }
 .steam-store-button:hover { border-color: #4f7f99; background: #1a303c; color: #a4dcf5; }
 .change-game-button { height: 32px; padding: 0 10px; border: 1px solid #554d7b; border-radius: 9px; background: #211e35; color: #aea4f4; display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 750; cursor: pointer; }.change-game-button:hover { border-color: #766be0; background: #2b2647; color: #d0caff; }
+.refresh-artwork-button { height: 32px; padding: 0 10px; border: 1px solid #3c5a50; border-radius: 9px; background: #172821; color: #83c5a6; display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 750; cursor: pointer; }.refresh-artwork-button:hover { border-color: #4e806e; background: #1b342b; color: #a3dec2; }
 .mobile-remove-game { display: none; }
 .change-game-modal { width: min(570px,100%); }.change-game-note { margin-top: 18px; padding: 13px; border: 1px solid #303a3f; border-radius: 11px; background: #101619; color: #9186ec; display: flex; align-items: flex-start; gap: 9px; }.change-game-note > svg { flex: 0 0 auto; margin-top: 1px; }.change-game-note p, .change-game-note strong, .change-game-note span { display: block; }.change-game-note p { margin: 0; }.change-game-note strong { color: #cbd1ce; font-size: 10px; }.change-game-note span { margin-top: 4px; color: #7f8b87; font-size: 8.5px; line-height: 1.45; }
 .crew-modal { width: min(570px,100%); }
@@ -638,6 +639,11 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
 .session-objective-edit { margin-bottom: 14px; }
 .session-objective-edit .field-full { margin-bottom: 6px; }
 .session-objective-clear { min-height: 30px; padding: 0; border: 0; background: transparent; color: #d48787; display: inline-flex; align-items: center; gap: 5px; font: inherit; font-size: 9px; font-weight: 750; cursor: pointer; }
+.artwork-refresh-modal { width: min(620px,100%); }
+.artwork-refresh-intro { margin: -7px 0 18px; color: #87928e; font-size: 10px; line-height: 1.55; }
+.artwork-refresh-results { max-height: 330px; padding: 6px; overflow-y: auto; border: 1px solid #303a3f; border-radius: 12px; background: #0f1517; }
+.artwork-refresh-results .game-search-result.selected { background: #24203d; box-shadow: inset 0 0 0 1px #665bd1; }
+.artwork-refresh-error { margin: 10px 0 -10px; color: #ef8b82; font-size: 9.5px; line-height: 1.45; }
 .latest-recap > span { color: #7c8884; font-size: 9px; }.latest-recap > p { margin: 13px 0; color: #bdc6c2; font-size: 11px; line-height: 1.65; white-space: pre-wrap; }.latest-recap > div { padding: 10px; border: 1px solid #393351; border-radius: 10px; background: #1a1827; color: #aaa1ec; display: flex; align-items: flex-start; gap: 7px; font-size: 9px; line-height: 1.5; }.latest-recap > div svg { flex: 0 0 auto; }.tonight-empty { min-height: 145px; color: #64716c; display: grid; place-items: center; align-content: center; gap: 8px; text-align: center; }.tonight-empty p { max-width: 260px; margin: 0; font-size: 9px; line-height: 1.5; }
 
 .calendar-copy-discord { padding: 0; border: 0; background: transparent; color: #8d83e7; display: inline-flex; align-items: center; gap: 4px; font-size: 8px; cursor: pointer; }

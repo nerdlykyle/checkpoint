@@ -136,6 +136,7 @@ export type Game = {
   genre?: string
   coverMark: string
   coverUrl?: string
+  artworkUpdatedAt?: string
   steamAppId?: string
   catalogId?: string
   catalogSource?: 'steam'

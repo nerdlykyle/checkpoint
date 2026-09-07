@@ -48,3 +48,15 @@ export async function loadGameAchievements(boardId: string, steamIds: string[], 
   })}`, signal)
   return result.achievements
 }
+
+export type SteamArtwork = {
+  steamAppId: string
+  title: string
+  coverUrl: string
+  thumbnailUrl: string
+  contentType: 'game' | 'dlc'
+}
+
+export async function loadSteamArtwork(boardId: string, appId: string, signal?: AbortSignal) {
+  return requestJson<SteamArtwork>(`/steam/artwork?${query(boardId, { appId })}`, signal)
+}

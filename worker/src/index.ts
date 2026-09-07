@@ -5,6 +5,7 @@ interface Env {
 }
 
 const STEAM_API = 'https://api.steampowered.com'
+const STEAM_STORE_API = 'https://store.steampowered.com/api/appdetails'
 
 function allowedOrigin(request: Request, env: Env) {
   const origin = request.headers.get('Origin') || ''
@@ -144,6 +145,27 @@ async function achievementSnapshot(env: Env, steamIds: string[], appId: string) 
   return { achievements }
 }
 
+async function steamArtwork(appId: string) {
+  const url = new URL(STEAM_STORE_API)
+  url.searchParams.set('appids', appId)
+  url.searchParams.set('l', 'english')
+  const response = await fetch(url, { headers: { Accept: 'application/json' } })
+  if (!response.ok) throw new Error('steam_unavailable')
+  const raw = await response.json() as Record<string, { success?: boolean; data?: Record<string, unknown> }>
+  const entry = raw[appId]
+  const data = entry?.data
+  if (!entry?.success || !data) throw new Error('steam_game_not_found')
+  const coverUrl = String(data.header_image || data.capsule_image || '')
+  if (!coverUrl) throw new Error('steam_artwork_not_found')
+  return {
+    steamAppId: appId,
+    title: String(data.name || `Steam app ${appId}`),
+    coverUrl,
+    thumbnailUrl: String(data.capsule_image || data.capsule_imagev5 || coverUrl),
+    contentType: data.type === 'dlc' ? 'dlc' : 'game',
+  }
+}
+
 async function handleRequest(request: Request, env: Env) {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: responseHeaders(request, env) })
   if (request.method !== 'GET') return json(request, env, { error: 'method_not_allowed' }, 405)
@@ -167,10 +189,15 @@ async function handleRequest(request: Request, env: Env) {
       if (!steamIds.length || !appId) throw new Error('invalid_request')
       return json(request, env, await achievementSnapshot(env, steamIds, appId))
     }
+    if (url.pathname === '/steam/artwork') {
+      const appId = parseIds(url.searchParams.get('appId'), 1)[0]
+      if (!appId) throw new Error('invalid_request')
+      return json(request, env, await steamArtwork(appId))
+    }
     return json(request, env, { error: 'not_found' }, 404)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'service_unavailable'
-    const status = message.startsWith('invalid_') ? 400 : message === 'steam_unconfigured' ? 503 : 502
+    const status = message.startsWith('invalid_') ? 400 : message === 'steam_game_not_found' || message === 'steam_artwork_not_found' ? 404 : message === 'steam_unconfigured' ? 503 : 502
     return json(request, env, { error: message }, status)
   }
 }

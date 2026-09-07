@@ -16,7 +16,7 @@ import { firebaseConfigured, signInWithGoogle, signOut, watchAuth } from './lib/
 import { parseSteamStoreLink, resolveSteamStoreLink, searchGames, type GameSearchResult } from './lib/gameSearch'
 import { connectBoard, getBoardId, getExistingPersona, type BoardConnection, type SteamProfile } from './lib/sharedBoard'
 import { connectPuzzle, createEmptyPuzzleBoard, createPuzzlePage, normalizePuzzleBoard, type PuzzleConnection } from './lib/sharedPuzzle'
-import { gameIntegrationsConfigured, loadGameAchievements, loadSteamCrew, resolveSteamProfile } from './lib/gameIntegrations'
+import { gameIntegrationsConfigured, loadGameAchievements, loadSteamArtwork, loadSteamCrew, resolveSteamProfile } from './lib/gameIntegrations'
 import { loadCheapSharkDeals } from './lib/cheapShark'
 import { manualOwnershipFor, ownershipForGame } from './lib/ownership'
 import { syncGameNightToGoogleCalendar } from './lib/googleCalendar'
@@ -36,6 +36,16 @@ const LEGACY_PLACEHOLDER_IDS = new Set([
   'hades-ii', 'blue-prince', 'silksong', 'it-takes-two',
 ])
 const LEGACY_REMNANT_TITLES = new Set(['remnant', 'remnant ii', 'remnant 2'])
+const KNOWN_STEAM_GAME_FIXES: Record<string, { steamAppId: string; coverUrl: string }> = {
+  'far far west': {
+    steamAppId: '3124540',
+    coverUrl: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3124540/0025da69cb122183a4854ae02580360782a2b58f/header_alt_assets_5.jpg?t=1787841818',
+  },
+  'lort': {
+    steamAppId: '2956680',
+    coverUrl: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2956680/3229e842e20f4e26cbebb4fec8451ab12d55915b/header_alt_assets_4.jpg?t=1787666774',
+  },
+}
 type View = 'dashboard' | 'library' | 'discover' | 'calendar' | 'tonight' | 'activity'
 type SyncStatus = 'local' | 'connecting' | 'live' | 'error'
 type SmartFilter = 'any' | 'everyone-owns' | 'needs-copy' | 'on-sale' | 'free'
@@ -89,7 +99,17 @@ function safeGameLinks(value: unknown): GameLink[] {
 }
 
 function migrateLegacyGame(game: Game): Game {
-  return (game.status as string) === 'maybe' ? { ...game, status: 'wishlist' } : game
+  const migrated = (game.status as string) === 'maybe' ? { ...game, status: 'wishlist' as GameStatus } : game
+  const fix = KNOWN_STEAM_GAME_FIXES[migrated.title.trim().toLocaleLowerCase()]
+  if (!fix || migrated.artworkUpdatedAt) return migrated
+  return {
+    ...migrated,
+    coverUrl: fix.coverUrl,
+    steamAppId: fix.steamAppId,
+    catalogId: fix.steamAppId,
+    catalogSource: 'steam',
+    contentType: migrated.contentType ?? 'game',
+  }
 }
 
 const CurrentUserContext = createContext(DEMO_USER)
@@ -216,12 +236,14 @@ function cleanRemoteGames(games: Game[]) {
 
 function directArtworkUrls(game?: Game) {
   if (!game) return []
-  const steamUrls = game.steamAppId ? [
+  const baseUrls: string[] = game.coverUrl ? [game.coverUrl] : []
+  if (game.steamAppId) baseUrls.push(
     `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${game.steamAppId}/library_600x900_2x.jpg`,
     `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${game.steamAppId}/library_600x900.jpg`,
     `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${game.steamAppId}/header.jpg`,
-  ] : []
-  return [...new Set([...steamUrls, game.coverUrl].filter((url): url is string => Boolean(url)))]
+  )
+  const revision = game.artworkUpdatedAt ? encodeURIComponent(game.artworkUpdatedAt) : ''
+  return [...new Set(baseUrls.map((url) => revision ? `${url}${url.includes('?') ? '&' : '?'}checkpoint=${revision}` : url))]
 }
 
 function gameArtworkUrls(game: Game, games: Game[]) {
@@ -294,7 +316,7 @@ function Cover({ game, size = 'medium' }: { game: Game; size?: 'small' | 'medium
   return (
     <div className={`game-cover cover-${size}`} style={style} aria-hidden="true">
       <span className="cover-orbit" /><span className="cover-mark">{game.coverMark}</span>
-      {artworkUrls[0] && <img className="game-cover-image" src={artworkUrls[0]} alt="" data-art-index="0" onError={(event) => {
+      {artworkUrls[0] && <img key={game.artworkUpdatedAt ?? `${game.steamAppId ?? ''}:${game.coverUrl ?? ''}`} className="game-cover-image" src={artworkUrls[0]} alt="" data-art-index="0" onError={(event) => {
         const nextIndex = Number(event.currentTarget.dataset.artIndex ?? '0') + 1
         const nextUrl = artworkUrls[nextIndex]
         if (!nextUrl) { event.currentTarget.style.display = 'none'; return }
@@ -1120,6 +1142,79 @@ function ChangeGameModal({ game, onClose, onChange }: { game: Game; onClose: () 
   </section></div>
 }
 
+function ArtworkRefreshModal({ game, onClose, onRefresh }: { game: Game; onClose: () => void; onRefresh: (match: GameSearchResult) => Promise<void> }) {
+  const { boardId } = useContext(IntegrationsContext)
+  const [query, setQuery] = useState(game.title)
+  const [results, setResults] = useState<GameSearchResult[]>([])
+  const [selected, setSelected] = useState<GameSearchResult | null>(null)
+  const [searching, setSearching] = useState(true)
+  const [searchFailed, setSearchFailed] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const cleanQuery = query.trim()
+    if (cleanQuery.length < 2) { setResults([]); setSelected(null); setSearching(false); return }
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => {
+      setSearching(true)
+      setSearchFailed(false)
+      setSelected(null)
+      const storeLink = parseSteamStoreLink(cleanQuery)
+      const directAppId = game.steamAppId && cleanQuery === game.title ? game.steamAppId : storeLink ? String(storeLink.appId) : ''
+      const knownFix = Object.entries(KNOWN_STEAM_GAME_FIXES).find(([, fix]) => fix.steamAppId === directAppId)
+      const fallbackResult: GameSearchResult | null = directAppId ? {
+        catalogId: directAppId,
+        steamAppId: directAppId,
+        title: knownFix?.[0].split(' ').map((word) => word === 'lort' ? 'LORT' : word[0].toUpperCase() + word.slice(1)).join(' ') || game.title,
+        coverUrl: knownFix?.[1].coverUrl || `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${directAppId}/library_600x900_2x.jpg`,
+        thumbnailUrl: knownFix?.[1].coverUrl || `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${directAppId}/header.jpg`,
+        contentType: game.contentType ?? 'game',
+      } : null
+      const request = directAppId
+        ? loadSteamArtwork(boardId, directAppId, controller.signal)
+          .then((artwork) => [{ ...artwork, catalogId: artwork.steamAppId }])
+          .catch((error: unknown) => {
+            if (error instanceof DOMException && error.name === 'AbortError') throw error
+            return fallbackResult ? [fallbackResult] : []
+          })
+        : searchGames(cleanQuery, controller.signal, game.contentType ?? 'game')
+      request.then((matches) => {
+        setResults(matches)
+        if (matches.length === 1) setSelected(matches[0])
+      }).catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return
+        setSearchFailed(true)
+        setResults([])
+      }).finally(() => setSearching(false))
+    }, parseSteamStoreLink(cleanQuery) ? 40 : 220)
+    return () => { window.clearTimeout(timer); controller.abort() }
+  }, [boardId, game.contentType, game.steamAppId, game.title, query])
+
+  async function saveArtwork() {
+    if (!selected || saving) return
+    setSaving(true)
+    setSaveError(null)
+    try { await onRefresh(selected) }
+    catch (error) { setSaveError(error instanceof Error ? error.message : 'Steam artwork could not be refreshed.') }
+    finally { setSaving(false) }
+  }
+
+  return <div className="modal-backdrop" onMouseDown={onClose}><section className="modal artwork-refresh-modal" onMouseDown={(event) => event.stopPropagation()} aria-modal="true" role="dialog">
+    <div className="modal-heading"><div><span className="eyebrow">Game artwork</span><h2>Refresh {game.title}</h2></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
+    <p className="artwork-refresh-intro">Choose the correct Steam result. Checkpoint will update only its artwork and Steam match—your game progress and history stay intact.</p>
+    <label className="field field-full"><span>Game title or Steam store link</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search Steam or paste a store page" autoComplete="off" autoFocus /></label>
+    <div className="artwork-refresh-results">
+      {searching && <div className="game-search-message">Searching Steam artwork…</div>}
+      {!searching && searchFailed && <div className="game-search-message">Steam search is unavailable right now. Try again in a moment.</div>}
+      {!searching && !searchFailed && results.map((result) => <button className={selected?.catalogId === result.catalogId ? 'game-search-result selected' : 'game-search-result'} type="button" key={result.catalogId} onClick={() => setSelected(result)}><span className="result-cover"><Gamepad2 size={16} /><img src={result.thumbnailUrl} alt="" data-fallback={result.coverUrl} onError={(event) => { const fallback = event.currentTarget.dataset.fallback; if (fallback && event.currentTarget.src !== fallback) { event.currentTarget.src = fallback; return } event.currentTarget.style.display = 'none' }} /></span><span><strong>{result.title}</strong><small>Steam {result.contentType === 'dlc' ? 'DLC' : 'game'} · AppID {result.steamAppId}</small></span>{selected?.catalogId === result.catalogId ? <Check size={16} /> : <ImagePlus size={16} />}</button>)}
+      {!searching && !searchFailed && !results.length && <div className="game-search-message">No matching Steam artwork found. Try the full game title or paste its exact Steam store link.</div>}
+    </div>
+    {saveError && <p className="artwork-refresh-error">{saveError}</p>}
+    <div className="modal-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="button" disabled={!selected || saving} onClick={saveArtwork}><RefreshCw className={saving ? 'spin' : ''} size={16} /> {saving ? 'Refreshing…' : 'Use this artwork'}</button></div>
+  </section></div>
+}
+
 function SteamGamePanel({ game, onManualOwnershipChange }: { game: Game; onManualOwnershipChange: (memberId: string, owned: boolean | undefined) => void }) {
   const crew = useContext(MembersContext)
   const { boardId, steam, deals, loading, error } = useContext(IntegrationsContext)
@@ -1161,7 +1256,7 @@ function SteamGamePanel({ game, onManualOwnershipChange }: { game: Game; onManua
   </section>
 }
 
-function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onChangeGame, onAddDlc, onOpenPuzzle, onManualOwnershipChange }: { game: Game; onClose: () => void; onSave: (updates: Partial<Game>) => void; onVote: () => void; onRemove: () => void; onChangeGame: () => void; onAddDlc: () => void; onOpenPuzzle: () => void; onManualOwnershipChange: (memberId: string, owned: boolean | undefined) => void }) {
+function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onChangeGame, onRefreshArtwork, onAddDlc, onOpenPuzzle, onManualOwnershipChange }: { game: Game; onClose: () => void; onSave: (updates: Partial<Game>) => void; onVote: () => void; onRemove: () => void; onChangeGame: () => void; onRefreshArtwork: () => void; onAddDlc: () => void; onOpenPuzzle: () => void; onManualOwnershipChange: (memberId: string, owned: boolean | undefined) => void }) {
   const currentUser = useContext(CurrentUserContext)
   const crew = useContext(MembersContext)
   const steamLinkPreference = crew.find((member) => member.id === currentUser)?.steamLinkPreference ?? 'auto'
@@ -1194,7 +1289,7 @@ function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onChangeGam
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <section className="modal details-modal" onMouseDown={(event) => event.stopPropagation()} aria-modal="true" role="dialog">
-        <div className="details-hero"><Cover game={game} size="large" /><div className="details-title"><div className="details-pills"><span className="status-pill">{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="content-pill"><Puzzle size={10} /> DLC</span>}</div><h2>{game.title}</h2><p>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle} · ` : ''}{[game.year, game.genre, game.platform].filter(Boolean).join(' · ')}</p><div className="details-quick-actions"><VoteButton game={game} onVote={onVote} /><button className="change-game-button" type="button" onClick={onChangeGame}><RefreshCw size={14} /> Change game</button><button className="mobile-remove-game" type="button" onClick={onRemove}><Trash2 size={14} /> Remove game</button>{game.steamAppId && <a className="steam-store-button" href={steamStoreHref(game.steamAppId, steamLinkPreference)}><Gamepad2 size={14} /> Open in Steam</a>}<button className="puzzle-board-button" type="button" onClick={onOpenPuzzle}><Pencil size={14} /> Puzzle Board</button>{game.contentType !== 'dlc' && <button className="add-dlc-button" type="button" onClick={onAddDlc}><Puzzle size={14} /> Add DLC</button>}</div></div><button className="icon-button details-close" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
+        <div className="details-hero"><Cover game={game} size="large" /><div className="details-title"><div className="details-pills"><span className="status-pill">{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="content-pill"><Puzzle size={10} /> DLC</span>}</div><h2>{game.title}</h2><p>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle} · ` : ''}{[game.year, game.genre, game.platform].filter(Boolean).join(' · ')}</p><div className="details-quick-actions"><VoteButton game={game} onVote={onVote} /><button className="refresh-artwork-button" type="button" onClick={onRefreshArtwork}><ImagePlus size={14} /> Refresh artwork</button><button className="change-game-button" type="button" onClick={onChangeGame}><RefreshCw size={14} /> Change game</button><button className="mobile-remove-game" type="button" onClick={onRemove}><Trash2 size={14} /> Remove game</button>{game.steamAppId && <a className="steam-store-button" href={steamStoreHref(game.steamAppId, steamLinkPreference)}><Gamepad2 size={14} /> Open in Steam</a>}<button className="puzzle-board-button" type="button" onClick={onOpenPuzzle}><Pencil size={14} /> Puzzle Board</button>{game.contentType !== 'dlc' && <button className="add-dlc-button" type="button" onClick={onAddDlc}><Puzzle size={14} /> Add DLC</button>}</div></div><button className="icon-button details-close" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
         <form onSubmit={save} className="details-form">
           <div className="form-grid">
             <label className="field"><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value as GameStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
@@ -1542,6 +1637,7 @@ function App() {
   const [expandedCampaignNoteId, setExpandedCampaignNoteId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [changeGameId, setChangeGameId] = useState<string | null>(null)
+  const [artworkGameId, setArtworkGameId] = useState<string | null>(null)
   const [showStartSession, setShowStartSession] = useState(false)
   const [sessionStartGameId, setSessionStartGameId] = useState<string | null>(null)
   const [endingSessionId, setEndingSessionId] = useState<string | null>(null)
@@ -1746,6 +1842,7 @@ function App() {
   }, [games, recommendationFeed, recommendationFeedback])
   const selected = games.find((game) => game.id === selectedId)
   const changeGame = games.find((game) => game.id === changeGameId)
+  const artworkGame = games.find((game) => game.id === artworkGameId)
   const editingGameNight = gameNights.find((night) => night.id === editingGameNightId)
   const puzzleGame = games.find((game) => game.id === puzzleGameId)
   const endingSession = sessions.find((session) => session.id === endingSessionId)
@@ -1929,6 +2026,23 @@ function App() {
     if (updates.title) setGameNights((current) => current.map((night) => night.gameId === gameId ? { ...night, gameTitle: updates.title } : night))
     setChangeGameId(null)
     flash(`${updates.title || 'Game'} corrected without losing its Checkpoint history`)
+  }
+  async function refreshGameArtwork(gameId: string, match: GameSearchResult) {
+    const before = games.find((game) => game.id === gameId)
+    if (!before) { setArtworkGameId(null); return }
+    const artwork = await loadSteamArtwork(boardId, match.steamAppId).catch(() => match)
+    const after: Game = {
+      ...before,
+      coverUrl: artwork.coverUrl,
+      artworkUpdatedAt: new Date().toISOString(),
+      steamAppId: match.steamAppId,
+      catalogId: match.catalogId,
+      catalogSource: 'steam',
+    }
+    setGames((current) => current.map((game) => game.id === gameId ? after : game))
+    recordActivity('game-artwork-refreshed', `${before.title} artwork refreshed`, [{ entity: 'game', entityId: gameId, before, after }])
+    setArtworkGameId(null)
+    flash(`${before.title} artwork refreshed for the crew`)
   }
   function updateManualOwnership(gameId: string, memberId: string, owned: boolean | undefined) {
     setGames((current) => current.map((game) => {
@@ -2257,7 +2371,8 @@ function App() {
       {editingSessionNotes && <SessionNotesModal session={editingSessionNotes} onClose={() => setEditingSessionNotesId(null)} onSave={(note, nextObjective) => saveSessionNotes(editingSessionNotes.id, note, nextObjective)} />}
       {declineNightId && gameNights.find((night) => night.id === declineNightId) && <SuggestTimeModal gameNight={gameNights.find((night) => night.id === declineNightId)!} onClose={() => setDeclineNightId(null)} onSuggest={(startAt, endAt) => declineGameNight(declineNightId, startAt, endAt)} />}
       {showCrew && <CrewModal members={groupMembers} currentUserId={currentUser} googlePhotoUrl={user?.photoURL} integrationError={integrationError} onClose={() => setShowCrew(false)} onSavePhoto={saveProfileImage} onResolveSteam={resolveSteamLink} onSaveSteam={saveSteamProfile} onSaveSteamLinkPreference={saveSteamLinkPreference} />}
-      {selected && <GameDetailsModal game={selected} onClose={() => setSelectedId(null)} onVote={() => vote(selected.id)} onSave={(updates) => updateGame(selected.id, updates)} onRemove={() => removeGame(selected)} onChangeGame={() => { setChangeGameId(selected.id); setSelectedId(null) }} onAddDlc={() => openAddGame(selected)} onOpenPuzzle={() => { setPuzzleGameId(selected.id); setSelectedId(null) }} onManualOwnershipChange={(memberId, owned) => updateManualOwnership(selected.id, memberId, owned)} />}
+      {selected && <GameDetailsModal game={selected} onClose={() => setSelectedId(null)} onVote={() => vote(selected.id)} onSave={(updates) => updateGame(selected.id, updates)} onRemove={() => removeGame(selected)} onChangeGame={() => { setChangeGameId(selected.id); setSelectedId(null) }} onRefreshArtwork={() => setArtworkGameId(selected.id)} onAddDlc={() => openAddGame(selected)} onOpenPuzzle={() => { setPuzzleGameId(selected.id); setSelectedId(null) }} onManualOwnershipChange={(memberId, owned) => updateManualOwnership(selected.id, memberId, owned)} />}
+      {artworkGame && <ArtworkRefreshModal game={artworkGame} onClose={() => setArtworkGameId(null)} onRefresh={(match) => refreshGameArtwork(artworkGame.id, match)} />}
       {changeGame && <ChangeGameModal game={changeGame} onClose={() => setChangeGameId(null)} onChange={(updates) => replaceGame(changeGame.id, updates)} />}
       {puzzleGame && <PuzzleBoardModal game={puzzleGame} boardId={boardId} currentUserId={currentUser} onClose={() => setPuzzleGameId(null)} />}
       {toast && <div className="toast"><Check size={17} /> {toast}</div>}
