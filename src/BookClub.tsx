@@ -19,6 +19,8 @@ type Props = {
   search: string
   showAdd: boolean
   onCloseAdd: () => void
+  onOpenAdd: () => void
+  onShowMyBooks: () => void
   onChange: (books: Book[]) => void
   notify: (message: string) => void
 }
@@ -67,7 +69,7 @@ function ShelfSelect({ value, onChange }: { value?: BookShelf; onChange: (shelf?
   return <label className="book-shelf-select" onClick={(event) => event.stopPropagation()}>
     <span className="sr-only">Personal shelf</span>
     <select value={value ?? ''} onChange={(event) => onChange((event.target.value || undefined) as BookShelf | undefined)}>
-      <option value="">Save to my books…</option>
+      <option value="" disabled>Choose my shelf…</option>
       <option value="to-read">To read</option>
       <option value="reading">Reading</option>
       <option value="read">Read</option>
@@ -88,7 +90,8 @@ function ChapterModal({ book, current, onClose, onSave }: { book: Book; current:
   </div>
 }
 
-function AddBookModal({ existing, onClose, onAdd }: { existing: Book[]; onClose: () => void; onAdd: (result: BookSearchResult) => void }) {
+function AddBookModal({ existing, onClose, onAdd }: { existing: Book[]; onClose: () => void; onAdd: (result: BookSearchResult, shelf: BookShelf) => void }) {
+  const [shelf, setShelf] = useState<BookShelf>('to-read')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<BookSearchResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -106,13 +109,14 @@ function AddBookModal({ existing, onClose, onAdd }: { existing: Book[]; onClose:
     return () => { window.clearTimeout(timer); controller.abort() }
   }, [query])
   const add = (result: BookSearchResult) => {
-    onAdd(result)
+    onAdd(result, shelf)
     onClose()
   }
   return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
     <section className="modal-card add-book-modal" role="dialog" aria-modal="true" aria-label="Add a book">
       <div className="modal-title"><div><span className="eyebrow">Build your shelf</span><h2>Add a book</h2><p>Search by title, author, or ISBN.</p></div><button className="icon-button" onClick={onClose} aria-label="Close"><X size={18} /></button></div>
       <label className="book-search-input"><Search size={18} /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Try The Fifth Season or an ISBN" /></label>
+      <div className="book-add-destination"><span>Save to my shelf</span><ShelfSelect value={shelf} onChange={(value) => value && setShelf(value)} /><small>To read is your wishlist. Choose Read for books you’ve finished. You can nominate a book for the poll later.</small></div>
       <div className="book-search-results">
         {loading && <div className="book-search-status">Searching book catalogs…</div>}
         {!loading && error && <div className="book-search-status">{error}</div>}
@@ -160,6 +164,8 @@ function BookDetails({ book, currentUser, crew, onClose, onUpdate, onChapter }: 
           </section>
         </div>
         <aside className="book-detail-aside">
+          {!book.shelves[currentUser] && <button className="button button-primary" type="button" onClick={() => onUpdate({ ...book, shelves: { ...book.shelves, [currentUser]: 'to-read' } })}><Plus size={15} /> Save to my books</button>}
+          <section><span className="eyebrow">Next-book poll</span>{book.passedOnAt ? <p className="book-empty-copy">Passed on by the club. This book stays on your personal shelf.</p> : <button className="button button-secondary" type="button" onClick={() => onUpdate({ ...book, nominated: book.nominated === false, upvotes: book.nominated === false ? [...new Set([...book.upvotes, currentUser])] : book.upvotes })}><ThumbsUp size={15} />{book.nominated === false ? 'Nominate for next-book poll' : 'Remove from next-book poll'}</button>}</section>
           <section><span className="eyebrow">My reading</span><ShelfSelect value={book.shelves[currentUser]} onChange={(shelf) => { const shelves = { ...book.shelves }; if (shelf) shelves[currentUser] = shelf; else delete shelves[currentUser]; onUpdate({ ...book, shelves }) }} />{book.shelves[currentUser] && <button className="chapter-update-button" type="button" onClick={onChapter}><BookMarked size={16} /><span><strong>Chapter {book.progress[currentUser]?.lastChapter ?? 0}</strong><small>Last chapter read</small></span><Plus size={15} /></button>}</section>
           <section><span className="eyebrow">My rating</span><div className="star-picker">{[1,2,3,4,5].map((star) => <button key={star} type="button" className={star <= ownRating ? 'active' : ''} onClick={() => saveRating(star)} aria-label={`${star} stars`}><Star size={21} fill={star <= ownRating ? 'currentColor' : 'none'} /></button>)}</div><textarea className="book-review-input" value={review} onChange={(event) => setReview(event.target.value)} onBlur={saveReview} rows={4} placeholder="Write a short review…" /></section>
           <section><span className="eyebrow">Crew ratings</span><div className="crew-ratings">{crew.map((member) => { const rating = book.ratings[member.id]; return <div key={member.id}><strong>{member.name}</strong><span>{rating ? `${'★'.repeat(rating.stars)}${'☆'.repeat(5-rating.stars)}` : 'Not rated'}</span>{rating?.review && <p>{rating.review}</p>}</div> })}</div></section>
@@ -174,11 +180,11 @@ function BookCard({ book, currentUser, onOpen, onVote, onShelf, onChapter }: { b
   return <article className="book-card" onClick={onOpen}>
     <BookCover book={book} />
     <div className="book-card-copy"><span className="book-card-state">{book.passedOnAt ? 'Passed on' : shelf ? shelfLabels[shelf] : 'Club choice'}</span><h3>{book.title}</h3><p>{book.authors.join(', ')}</p><div className="book-card-actions"><ShelfSelect value={shelf} onChange={onShelf} />{shelf === 'reading' && <button className="book-chapter-pill" type="button" onClick={(event) => { event.stopPropagation(); onChapter() }}><BookMarked size={13} /> Ch. {book.progress[currentUser]?.lastChapter ?? 0}</button>}</div></div>
-    <VoteControls book={book} currentUser={currentUser} onVote={onVote} />
+    {book.nominated !== false && <VoteControls book={book} currentUser={currentUser} onVote={onVote} />}
   </article>
 }
 
-export default function BookClub({ books, currentUser, crew, section, shelfFilter, onShelfFilterChange, search, showAdd, onCloseAdd, onChange, notify }: Props) {
+export default function BookClub({ books, currentUser, crew, section, shelfFilter, onShelfFilterChange, search, showAdd, onCloseAdd, onOpenAdd, onShowMyBooks, onChange, notify }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [chapterBookId, setChapterBookId] = useState<string | null>(null)
   const selected = books.find((book) => book.id === selectedId)
@@ -205,15 +211,15 @@ export default function BookClub({ books, currentUser, crew, section, shelfFilte
     setChapterBookId(null)
     notify(`Chapter ${chapter} saved for ${book.title}`)
   }
-  const addBook = (result: BookSearchResult) => {
+  const addBook = (result: BookSearchResult, shelf: BookShelf) => {
     const duplicate = books.find((book) => (result.googleBooksId && book.googleBooksId === result.googleBooksId) || (result.isbn13 && book.isbn13 === result.isbn13) || book.title.toLowerCase() === result.title.toLowerCase() && book.authors[0] === result.authors[0])
     if (duplicate) {
-      setShelf(duplicate, duplicate.shelves[currentUser] ?? 'to-read')
-      setSelectedId(duplicate.id)
+      setShelf(duplicate, shelf)
+      onShowMyBooks()
       return
     }
-    const book: Book = { id: crypto.randomUUID(), title: result.title, authors: result.authors, description: result.description, coverUrl: result.coverUrl, publishedYear: result.publishedYear, isbn10: result.isbn10, isbn13: result.isbn13, googleBooksId: result.googleBooksId, openLibraryKey: result.openLibraryKey, addedBy: currentUser, createdAt: new Date().toISOString(), upvotes: [currentUser], downvotes: [], shelves: { [currentUser]: 'to-read' }, progress: {}, ratings: {}, comments: [] }
-    onChange([book, ...books]); notify(`${book.title} added to your shelf and the club poll`)
+    const book: Book = { id: crypto.randomUUID(), title: result.title, authors: result.authors, description: result.description, coverUrl: result.coverUrl, publishedYear: result.publishedYear, isbn10: result.isbn10, isbn13: result.isbn13, googleBooksId: result.googleBooksId, openLibraryKey: result.openLibraryKey, addedBy: currentUser, createdAt: new Date().toISOString(), nominated: false, upvotes: [], downvotes: [], shelves: { [currentUser]: shelf }, progress: {}, ratings: {}, comments: [] }
+    onChange([book, ...books]); onShowMyBooks(); notify(`${book.title} added to ${shelfLabels[shelf]}`)
   }
   const query = search.trim().toLowerCase()
   const myBooks = books.filter((book) => book.shelves[currentUser])
@@ -221,12 +227,13 @@ export default function BookClub({ books, currentUser, crew, section, shelfFilte
     if (query && !`${book.title} ${book.authors.join(' ')}`.toLowerCase().includes(query)) return false
     if (shelfFilter === 'passed') return Boolean(book.passedOnAt)
     if (shelfFilter !== 'all') return book.shelves[currentUser] === shelfFilter
-    return Boolean(book.shelves[currentUser]) && !book.passedOnAt
+    return Boolean(book.shelves[currentUser])
   })
   const reading = myBooks.filter((book) => book.shelves[currentUser] === 'reading')
-  const poll = books.filter((book) => !book.passedOnAt).sort((a, b) => b.upvotes.length - a.upvotes.length || a.downvotes.length - b.downvotes.length)
+  const poll = books.filter((book) => book.nominated !== false && !book.passedOnAt).sort((a, b) => b.upvotes.length - a.upvotes.length || a.downvotes.length - b.downvotes.length)
   const averageRating = (book: Book) => { const values = Object.values(book.ratings); return values.length ? values.reduce((sum, item) => sum + item.stars, 0) / values.length : 0 }
   return <div className="page book-club-page">
+    <div className="book-library-actions"><button className="button button-primary" type="button" onClick={onOpenAdd}><Plus size={16} /> Add to my books</button></div>
     <div className="page-title-row book-page-title"><div><span className="eyebrow">Checkpoint Book Club</span><h1>{section === 'home' ? "What're we reading?" : section === 'library' ? 'My books' : 'Choose our next book'}</h1><p>{section === 'home' ? 'Personal reading progress with a shared place to vote and discuss.' : section === 'library' ? 'Your to-read, reading, and finished shelves stay yours.' : 'A no never removes someone else’s book. Three no votes close the club poll.'}</p></div></div>
     {section === 'home' ? <>
       <section className="book-reading-section"><div className="section-heading"><div><span className="eyebrow">Pick up where you left off</span><h2>Currently reading</h2></div><span className="book-section-count">{reading.length}</span></div>{reading.length ? <div className="book-reading-grid">{reading.map((book) => <article className="current-book-card" key={book.id}><BookCover book={book} large /><div><span className="eyebrow">Chapter {book.progress[currentUser]?.lastChapter ?? 0}</span><h2>{book.title}</h2><p>{book.authors.join(', ')}</p><div className="current-book-actions"><button className="button button-primary" type="button" onClick={() => setChapterBookId(book.id)}><BookMarked size={16} /> Update chapter</button><button className="button button-secondary" type="button" onClick={() => setSelectedId(book.id)}>Open discussion</button></div></div></article>)}</div> : <div className="book-empty-panel"><BookOpen size={28} /><h2>Nothing in progress</h2><p>Add a book or move one from To read when you begin.</p></div>}</section>

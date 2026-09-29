@@ -39,6 +39,7 @@ export type Book = {
   createdAt: string
   upvotes: string[]
   downvotes: string[]
+  nominated?: boolean
   passedOnAt?: string
   shelves: Record<string, BookShelf>
   progress: Record<string, BookProgress>
