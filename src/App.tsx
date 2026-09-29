@@ -10,8 +10,9 @@ import {
 } from 'react'
 import type { User } from 'firebase/auth'
 import './App.css'
+import BookClub, { type BookSection, type BookShelfFilter } from './BookClub'
 import { initialGames, members, statusLabels } from './data'
-import type { ActivityChange, ActivityEntry, ActivitySnapshot, ContentType, Game, GameDeal, GameLink, GameNight, GameSession, GameStatus, Member, Persona, PuzzleBoard, PuzzleImage, PuzzlePage, PuzzlePoint, PuzzleStroke, Recommendation, RecommendationFeedback, RecommendationFeed, SteamAchievementSnapshot, SteamCrewSnapshot, SteamLinkPreference } from './types'
+import type { ActivityChange, ActivityEntry, ActivitySnapshot, AppMode, Book, ContentType, Game, GameDeal, GameLink, GameNight, GameSession, GameStatus, Member, Persona, PuzzleBoard, PuzzleImage, PuzzlePage, PuzzlePoint, PuzzleStroke, Recommendation, RecommendationFeedback, RecommendationFeed, SteamAchievementSnapshot, SteamCrewSnapshot, SteamLinkPreference } from './types'
 import { firebaseConfigured, signInWithGoogle, signOut, watchAuth } from './lib/firebase'
 import { parseSteamStoreLink, resolveSteamStoreLink, searchGames, type GameSearchResult } from './lib/gameSearch'
 import { connectBoard, getBoardId, getExistingPersona, type BoardConnection, type SteamProfile } from './lib/sharedBoard'
@@ -24,6 +25,8 @@ import { loadRecommendationFeed } from './lib/recommendations'
 import { recoverMissingGameAdds } from './lib/activityRecovery'
 
 const STORAGE_KEY = 'checkpoint-games-v1'
+const BOOKS_STORAGE_KEY = 'checkpoint-books-v1'
+const MODE_STORAGE_KEY = 'checkpoint-mode-v1'
 const GAME_NIGHTS_STORAGE_KEY = 'checkpoint-game-nights-v1'
 const SESSIONS_STORAGE_KEY = 'checkpoint-sessions-v1'
 const ACTIVITY_STORAGE_KEY = 'checkpoint-activity-v1'
@@ -130,6 +133,15 @@ function getStoredGames() {
     return stored.filter((game) => !LEGACY_PLACEHOLDER_IDS.has(game.id)).map(migrateLegacyGame)
   } catch {
     return initialGames
+  }
+}
+
+function getStoredBooks(): Book[] {
+  try {
+    const value = localStorage.getItem(BOOKS_STORAGE_KEY)
+    return value ? JSON.parse(value) as Book[] : []
+  } catch {
+    return []
   }
 }
 
@@ -1607,6 +1619,7 @@ function ActivityPage({ activity, sessions, onUndo, onEditSession }: { activity:
 
 function App() {
   const [games, setGames] = useState<Game[]>(getStoredGames)
+  const [books, setBooks] = useState<Book[]>(getStoredBooks)
   const [gameNights, setGameNights] = useState<GameNight[]>(getStoredGameNights)
   const [sessions, setSessions] = useState<GameSession[]>(getStoredSessions)
   const [activity, setActivity] = useState<ActivityEntry[]>(getStoredActivity)
@@ -1623,7 +1636,11 @@ function App() {
   const [groupMembers, setGroupMembers] = useState<Member[]>(members)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(firebaseConfigured ? 'connecting' : 'local')
   const [view, setView] = useState<View>('dashboard')
+  const [mode, setMode] = useState<AppMode>(() => localStorage.getItem(MODE_STORAGE_KEY) === 'books' ? 'books' : 'games')
+  const [bookSection, setBookSection] = useState<BookSection>('home')
+  const [bookShelfFilter, setBookShelfFilter] = useState<BookShelfFilter>('all')
   const [showAdd, setShowAdd] = useState(false)
+  const [showAddBook, setShowAddBook] = useState(false)
   const [addParentId, setAddParentId] = useState<string | undefined>()
   const [showCrew, setShowCrew] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -1659,15 +1676,18 @@ function App() {
   const connectionRef = useRef<BoardConnection | null>(null)
   const autoStartingGameNightRef = useRef<string | null>(null)
   const lastSyncedBoardStateRef = useRef('')
-  const currentBoardStateRef = useRef({ games, gameNights, sessions, activity })
+  const currentBoardStateRef = useRef({ games, books, gameNights, sessions, activity })
   const boardHydratedRef = useRef(false)
   const initialGamesRef = useRef(games)
+  const initialBooksRef = useRef(books)
   const initialGameNightsRef = useRef(gameNights)
   const initialSessionsRef = useRef(sessions)
   const initialActivityRef = useRef(activity)
-  currentBoardStateRef.current = { games, gameNights, sessions, activity }
+  currentBoardStateRef.current = { games, books, gameNights, sessions, activity }
 
   useEffect(() => localStorage.setItem(STORAGE_KEY, JSON.stringify(games)), [games])
+  useEffect(() => localStorage.setItem(BOOKS_STORAGE_KEY, JSON.stringify(books)), [books])
+  useEffect(() => localStorage.setItem(MODE_STORAGE_KEY, mode), [mode])
   useEffect(() => localStorage.setItem(GAME_NIGHTS_STORAGE_KEY, JSON.stringify(gameNights)), [gameNights])
   useEffect(() => localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions)), [sessions])
   useEffect(() => localStorage.setItem(ACTIVITY_STORAGE_KEY, JSON.stringify(activity)), [activity])
@@ -1732,17 +1752,18 @@ function App() {
       const optimisticMember: Member = { id: user.uid, name: persona, persona, initials: persona[0], color: '#a990e8', photoUrl: user.photoURL || undefined, googlePhotoUrl: user.photoURL || undefined }
       return current.some((member) => member.id === user.uid) ? current.map((member) => member.id === user.uid ? { ...member, ...optimisticMember } : member) : [...current, optimisticMember]
     })
-    connectBoard(boardId, user, persona, initialGamesRef.current, initialGameNightsRef.current, initialSessionsRef.current, initialActivityRef.current, (remoteGames, remoteMembers, remoteGameNights, remoteSessions, remoteActivity, remoteRecommendationFeedback) => {
+    connectBoard(boardId, user, persona, initialGamesRef.current, initialBooksRef.current, initialGameNightsRef.current, initialSessionsRef.current, initialActivityRef.current, (remoteGames, remoteBooks, remoteMembers, remoteGameNights, remoteSessions, remoteActivity, remoteRecommendationFeedback) => {
       if (!active) return
       const cleanedGames = cleanRemoteGames(remoteGames)
       const recovery = recoverMissingGameAdds(cleanedGames, remoteActivity)
-      const remoteState = { games: cleanedGames, gameNights: remoteGameNights, sessions: remoteSessions, activity: remoteActivity }
+      const remoteState = { games: cleanedGames, books: remoteBooks, gameNights: remoteGameNights, sessions: remoteSessions, activity: remoteActivity }
       const remoteSerialized = JSON.stringify(remoteState)
       const localSerialized = JSON.stringify(currentBoardStateRef.current)
       const hasUnsavedLocalState = boardHydratedRef.current && localSerialized !== lastSyncedBoardStateRef.current
       lastSyncedBoardStateRef.current = remoteSerialized
       if (!hasUnsavedLocalState || remoteSerialized === localSerialized) {
         setGames(recovery.games)
+        setBooks(remoteBooks)
         setGameNights(remoteGameNights)
         setSessions(remoteSessions)
         setActivity(remoteActivity)
@@ -1750,6 +1771,8 @@ function App() {
       }
       boardHydratedRef.current = true
       setGroupMembers(remoteMembers)
+      const remoteMember = remoteMembers.find((member) => member.id === user.uid)
+      if (remoteMember?.preferredMode) setMode(remoteMember.preferredMode)
       setRecommendationFeedback(remoteRecommendationFeedback)
     }).then((connection) => {
       if (!active) { connection?.close(); return }
@@ -1760,7 +1783,7 @@ function App() {
   }, [boardId, persona, user])
   useEffect(() => {
     if (syncStatus !== 'live' || !connectionRef.current) return
-    const boardState = { games, gameNights, sessions, activity }
+    const boardState = { games, books, gameNights, sessions, activity }
     const serialized = JSON.stringify(boardState)
     if (serialized === lastSyncedBoardStateRef.current) return
     const timer = window.setTimeout(() => {
@@ -1769,7 +1792,7 @@ function App() {
       }).catch(() => setSyncStatus('error'))
     }, 350)
     return () => window.clearTimeout(timer)
-  }, [activity, gameNights, games, sessions, syncStatus])
+  }, [activity, books, gameNights, games, sessions, syncStatus])
 
   const activeGames = useMemo(() => games.filter((game) => game.status !== 'archived'), [games])
   const trackedAppIds = useMemo(() => [...new Set(activeGames.flatMap((game) => game.steamAppId ? [game.steamAppId] : []))], [activeGames])
@@ -2266,6 +2289,16 @@ function App() {
     flash(`Steam links set to ${preference === 'browser' ? 'web browser' : preference === 'app' ? 'Steam app' : 'automatic'}`)
   }
 
+  function switchMode(nextMode: AppMode) {
+    setMode(nextMode)
+    setSearch('')
+    if (nextMode === 'games') setView('dashboard')
+    else setBookSection('home')
+    if (connectionRef.current) {
+      connectionRef.current.savePreferredMode(nextMode).catch(() => setSyncStatus('error'))
+    }
+  }
+
   async function resolveSteamLink(profile: string) {
     if (!gameIntegrationsConfigured) throw new Error('Steam linking is not configured yet.')
     return resolveSteamProfile(boardId, profile)
@@ -2294,9 +2327,10 @@ function App() {
     <IntegrationsContext.Provider value={{ boardId, steam: steamSnapshot, deals: gameDeals, loading: integrationsLoading, error: integrationError }}>
     <div className="app-shell">
       <aside className="sidebar">
-        <button className="brand" type="button" onClick={() => setView('dashboard')}><span className="brand-mark"><Flag size={21} fill="currentColor" /></span><span>checkpoint</span></button>
-        <button className="server-switcher" type="button" onClick={() => setShowCrew(true)}><div className="server-icon"><Gamepad2 size={18} /></div><div><strong>Checkpoint Crew</strong><span>{groupMembers.length} {groupMembers.length === 1 ? 'player' : 'players'}</span></div><ChevronDown size={16} /></button>
-        <nav className="main-nav" aria-label="Main navigation">
+        <button className="brand" type="button" onClick={() => mode === 'games' ? setView('dashboard') : setBookSection('home')}><span className="brand-mark"><Flag size={21} fill="currentColor" /></span><span>checkpoint</span></button>
+        <button className="server-switcher" type="button" onClick={() => setShowCrew(true)}><div className="server-icon">{mode === 'games' ? <Gamepad2 size={18} /> : <BookOpen size={18} />}</div><div><strong>Checkpoint Crew</strong><span>{groupMembers.length} {groupMembers.length === 1 ? 'member' : 'members'}</span></div><ChevronDown size={16} /></button>
+        <div className="mode-switcher" role="group" aria-label="Checkpoint mode"><button className={mode === 'games' ? 'active' : ''} type="button" onClick={() => switchMode('games')}><Gamepad2 size={14} /> Games</button><button className={mode === 'books' ? 'active' : ''} type="button" onClick={() => switchMode('books')}><BookOpen size={14} /> Books</button></div>
+        {mode === 'games' ? <><nav className="main-nav" aria-label="Main navigation">
           <button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={19} /><span>Home</span></button>
           <button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => openLibrary('all')}><Library size={19} /><span>Game library</span><b>{activeGames.length}</b></button>
           <button className={view === 'library' && libraryFilter === 'up-next' ? 'active' : ''} onClick={() => openLibrary('up-next')}><BookOpen size={19} /><span>Up next</span><b>{upNext.length}</b></button>
@@ -2311,17 +2345,17 @@ function App() {
           <button onClick={() => openLibrary('wishlist')}><span className="nav-dot pink" />Wishlist</button>
           <button onClick={() => openLibrary('completed')}><span className="nav-dot green" />Completed</button>
           <button onClick={() => openLibrary('archived')}><span className="nav-dot gray" />Archive</button>
-        </div>
-        <div className="sidebar-bottom"><button onClick={() => setShowCrew(true)}><Settings size={18} /><span>Settings</span></button>{firebaseConfigured ? <button onClick={() => signOut()}><LogOut size={18} /><span>Sign out</span></button> : <button onClick={resetLocalBoard}><Trash2 size={18} /><span>Clear board</span></button>}<button onClick={() => flash('Tip: drag games in Up next to reorder them')}><CircleHelp size={18} /><span>Help & tips</span></button><div className="profile-row"><Avatar id={currentUser} /><div><strong>{persona ?? 'Player'}</strong><span>Online</span></div><MoreHorizontal size={17} /></div></div>
+        </div></> : <><nav className="main-nav" aria-label="Book Club navigation"><button className={bookSection === 'home' ? 'active' : ''} onClick={() => setBookSection('home')}><LayoutDashboard size={19} /><span>Book home</span></button><button className={bookSection === 'library' ? 'active' : ''} onClick={() => { setBookSection('library'); setBookShelfFilter('all') }}><Library size={19} /><span>My books</span><b>{books.filter((book) => book.shelves[currentUser]).length}</b></button><button className={bookSection === 'poll' ? 'active' : ''} onClick={() => setBookSection('poll')}><ThumbsUp size={19} /><span>Next-book poll</span><b>{books.filter((book) => !book.passedOnAt).length}</b></button><button onClick={() => setShowCrew(true)}><Users size={19} /><span>Readers</span></button></nav><div className="sidebar-section"><span className="sidebar-label">My shelves</span><button onClick={() => { setBookSection('library'); setBookShelfFilter('to-read') }}><span className="nav-dot amber" />To read</button><button onClick={() => { setBookSection('library'); setBookShelfFilter('reading') }}><span className="nav-dot purple" />Reading</button><button onClick={() => { setBookSection('library'); setBookShelfFilter('read') }}><span className="nav-dot green" />Read</button></div></>}
+        <div className="sidebar-bottom"><button onClick={() => setShowCrew(true)}><Settings size={18} /><span>Settings</span></button>{firebaseConfigured ? <button onClick={() => signOut()}><LogOut size={18} /><span>Sign out</span></button> : mode === 'games' ? <button onClick={resetLocalBoard}><Trash2 size={18} /><span>Clear board</span></button> : null}<button onClick={() => flash(mode === 'games' ? 'Tip: drag games in Up next to reorder them' : 'Tip: your shelf and chapter are personal; comments and votes are shared')}><CircleHelp size={18} /><span>Help & tips</span></button><div className="profile-row"><Avatar id={currentUser} /><div><strong>{persona ?? 'Reader'}</strong><span>Online</span></div><MoreHorizontal size={17} /></div></div>
       </aside>
 
       <main className="main-area">
         <header className="topbar"><MobileBrand />
-          <label className="search-box"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} onFocus={() => setView('library')} placeholder="Search your games" /><kbd>⌘ K</kbd></label>
-          <div className="topbar-actions"><button className="icon-button notification" type="button" onClick={() => setView('activity')} aria-label="Activity history"><History size={19} />{activity.length > 0 && <span />}</button><button className="member-stack member-stack-button" type="button" onClick={() => setShowCrew(true)} aria-label="Open Checkpoint Crew">{groupMembers.map((member) => <Avatar id={member.id} small key={member.id} />)}</button><button className="button button-primary add-button" type="button" onClick={() => openAddGame()} aria-label="Add game"><Plus size={18} /><span>Add game</span></button><button className="mobile-menu-button" type="button" onClick={() => setMobileMenuOpen(true)} aria-label="Open navigation menu" aria-expanded={mobileMenuOpen}><Menu size={21} /></button></div>
+          <label className="search-box"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} onFocus={() => mode === 'games' ? setView('library') : setBookSection('library')} placeholder={mode === 'games' ? 'Search your games' : 'Search your books'} /><kbd>⌘ K</kbd></label>
+          <div className="topbar-actions">{mode === 'games' && <button className="icon-button notification" type="button" onClick={() => setView('activity')} aria-label="Activity history"><History size={19} />{activity.length > 0 && <span />}</button>}<button className="member-stack member-stack-button" type="button" onClick={() => setShowCrew(true)} aria-label="Open Checkpoint Crew">{groupMembers.map((member) => <Avatar id={member.id} small key={member.id} />)}</button><button className="button button-primary add-button" type="button" onClick={() => mode === 'games' ? openAddGame() : setShowAddBook(true)} aria-label={mode === 'games' ? 'Add game' : 'Add book'}><Plus size={18} /><span>{mode === 'games' ? 'Add game' : 'Add book'}</span></button><button className="mobile-menu-button" type="button" onClick={() => setMobileMenuOpen(true)} aria-label="Open navigation menu" aria-expanded={mobileMenuOpen}><Menu size={21} /></button></div>
         </header>
 
-        {view === 'dashboard' ? <div className="page dashboard-page">
+        {mode === 'books' ? <BookClub books={books} currentUser={currentUser} crew={groupMembers} section={bookSection} shelfFilter={bookShelfFilter} onShelfFilterChange={setBookShelfFilter} search={search} showAdd={showAddBook} onCloseAdd={() => setShowAddBook(false)} onChange={setBooks} notify={flash} /> : view === 'dashboard' ? <div className="page dashboard-page">
           <div className="page-title-row"><div><span className="eyebrow">{todayLabel}</span><h1>What're we playin'?</h1><p>{dashboardSummary}</p></div><div className="dashboard-title-actions"><button className={activeSession ? 'tonight-mode-button is-live' : 'tonight-mode-button'} type="button" onClick={() => setView('tonight')}><MoonStar size={16} />{activeSession ? <><span className="live-dot" /> {stopwatchLabel(sessionElapsedMilliseconds(activeSession, nowTick))}</> : gameNightCountdown > 0 ? `Starts in ${stopwatchLabel(gameNightCountdown)}` : 'Game Night'}</button><button className={`sync-chip sync-${syncStatus}`} onClick={copyBoardLink} type="button"><span /><strong>{syncLabel}</strong>{syncStatus === 'live' && <Share2 size={13} />}</button></div></div>
           <section className="dashboard-grid">
             <div className="now-playing-panel"><div className="section-heading inverse"><div><span className="eyebrow">Continue playing</span><h2>Current campaign</h2></div><button className="ghost-icon" onClick={() => playing && setSelectedId(playing.id)}><MoreHorizontal size={20} /></button></div>
@@ -2350,7 +2384,8 @@ function App() {
       </main>
       {mobileMenuOpen && <div className="mobile-menu-backdrop" role="presentation" onClick={() => setMobileMenuOpen(false)}><aside className="mobile-menu-sheet" role="dialog" aria-modal="true" aria-label="Checkpoint navigation" onClick={(event) => event.stopPropagation()}>
         <div className="mobile-menu-heading"><MobileBrand /><button type="button" onClick={() => setMobileMenuOpen(false)} aria-label="Close navigation menu"><X size={20} /></button></div>
-        <nav className="mobile-menu-nav" aria-label="Mobile menu">
+        <div className="mode-switcher mobile-mode-switcher" role="group" aria-label="Checkpoint mode"><button className={mode === 'games' ? 'active' : ''} type="button" onClick={() => switchMode('games')}><Gamepad2 size={14} /> Games</button><button className={mode === 'books' ? 'active' : ''} type="button" onClick={() => switchMode('books')}><BookOpen size={14} /> Books</button></div>
+        {mode === 'games' ? <><nav className="mobile-menu-nav" aria-label="Mobile menu">
           <button className={view === 'dashboard' ? 'active' : ''} type="button" onClick={() => { setView('dashboard'); setMobileMenuOpen(false) }}><span><LayoutDashboard size={19} /></span><strong>Home</strong></button>
           <button className={view === 'tonight' ? 'active' : ''} type="button" onClick={() => { setView('tonight'); setMobileMenuOpen(false) }}><span><MoonStar size={19} /></span><strong>Game Night</strong>{activeSession && <em>Live</em>}</button>
           <button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} type="button" onClick={() => openLibrary('all')}><span><Library size={19} /></span><strong>Game library</strong><small>{activeGames.length}</small></button>
@@ -2360,8 +2395,8 @@ function App() {
           <button className={view === 'activity' ? 'active' : ''} type="button" onClick={() => { setView('activity'); setMobileMenuOpen(false) }}><span><History size={19} /></span><strong>Activity</strong><small>{activity.length}</small></button>
           <button type="button" onClick={() => { setShowCrew(true); setMobileMenuOpen(false) }}><span><Users size={19} /></span><strong>Players</strong><small>{groupMembers.length}</small></button>
         </nav>
-        <div className="mobile-menu-library"><span>Library shortcuts</span><div><button type="button" onClick={() => openLibrary('playing')}><i className="nav-dot purple" />Playing</button><button type="button" onClick={() => openLibrary('wishlist')}><i className="nav-dot pink" />Wishlist</button><button type="button" onClick={() => openLibrary('completed')}><i className="nav-dot green" />Completed</button><button type="button" onClick={() => openLibrary('archived')}><i className="nav-dot gray" />Archive</button></div></div>
-        <div className="mobile-menu-footer"><div className="profile-row"><Avatar id={currentUser} /><div><strong>{persona ?? 'Player'}</strong><span>{syncLabel}</span></div></div><button type="button" onClick={() => { setShowCrew(true); setMobileMenuOpen(false) }}><Settings size={16} /> Settings</button>{firebaseConfigured && <button type="button" onClick={() => signOut()}><LogOut size={16} /> Sign out</button>}</div>
+        <div className="mobile-menu-library"><span>Library shortcuts</span><div><button type="button" onClick={() => openLibrary('playing')}><i className="nav-dot purple" />Playing</button><button type="button" onClick={() => openLibrary('wishlist')}><i className="nav-dot pink" />Wishlist</button><button type="button" onClick={() => openLibrary('completed')}><i className="nav-dot green" />Completed</button><button type="button" onClick={() => openLibrary('archived')}><i className="nav-dot gray" />Archive</button></div></div></> : <nav className="mobile-menu-nav" aria-label="Book Club menu"><button className={bookSection === 'home' ? 'active' : ''} type="button" onClick={() => { setBookSection('home'); setMobileMenuOpen(false) }}><span><LayoutDashboard size={19} /></span><strong>Book home</strong></button><button className={bookSection === 'library' ? 'active' : ''} type="button" onClick={() => { setBookSection('library'); setBookShelfFilter('all'); setMobileMenuOpen(false) }}><span><Library size={19} /></span><strong>My books</strong><small>{books.filter((book) => book.shelves[currentUser]).length}</small></button><button className={bookSection === 'poll' ? 'active' : ''} type="button" onClick={() => { setBookSection('poll'); setMobileMenuOpen(false) }}><span><ThumbsUp size={19} /></span><strong>Next-book poll</strong><small>{books.filter((book) => !book.passedOnAt).length}</small></button><button type="button" onClick={() => { setShowCrew(true); setMobileMenuOpen(false) }}><span><Users size={19} /></span><strong>Readers</strong><small>{groupMembers.length}</small></button></nav>}
+        <div className="mobile-menu-footer"><div className="profile-row"><Avatar id={currentUser} /><div><strong>{persona ?? (mode === 'books' ? 'Reader' : 'Player')}</strong><span>{syncLabel}</span></div></div><button type="button" onClick={() => { setShowCrew(true); setMobileMenuOpen(false) }}><Settings size={16} /> Settings</button>{firebaseConfigured && <button type="button" onClick={() => signOut()}><LogOut size={16} /> Sign out</button>}</div>
       </aside></div>}
       {showAdd && <AddGameModal onClose={closeAddGame} onAdd={addGame} games={activeGames} defaultParentId={addParentId} />}
       {showSchedule && <ScheduleGameNightModal key={editingGameNight?.id ?? scheduleDate ?? 'new'} games={activeGames} defaultDate={scheduleDate} existing={editingGameNight} onClose={() => { setShowSchedule(false); setScheduleDate(undefined); setEditingGameNightId(null) }} onSave={saveGameNight} />}

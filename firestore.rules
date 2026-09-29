@@ -18,6 +18,8 @@ service cloud.firestore {
       function validBoard() {
         return request.resource.data.games is list
           && request.resource.data.games.size() <= 2000
+          && (!request.resource.data.keys().hasAny(['books'])
+            || (request.resource.data.books is list && request.resource.data.books.size() <= 1000))
           && (!request.resource.data.keys().hasAny(['gameNights'])
             || (request.resource.data.gameNights is list && request.resource.data.gameNights.size() <= 200))
           && (!request.resource.data.keys().hasAny(['sessions'])
@@ -33,7 +35,8 @@ service cloud.firestore {
         let profile = request.resource.data.members[request.auth.uid];
         return profile.keys().hasOnly([
             'name', 'persona', 'email', 'photoUrl', 'googlePhotoUrl', 'customPhotoUrl',
-            'joinedAt', 'steamId', 'steamName', 'steamProfileUrl', 'steamAvatarUrl'
+            'joinedAt', 'steamId', 'steamName', 'steamProfileUrl', 'steamAvatarUrl',
+            'steamLinkPreference', 'preferredMode'
           ])
           && profile.email == request.auth.token.email
           && profile.email is string
@@ -50,6 +53,8 @@ service cloud.firestore {
           && (!profile.keys().hasAny(['steamName']) || (profile.steamName is string && profile.steamName.size() <= 100))
           && (!profile.keys().hasAny(['steamProfileUrl']) || (profile.steamProfileUrl is string && profile.steamProfileUrl.size() <= 500))
           && (!profile.keys().hasAny(['steamAvatarUrl']) || (profile.steamAvatarUrl is string && profile.steamAvatarUrl.size() <= 500))
+          && (!profile.keys().hasAny(['steamLinkPreference']) || profile.steamLinkPreference in ['auto', 'app', 'browser'])
+          && (!profile.keys().hasAny(['preferredMode']) || profile.preferredMode in ['games', 'books'])
           && (profile.persona == 'Jern'
             || profile.persona == 'Vern'
             || (profile.persona == 'Nern' && request.auth.token.email == 'kjsparsons@gmail.com'));
@@ -71,7 +76,7 @@ service cloud.firestore {
         && validSelfProfile();
       allow update: if validBoardId()
         && ((isMember() && validBoard()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['games', 'gameNights', 'sessions', 'activity', 'recommendationFeedback', 'updatedAt']))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['games', 'books', 'gameNights', 'sessions', 'activity', 'recommendationFeedback', 'updatedAt']))
           || joiningOnlyAsSelf());
 
       match /puzzles/{gameId} {

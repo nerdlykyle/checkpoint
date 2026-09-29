@@ -2,6 +2,49 @@ export type GameStatus = 'playing' | 'up-next' | 'wishlist' | 'completed' | 'arc
 export type Persona = 'Nern' | 'Jern' | 'Vern'
 export type ContentType = 'game' | 'dlc'
 export type SteamLinkPreference = 'auto' | 'app' | 'browser'
+export type AppMode = 'games' | 'books'
+export type BookShelf = 'to-read' | 'reading' | 'read'
+
+export type BookProgress = {
+  lastChapter: number
+  updatedAt: string
+}
+
+export type BookRating = {
+  stars: number
+  review: string
+  updatedAt: string
+}
+
+export type BookComment = {
+  id: string
+  authorId: string
+  text: string
+  spoiler: boolean
+  createdAt: string
+}
+
+export type Book = {
+  id: string
+  title: string
+  authors: string[]
+  description: string
+  coverUrl?: string
+  publishedYear?: number
+  isbn10?: string
+  isbn13?: string
+  googleBooksId?: string
+  openLibraryKey?: string
+  addedBy: string
+  createdAt: string
+  upvotes: string[]
+  downvotes: string[]
+  passedOnAt?: string
+  shelves: Record<string, BookShelf>
+  progress: Record<string, BookProgress>
+  ratings: Record<string, BookRating>
+  comments: BookComment[]
+}
 
 export type GameNightResponse = {
   status: 'accepted' | 'declined'
@@ -163,6 +206,7 @@ export type Member = {
   steamProfileUrl?: string
   steamAvatarUrl?: string
   steamLinkPreference?: SteamLinkPreference
+  preferredMode?: AppMode
 }
 
 export type SteamOwnership = {

@@ -10,14 +10,15 @@ import {
   runTransaction,
   type Unsubscribe,
 } from 'firebase/firestore'
-import type { ActivityEntry, Game, GameNight, GameSession, Member, Persona, RecommendationFeedback, SteamLinkPreference } from '../types'
+import type { ActivityEntry, AppMode, Book, Game, GameNight, GameSession, Member, Persona, RecommendationFeedback, SteamLinkPreference } from '../types'
 import { database } from './firebase'
 
 export type BoardConnection = {
-  saveState: (state: { games: Game[]; gameNights: GameNight[]; sessions: GameSession[]; activity: ActivityEntry[] }) => Promise<void>
+  saveState: (state: { games: Game[]; books: Book[]; gameNights: GameNight[]; sessions: GameSession[]; activity: ActivityEntry[] }) => Promise<void>
   saveProfileImage: (customPhotoUrl: string | null) => Promise<void>
   saveSteamProfile: (profile: SteamProfile | null) => Promise<void>
   saveSteamLinkPreference: (preference: SteamLinkPreference) => Promise<void>
+  savePreferredMode: (mode: AppMode) => Promise<void>
   toggleRecommendationDownvote: (steamAppId: string, title: string, memberId: string) => Promise<void>
   restoreRecommendation: (steamAppId: string) => Promise<void>
   close: Unsubscribe
@@ -42,16 +43,34 @@ type StoredMember = {
   steamProfileUrl?: string
   steamAvatarUrl?: string
   steamLinkPreference?: SteamLinkPreference
+  preferredMode?: AppMode
   joinedAt: string
 }
 
 type BoardData = {
   games?: unknown
+  books?: unknown
   gameNights?: unknown
   sessions?: unknown
   activity?: unknown
   members?: Record<string, StoredMember>
   recommendationFeedback?: unknown
+}
+
+function isBookList(value: unknown): value is Book[] {
+  return Array.isArray(value) && value.every((item) => {
+    if (!item || typeof item !== 'object') return false
+    const book = item as Partial<Book>
+    return typeof book.id === 'string'
+      && typeof book.title === 'string'
+      && Array.isArray(book.authors)
+      && Array.isArray(book.upvotes)
+      && Array.isArray(book.downvotes)
+      && Boolean(book.shelves && typeof book.shelves === 'object')
+      && Boolean(book.progress && typeof book.progress === 'object')
+      && Boolean(book.ratings && typeof book.ratings === 'object')
+      && Array.isArray(book.comments)
+  })
 }
 
 function recommendationFeedbackFromData(value: unknown): RecommendationFeedback {
@@ -138,6 +157,7 @@ function memberFromUser(user: User, persona: Persona, existing?: StoredMember, c
     steamProfileUrl: existing?.steamProfileUrl,
     steamAvatarUrl: existing?.steamAvatarUrl,
     steamLinkPreference: existing?.steamLinkPreference ?? 'auto',
+    preferredMode: existing?.preferredMode ?? 'games',
     joinedAt: existing?.joinedAt || new Date().toISOString(),
   }
 }
@@ -157,6 +177,7 @@ function membersFromData(data: BoardData): Member[] {
     steamProfileUrl: member.steamProfileUrl,
     steamAvatarUrl: member.steamAvatarUrl,
     steamLinkPreference: member.steamLinkPreference ?? 'auto',
+    preferredMode: member.preferredMode ?? 'games',
   }))
 }
 
@@ -180,10 +201,11 @@ export async function connectBoard(
   user: User,
   persona: Persona,
   fallbackGames: Game[],
+  fallbackBooks: Book[],
   fallbackGameNights: GameNight[],
   fallbackSessions: GameSession[],
   fallbackActivity: ActivityEntry[],
-  onRemoteState: (games: Game[], members: Member[], gameNights: GameNight[], sessions: GameSession[], activity: ActivityEntry[], recommendationFeedback: RecommendationFeedback) => void,
+  onRemoteState: (games: Game[], books: Book[], members: Member[], gameNights: GameNight[], sessions: GameSession[], activity: ActivityEntry[], recommendationFeedback: RecommendationFeedback) => void,
 ): Promise<BoardConnection | null> {
   if (!database) return null
   const firestore = database
@@ -198,6 +220,7 @@ export async function connectBoard(
       // This succeeds only when the private board link has not been claimed yet.
       await setDoc(boardRef, {
         games: fallbackGames,
+        books: fallbackBooks,
         gameNights: fallbackGameNights,
         sessions: fallbackSessions,
         activity: fallbackActivity,
@@ -222,6 +245,7 @@ export async function connectBoard(
   if (!snapshot.exists()) {
     await setDoc(boardRef, {
       games: fallbackGames,
+      books: fallbackBooks,
       gameNights: fallbackGameNights,
       sessions: fallbackSessions,
       activity: fallbackActivity,
@@ -259,6 +283,7 @@ export async function connectBoard(
     latestMember = initialData.members?.[user.uid]
     if (isGameList(initialData.games)) {
       const initialGames = initialData.games.length || !fallbackGames.length ? initialData.games : fallbackGames
+      const initialBooks = isBookList(initialData.books) ? initialData.books : fallbackBooks
       const initialGameNights = isGameNightList(initialData.gameNights)
         ? initialData.gameNights
         : fallbackGameNights
@@ -267,6 +292,7 @@ export async function connectBoard(
       if (initialGames === fallbackGames) {
         await updateDoc(boardRef, { games: fallbackGames, updatedAt: serverTimestamp() })
       }
+      if (!isBookList(initialData.books)) await updateDoc(boardRef, { books: fallbackBooks, updatedAt: serverTimestamp() }).catch(() => undefined)
       if (!isGameNightList(initialData.gameNights)) {
         // Older deployments do not have this field yet. Hydrate the rest of the
         // board even if its matching rules update has not reached Firebase.
@@ -274,7 +300,7 @@ export async function connectBoard(
       }
       if (!isSessionList(initialData.sessions)) await updateDoc(boardRef, { sessions: fallbackSessions, updatedAt: serverTimestamp() }).catch(() => undefined)
       if (!isActivityList(initialData.activity)) await updateDoc(boardRef, { activity: fallbackActivity, updatedAt: serverTimestamp() }).catch(() => undefined)
-      onRemoteState(initialGames, membersFromData({ ...initialData, games: initialGames }), initialGameNights, initialSessions, initialActivity, recommendationFeedbackFromData(initialData.recommendationFeedback))
+      onRemoteState(initialGames, initialBooks, membersFromData({ ...initialData, games: initialGames, books: initialBooks }), initialGameNights, initialSessions, initialActivity, recommendationFeedbackFromData(initialData.recommendationFeedback))
     }
   }
 
@@ -282,13 +308,14 @@ export async function connectBoard(
     if (!nextSnapshot.exists()) return
     const data = nextSnapshot.data() as BoardData
     latestMember = data.members?.[user.uid]
-    if (isGameList(data.games)) onRemoteState(data.games, membersFromData(data), isGameNightList(data.gameNights) ? data.gameNights : [], isSessionList(data.sessions) ? data.sessions : [], isActivityList(data.activity) ? data.activity : [], recommendationFeedbackFromData(data.recommendationFeedback))
+    if (isGameList(data.games)) onRemoteState(data.games, isBookList(data.books) ? data.books : [], membersFromData(data), isGameNightList(data.gameNights) ? data.gameNights : [], isSessionList(data.sessions) ? data.sessions : [], isActivityList(data.activity) ? data.activity : [], recommendationFeedbackFromData(data.recommendationFeedback))
   })
 
   return {
-    async saveState({ games, gameNights, sessions, activity }) {
+    async saveState({ games, books, gameNights, sessions, activity }) {
       await updateDoc(boardRef, {
         games,
+        books,
         gameNights,
         sessions,
         activity: activity.slice(0, 250),
@@ -324,6 +351,18 @@ export async function connectBoard(
     async saveSteamLinkPreference(preference) {
       const nextMember = memberFromUser(user, persona, latestMember)
       nextMember.steamLinkPreference = preference
+      await updateDoc(
+        boardRef,
+        new FieldPath('members', user.uid),
+        nextMember,
+        'updatedAt',
+        serverTimestamp(),
+      )
+      latestMember = nextMember
+    },
+    async savePreferredMode(mode) {
+      const nextMember = memberFromUser(user, persona, latestMember)
+      nextMember.preferredMode = mode
       await updateDoc(
         boardRef,
         new FieldPath('members', user.uid),
