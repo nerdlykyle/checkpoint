@@ -1,6 +1,6 @@
 import {
   BookCheck, BookMarked, BookOpen, Check, ChevronDown, ExternalLink, Headphones, Library, MessageCircle,
-  Minus, Plus, Search, Star, ThumbsDown, ThumbsUp, X,
+  Minus, Plus, Search, Star, ThumbsDown, ThumbsUp, X, RefreshCw, Trash2,
 } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { searchBooks, type BookSearchResult } from './lib/bookSearch'
@@ -90,7 +90,7 @@ function ChapterModal({ book, current, onClose, onSave }: { book: Book; current:
   </div>
 }
 
-function AddBookModal({ existing, onClose, onAdd }: { existing: Book[]; onClose: () => void; onAdd: (result: BookSearchResult, shelf: BookShelf) => void }) {
+function AddBookModal({ existing, onClose, onAdd, replacing }: { existing: Book[]; onClose: () => void; onAdd: (result: BookSearchResult, shelf: BookShelf) => void; replacing?: Book }) {
   const [shelf, setShelf] = useState<BookShelf>('to-read')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<BookSearchResult[]>([])
@@ -113,23 +113,23 @@ function AddBookModal({ existing, onClose, onAdd }: { existing: Book[]; onClose:
     onClose()
   }
   return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
-    <section className="modal-card add-book-modal" role="dialog" aria-modal="true" aria-label="Add a book">
-      <div className="modal-title"><div><span className="eyebrow">Build your shelf</span><h2>Add a book</h2><p>Search by title, author, or ISBN.</p></div><button className="icon-button" onClick={onClose} aria-label="Close"><X size={18} /></button></div>
+    <section className="modal-card add-book-modal" role="dialog" aria-modal="true" aria-label={replacing ? 'Change book' : 'Add a book'}>
+      <div className="modal-title"><div><span className="eyebrow">{replacing ? 'Correct your selection' : 'Build your shelf'}</span><h2>{replacing ? 'Change book' : 'Add a book'}</h2><p>{replacing ? `Replace ${replacing.title} on your shelf. Your chapter and review move with it. Other readers and shared discussions stay with the original book.` : 'Search by title, author, or ISBN.'}</p></div><button className="icon-button" onClick={onClose} aria-label="Close"><X size={18} /></button></div>
       <label className="book-search-input"><Search size={18} /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Try The Fifth Season or an ISBN" /></label>
-      <div className="book-add-destination"><span>Save to my shelf</span><ShelfSelect value={shelf} onChange={(value) => value && setShelf(value)} /><small>To read is your wishlist. Choose Read for books you’ve finished. You can nominate a book for the poll later.</small></div>
+      {!replacing && <div className="book-add-destination"><span>Save to my shelf</span><ShelfSelect value={shelf} onChange={(value) => value && setShelf(value)} /><small>To read is your wishlist. Choose Read for books you’ve finished. You can nominate a book for the poll later.</small></div>}
       <div className="book-search-results">
         {loading && <div className="book-search-status">Searching book catalogs…</div>}
         {!loading && error && <div className="book-search-status">{error}</div>}
         {!loading && results.map((result) => {
           const duplicate = existing.some((book) => (result.googleBooksId && book.googleBooksId === result.googleBooksId) || (result.isbn13 && book.isbn13 === result.isbn13))
-          return <button type="button" key={result.catalogId} onClick={() => add(result)}><span className="search-result-cover">{result.coverUrl ? <img src={result.coverUrl} alt="" /> : coverFallback(result.title)}</span><span><strong>{result.title}</strong><small>{result.authors.join(', ')}{result.publishedYear ? ` · ${result.publishedYear}` : ''}</small></span><em>{duplicate ? 'Save to my books' : 'Add'}</em></button>
+          return <button type="button" key={result.catalogId} onClick={() => add(result)}><span className="search-result-cover">{result.coverUrl ? <img src={result.coverUrl} alt="" /> : coverFallback(result.title)}</span><span><strong>{result.title}</strong><small>{result.authors.join(', ')}{result.publishedYear ? ` · ${result.publishedYear}` : ''}</small></span><em>{replacing ? 'Use this book' : duplicate ? 'Save to my books' : 'Add'}</em></button>
         })}
       </div>
     </section>
   </div>
 }
 
-function BookDetails({ book, currentUser, crew, onClose, onUpdate, onChapter }: { book: Book; currentUser: string; crew: Member[]; onClose: () => void; onUpdate: (book: Book) => void; onChapter: () => void }) {
+function BookDetails({ book, currentUser, crew, onClose, onUpdate, onChapter, onChangeBook, onRemove }: { book: Book; currentUser: string; crew: Member[]; onClose: () => void; onUpdate: (book: Book) => void; onChapter: () => void; onChangeBook: () => void; onRemove: () => void }) {
   const [comment, setComment] = useState('')
   const [spoiler, setSpoiler] = useState(false)
   const [openSpoilers, setOpenSpoilers] = useState<string[]>([])
@@ -164,6 +164,7 @@ function BookDetails({ book, currentUser, crew, onClose, onUpdate, onChapter }: 
           </section>
         </div>
         <aside className="book-detail-aside">
+          {book.shelves[currentUser] && <section className="book-manage-actions"><button className="button button-secondary" type="button" onClick={onChangeBook}><RefreshCw size={15} /> Change book</button><button className="button button-danger" type="button" onClick={onRemove}><Trash2 size={15} /> Remove from my books</button></section>}
           {!book.shelves[currentUser] && <button className="button button-primary" type="button" onClick={() => onUpdate({ ...book, shelves: { ...book.shelves, [currentUser]: 'to-read' } })}><Plus size={15} /> Save to my books</button>}
           <section><span className="eyebrow">Next-book poll</span>{book.passedOnAt ? <p className="book-empty-copy">Passed on by the club. This book stays on your personal shelf.</p> : <button className="button button-secondary" type="button" onClick={() => onUpdate({ ...book, nominated: book.nominated === false, upvotes: book.nominated === false ? [...new Set([...book.upvotes, currentUser])] : book.upvotes })}><ThumbsUp size={15} />{book.nominated === false ? 'Nominate for next-book poll' : 'Remove from next-book poll'}</button>}</section>
           <section><span className="eyebrow">My reading</span><ShelfSelect value={book.shelves[currentUser]} onChange={(shelf) => { const shelves = { ...book.shelves }; if (shelf) shelves[currentUser] = shelf; else delete shelves[currentUser]; onUpdate({ ...book, shelves }) }} />{book.shelves[currentUser] && <button className="chapter-update-button" type="button" onClick={onChapter}><BookMarked size={16} /><span><strong>Chapter {book.progress[currentUser]?.lastChapter ?? 0}</strong><small>Last chapter read</small></span><Plus size={15} /></button>}</section>
@@ -186,9 +187,49 @@ function BookCard({ book, currentUser, onOpen, onVote, onShelf, onChapter }: { b
 
 export default function BookClub({ books, currentUser, crew, section, shelfFilter, onShelfFilterChange, search, showAdd, onCloseAdd, onOpenAdd, onShowMyBooks, onChange, notify }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [changingId, setChangingId] = useState<string | null>(null)
+  const changingBook = books.find((book) => book.id === changingId)
   const [chapterBookId, setChapterBookId] = useState<string | null>(null)
   const selected = books.find((book) => book.id === selectedId)
   const chapterBook = books.find((book) => book.id === chapterBookId)
+  const removeBook = (book: Book) => {
+    if (!window.confirm(`Remove ${book.title} from your personal shelves? Your chapter and review will be kept if you add it again. Other readers and the club poll are unchanged.`)) return
+    const shelves = { ...book.shelves }
+    delete shelves[currentUser]
+    onChange(books.map((item) => item.id === book.id ? { ...item, shelves } : item))
+    setSelectedId(null)
+    notify(`${book.title} removed from your books`)
+  }
+  const changeBook = (result: BookSearchResult) => {
+    if (!changingBook) return
+    const duplicate = books.find((book) => (result.googleBooksId && book.googleBooksId === result.googleBooksId) || (result.isbn13 && book.isbn13 === result.isbn13) || (book.title.toLowerCase() === result.title.toLowerCase() && book.authors[0] === result.authors[0]))
+    if (duplicate?.id === changingBook.id) { setChangingId(null); setSelectedId(changingBook.id); return }
+    if (duplicate?.shelves[currentUser] && !window.confirm(`${duplicate.title} is already on your shelf. Combine them? Its existing chapter and rating will be kept.`)) return
+    const shelves = { ...changingBook.shelves }
+    const progress = { ...changingBook.progress }
+    const ratings = { ...changingBook.ratings }
+    delete shelves[currentUser]
+    delete progress[currentUser]
+    delete ratings[currentUser]
+    const replacement: Book = duplicate ?? {
+      id: crypto.randomUUID(), title: result.title, authors: result.authors, description: result.description,
+      coverUrl: result.coverUrl, publishedYear: result.publishedYear, isbn10: result.isbn10, isbn13: result.isbn13,
+      googleBooksId: result.googleBooksId, openLibraryKey: result.openLibraryKey,
+      addedBy: currentUser, createdAt: new Date().toISOString(), nominated: false,
+      upvotes: [], downvotes: [], shelves: {}, progress: {}, ratings: {}, comments: [],
+    }
+    const corrected: Book = {
+      ...replacement,
+      shelves: { ...replacement.shelves, [currentUser]: replacement.shelves[currentUser] ?? changingBook.shelves[currentUser] ?? 'to-read' },
+      progress: { ...replacement.progress, ...(replacement.progress[currentUser] || !changingBook.progress[currentUser] ? {} : { [currentUser]: changingBook.progress[currentUser] }) },
+      ratings: { ...replacement.ratings, ...(replacement.ratings[currentUser] || !changingBook.ratings[currentUser] ? {} : { [currentUser]: changingBook.ratings[currentUser] }) },
+    }
+    const updated = books.map((book) => book.id === changingBook.id ? { ...book, shelves, progress, ratings } : book.id === corrected.id ? corrected : book)
+    onChange(duplicate ? updated : [corrected, ...updated])
+    setChangingId(null)
+    setSelectedId(corrected.id)
+    notify(`Book changed to ${corrected.title}`)
+  }
   const mutate = (book: Book) => onChange(books.map((item) => item.id === book.id ? book : item))
   const setShelf = (book: Book, shelf?: BookShelf) => {
     const shelves = { ...book.shelves }
@@ -247,7 +288,8 @@ export default function BookClub({ books, currentUser, crew, section, shelfFilte
       {poll.length ? <div className="book-poll-list">{poll.map((book, index) => <article key={book.id} onClick={() => setSelectedId(book.id)}><span className="book-poll-rank">#{index + 1}</span><BookCover book={book} /><div><h3>{book.title}</h3><p>{book.authors.join(', ')}</p><small>{averageRating(book) ? `★ ${averageRating(book).toFixed(1)} · ` : ''}{book.comments.length} comment{book.comments.length === 1 ? '' : 's'}</small></div><div className="book-poll-members"><span>{book.upvotes.map((id) => memberName(crew,id)).join(', ') || 'No yes votes yet'}</span><small>{book.downvotes.length}/3 no votes</small></div><VoteControls book={book} currentUser={currentUser} onVote={(direction) => vote(book, direction)} /></article>)}</div> : <div className="book-empty-panel"><BookOpen size={28} /><h2>The poll is empty</h2><p>Add a book to start choosing what to read next.</p></div>}
     </>}
     {showAdd && <AddBookModal existing={books} onClose={onCloseAdd} onAdd={addBook} />}
-    {selected && <BookDetails book={selected} currentUser={currentUser} crew={crew} onClose={() => setSelectedId(null)} onUpdate={mutate} onChapter={() => setChapterBookId(selected.id)} />}
+    {selected && <BookDetails key={selected.id} book={selected} currentUser={currentUser} crew={crew} onClose={() => setSelectedId(null)} onUpdate={mutate} onChapter={() => setChapterBookId(selected.id)} onChangeBook={() => { setChangingId(selected.id); setSelectedId(null) }} onRemove={() => removeBook(selected)} />}
+    {changingBook && <AddBookModal existing={books} replacing={changingBook} onClose={() => setChangingId(null)} onAdd={changeBook} />}
     {chapterBook && <ChapterModal book={chapterBook} current={chapterBook.progress[currentUser]?.lastChapter ?? 0} onClose={() => setChapterBookId(null)} onSave={(chapter) => updateChapter(chapterBook, chapter)} />}
   </div>
 }

@@ -140,6 +140,8 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
 }
 
 /* Book Club */
+.book-manage-actions { display: flex; flex-direction: column; gap: 8px; }
+.book-manage-actions .button { width: 100%; min-height: 44px; margin: 0; white-space: normal; }
 .book-library-actions { display: flex; justify-content: flex-end; margin-bottom: 12px; }
 .book-add-destination { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 16px 0; font-size: 12px; }
 .book-add-destination small { flex-basis: 100%; color: var(--muted); line-height: 1.5; }
