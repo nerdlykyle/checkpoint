@@ -4,6 +4,13 @@ export type ContentType = 'game' | 'dlc'
 export type SteamLinkPreference = 'auto' | 'app' | 'browser'
 export type AppMode = 'games' | 'books'
 export type BookShelf = 'to-read' | 'reading' | 'read'
+export type ClubBookState = {
+  status: 'up-next' | 'reading' | 'completed'
+  order: number
+  participantIds: string[]
+  startedAt?: string
+  completedAt?: string
+}
 
 export type BookProgress = {
   lastChapter: number
@@ -40,6 +47,7 @@ export type Book = {
   upvotes: string[]
   downvotes: string[]
   nominated?: boolean
+  club?: ClubBookState
   passedOnAt?: string
   shelves: Record<string, BookShelf>
   progress: Record<string, BookProgress>
