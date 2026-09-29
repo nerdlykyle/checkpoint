@@ -82,13 +82,26 @@ function ShelfSelect({ value, onChange }: { value?: BookShelf; onChange: (shelf?
 }
 
 function ChapterModal({ book, current, onClose, onSave }: { book: Book; current: number; onClose: () => void; onSave: (chapter: number) => void }) {
-  const [chapter, setChapter] = useState(current)
+  const [chapter, setChapter] = useState(String(current))
+  const stepChapter = (delta: number) => setChapter((value) => String(Math.max(0, Math.min(9999, Number(value) + delta))))
   return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
     <section className="modal-card chapter-modal" role="dialog" aria-modal="true" aria-label="Update chapter">
       <div className="modal-title"><div><span className="eyebrow">Reading progress</span><h2>Update chapter</h2><p>{book.title}</p></div><button className="icon-button" onClick={onClose} aria-label="Close"><X size={18} /></button></div>
-      <label className="chapter-value"><span>Last chapter read</span><input type="number" min="0" max="9999" inputMode="numeric" value={chapter} onChange={(event) => setChapter(Math.max(0, Math.min(9999, Number(event.target.value) || 0)))} /></label>
-      <div className="chapter-stepper"><button type="button" onClick={() => setChapter((value) => Math.max(0, value - 1))}><Minus size={22} /><span>Previous</span></button><strong>{chapter}</strong><button type="button" onClick={() => setChapter((value) => Math.min(9999, value + 1))}><Plus size={22} /><span>Next</span></button></div>
-      <div className="modal-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="button" onClick={() => onSave(chapter)}><Check size={15} /> Save chapter</button></div>
+      <label className="chapter-label" htmlFor="chapter-number">Last chapter read</label>
+      <div className="chapter-stepper">
+        <button type="button" disabled={Number(chapter) === 0} onClick={() => stepChapter(-1)} aria-label="Previous chapter"><Minus size={22} /><span>Previous</span></button>
+        <input id="chapter-number" className="chapter-number" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={4} role="spinbutton" aria-valuemin={0} aria-valuemax={9999} aria-valuenow={chapter === '' ? undefined : Number(chapter)} value={chapter}
+          onFocus={(event) => event.currentTarget.select()}
+          onClick={(event) => event.currentTarget.select()}
+          onChange={(event) => { if (/^\d{0,4}$/.test(event.target.value)) setChapter(event.target.value) }}
+          onBlur={() => { if (chapter !== '') setChapter(String(Number(chapter))) }}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowUp' || event.key === 'ArrowDown') { event.preventDefault(); stepChapter(event.key === 'ArrowUp' ? 1 : -1) }
+            if (event.key === 'Enter' && chapter !== '') { event.preventDefault(); onSave(Number(chapter)) }
+          }} />
+        <button type="button" disabled={Number(chapter) === 9999} onClick={() => stepChapter(1)} aria-label="Next chapter"><Plus size={22} /><span>Next</span></button>
+      </div>
+      <div className="modal-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="button" disabled={chapter === ''} onClick={() => onSave(Number(chapter))}><Check size={15} /> Save chapter</button></div>
     </section>
   </div>
 }
