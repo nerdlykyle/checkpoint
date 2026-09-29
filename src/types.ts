@@ -87,6 +87,7 @@ export type GameSession = {
   gameTitle: string
   startedAt: string
   endedAt?: string
+  endReason?: 'manual' | 'time-limit'
   pausedAt?: string
   pausedMilliseconds: number
   participantIds: string[]
