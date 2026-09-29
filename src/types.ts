@@ -33,6 +33,7 @@ export type BookComment = {
 
 export type Book = {
   id: string
+  discoveryIds?: string[]
   title: string
   authors: string[]
   description: string
