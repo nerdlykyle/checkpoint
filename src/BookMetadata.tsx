@@ -4,7 +4,7 @@ import { auth, database } from './lib/firebase'
 import type { Book } from './types'
 import { X } from 'lucide-react'
 
-export function PrivateBookNote({ bookId }: { bookId: string }) {
+export function PrivateBookNote({ bookId, kind = 'books' }: { bookId: string; kind?: 'books' | 'music' }) {
   const [note, setNote] = useState('')
   const [saved, setSaved] = useState('')
   const [status, setStatus] = useState('Loading private note…')
@@ -15,24 +15,24 @@ export function PrivateBookNote({ bookId }: { bookId: string }) {
     let active = true
     const uid = auth?.currentUser?.uid
     if (!database || !uid) { setStatus('Sign in to save a private note.'); return }
-    getDoc(doc(database, 'readerNotes', uid, 'books', bookId)).then((snapshot) => {
+    getDoc(doc(database, 'readerNotes', uid, kind, bookId)).then((snapshot) => {
       if (!active) return
       const text = snapshot.data()?.note ?? ''
       setNote(text); setSaved(text); setStatus('Only you can read this note.'); setReady(true)
-    }).catch(() => { if (active) setStatus('Could not load your private note. Close and reopen the book to retry.') })
+    }).catch(() => { if (active) setStatus('Could not load your private note. Close and reopen this item to retry.') })
     return () => { active = false }
-  }, [bookId])
+  }, [bookId, kind])
   const save = async () => {
     if (!database || !auth?.currentUser || !ready) return
     setSaving(true)
     setError('')
     try {
-      await setDoc(doc(database, 'readerNotes', auth.currentUser.uid, 'books', bookId), { note, updatedAt: new Date().toISOString() })
+      await setDoc(doc(database, 'readerNotes', auth.currentUser.uid, kind, bookId), { note, updatedAt: new Date().toISOString() })
       setSaved(note); setStatus('Private note saved. Only you can read it.')
     } catch { setError('Could not save. Your text is still here—please try again.') }
     finally { setSaving(false) }
   }
-  return <section className="private-book-note"><span className="eyebrow">My private note</span><p className="book-empty-copy">Why did I save this book?</p><textarea aria-label="My private note" rows={4} maxLength={4000} value={note} disabled={!ready || saving} onChange={(event) => setNote(event.target.value)} placeholder="A recommendation, a reminder, or a reason to read…" /><p role="status">{error || (note !== saved ? 'Unsaved changes. Save before closing.' : status)}</p><button className="button button-secondary" type="button" disabled={!ready || saving || note === saved} onClick={save}>{saving ? 'Saving…' : 'Save private note'}</button></section>
+  return <section className="private-book-note"><span className="eyebrow">My private note</span><p className="book-empty-copy">Why did I save this {kind === 'music' ? 'music' : 'book'}?</p><textarea aria-label="My private note" rows={4} maxLength={4000} value={note} disabled={!ready || saving} onChange={(event) => setNote(event.target.value)} placeholder="A recommendation, a reminder, or something to remember…" /><p role="status">{error || (note !== saved ? 'Unsaved changes. Save before closing.' : status)}</p><button className="button button-secondary" type="button" disabled={!ready || saving || note === saved} onClick={save}>{saving ? 'Saving…' : 'Save private note'}</button></section>
 }
 
 export default function BookMetadata({ book, currentUser, onClose, onSave }: { book: Book; currentUser: string; onClose: () => void; onSave: (book: Book) => void }) {

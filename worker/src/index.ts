@@ -1,3 +1,5 @@
+import { musicCatalog } from './music.js'
+
 interface Env {
   ALLOWED_ORIGINS: string
   CHECKPOINT_BOARD_ID: string
@@ -173,6 +175,9 @@ async function handleRequest(request: Request, env: Env) {
   if (url.pathname === '/health') return json(request, env, { ok: true, steamConfigured: Boolean(env.STEAM_WEB_API_KEY) })
   if (!boardAllowed(url, env)) return json(request, env, { error: 'board_not_allowed' }, 403)
   try {
+    if (url.pathname === '/music/catalog') {
+      return json(request, env, await musicCatalog(Object.fromEntries(url.searchParams)))
+    }
     if (url.pathname === '/steam/resolve') {
       const profile = url.searchParams.get('profile') || ''
       return json(request, env, await resolveSteamProfile(env, profile))
