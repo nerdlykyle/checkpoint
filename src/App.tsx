@@ -6,13 +6,14 @@ import {
 } from 'lucide-react'
 import {
   createContext, useContext, useEffect, useMemo, useRef, useState,
-  type ClipboardEvent as ReactClipboardEvent, type CSSProperties, type DragEvent, type FormEvent, type PointerEvent as ReactPointerEvent, type RefObject,
+  type ClipboardEvent as ReactClipboardEvent, type CSSProperties, type FormEvent, type PointerEvent as ReactPointerEvent, type RefObject,
 } from 'react'
 import type { User } from 'firebase/auth'
 import './App.css'
 import BookClub, { type BookSection, type BookShelfFilter } from './BookClub'
 import MusicMode, { MusicNavigation } from './MusicMode'
 import type { MusicSection } from './lib/music'
+import { useLiveReorder } from './useLiveReorder'
 import { isBookPollCandidate } from './lib/clubBooks'
 import { initialGames, members, statusLabels } from './data'
 import type { ActivityChange, ActivityEntry, ActivitySnapshot, AppMode, Book, ContentType, Game, GameDeal, GameLink, GameNight, GameSession, GameStatus, Member, Persona, PuzzleBoard, PuzzleImage, PuzzlePage, PuzzlePoint, PuzzleStroke, Recommendation, RecommendationFeedback, RecommendationFeed, SteamAchievementSnapshot, SteamCrewSnapshot, SteamLinkPreference } from './types'
@@ -1318,10 +1319,10 @@ function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onChangeGam
   )
 }
 
-function QueueItem({ game, rank, onVote, onOpen, onDragStart, onDrop }: { game: Game; rank: number; onVote: () => void; onOpen: () => void; onDragStart: (event: DragEvent<HTMLDivElement>) => void; onDrop: (event: DragEvent<HTMLDivElement>) => void }) {
+function QueueItem({ game, rank, onVote, onOpen, dragHandle }: { game: Game; rank: number; onVote: () => void; onOpen: () => void; dragHandle: ReturnType<ReturnType<typeof useLiveReorder>['handleProps']> }) {
   return (
-    <div className="queue-item" draggable onDragStart={onDragStart} onDragOver={(event) => event.preventDefault()} onDrop={onDrop} onClick={onOpen}>
-      <button className="drag-handle" type="button" aria-label={`Drag ${game.title}`}><GripVertical size={17} /></button><span className="queue-rank">{rank}</span><Cover game={game} size="small" />
+    <div className="queue-item" data-reorder-id={game.id} onClick={onOpen}>
+      <button className="drag-handle" type="button" aria-label={`Drag ${game.title}; use arrow keys to reorder`} {...dragHandle}><GripVertical size={17} /></button><span className="queue-rank">{rank}</span><Cover game={game} size="small" />
       <div className="queue-copy"><strong>{game.title}</strong><span>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle}` : game.genre} · {game.platform}</span></div>
       <div className="queue-integrations"><OwnershipBadge game={game} compact /><DealBadge game={game} compact /></div><div className="queue-voters" aria-label={`${game.votes.length} votes`}>{game.votes.slice(0, 3).map((id) => <Avatar id={id} small key={id} />)}</div><VoteButton game={game} onVote={onVote} compact />
     </div>
@@ -1863,6 +1864,7 @@ function App() {
     }
   }, [activeSession?.id, gameNights, todayDate])
   const upNext = games.filter((game) => game.status === 'up-next')
+  const queueDrag = useLiveReorder({ ids: upNext.slice(0, 4).map(game => game.id), enabled: mode === 'games' && view === 'dashboard', onMove: reorderQueue })
   const availableRecommendations = useMemo(() => {
     const trackedAppIds = new Set(games.flatMap((game) => game.steamAppId ? [game.steamAppId] : []))
     const trackedTitles = new Set(games.map((game) => game.title.trim().toLocaleLowerCase()))
@@ -2373,8 +2375,8 @@ function App() {
               </div> : <button className="empty-playing" onClick={() => openAddGame()}><Plus size={24} /> Choose a game to start</button>}
               <div className="playing-footer"><div className="member-stack inverse-stack">{groupMembers.map((member) => <Avatar id={member.id} small key={member.id} />)}</div><span>{playing ? 'Crew campaign' : 'Ready when you are'}</span><div className="footer-spacer" />{playing && <><Clock3 size={16} /><span>{((playing.hours ?? 0) + loggedMilliseconds(playing.id) / 3_600_000).toFixed(1).replace('.0', '')} hours logged</span></>}</div>
             </div>
-            <div className="queue-panel"><div className="section-heading"><div><span className="eyebrow">The shortlist</span><h2>Up next</h2></div><button className="text-button" onClick={() => openLibrary('up-next')}>View all</button></div><p className="queue-hint"><GripVertical size={14} /> Drag to set the official play order. Votes stay separate.</p><div className="queue-list">
-              {upNext.slice(0, 4).map((game, index) => <QueueItem game={game} rank={index + 1} key={game.id} onVote={() => vote(game.id)} onOpen={() => setSelectedId(game.id)} onDragStart={(event) => event.dataTransfer.setData('text/plain', game.id)} onDrop={(event) => reorderQueue(event.dataTransfer.getData('text/plain'), game.id)} />)}
+            <div className="queue-panel"><div className="section-heading"><div><span className="eyebrow">The shortlist</span><h2>Up next</h2></div><button className="text-button" onClick={() => openLibrary('up-next')}>View all</button></div><p className="queue-hint"><GripVertical size={14} /> Drag to set the official play order. Votes stay separate.</p><p className="sr-only" role="status">{queueDrag.announcement}</p><div className="queue-list" ref={queueDrag.containerRef} onClickCapture={queueDrag.onClickCapture}>
+              {upNext.slice(0, 4).map((game, index) => <QueueItem game={game} rank={index + 1} key={game.id} onVote={() => vote(game.id)} onOpen={() => setSelectedId(game.id)} dragHandle={queueDrag.handleProps(game.id)} />)}
               </div><button className="queue-add" type="button" onClick={() => openAddGame()}><Plus size={17} /> Add another contender</button></div>
           </section>
           <section className="lower-section"><div className="section-heading"><div><span className="eyebrow">Worth a look</span><h2>On the radar</h2></div><button className="filter-button" onClick={() => openLibrary('all')}><ListFilter size={16} /> Browse library</button></div><div className="radar-grid">
