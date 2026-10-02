@@ -1,6 +1,7 @@
 import { useState, type PointerEvent } from 'react'
 import { ArrowDown, ArrowUp, BookMarked, GripVertical, Plus, Shuffle, SlidersHorizontal } from 'lucide-react'
 import type { Book, BookShelf, Member } from './types'
+import BookCoverImage from './BookCoverImage'
 import { movePersonalBook, normalizeBookText, personalQueue, sameSeries, shelfNames } from './lib/bookOrganization'
 import './BookOrganizer.css'
 
@@ -63,7 +64,7 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
     const rank = queue.findIndex((item) => item.id === book.id) + 1
     return <article key={book.id} data-shelf-book={book.id} className={`organized-book ${dropTarget === book.id ? 'is-drop-target' : ''} ${dragging === book.id ? 'is-dragging' : ''}`}>
       {canReorder && <button type="button" className="book-drag-handle" aria-label={`Drag ${book.title} to reorder; use arrow buttons or Move for keyboard control`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); setDragging(book.id) }} onPointerMove={(event) => handlePointer(event, false)} onPointerUp={(event) => handlePointer(event, true)} onPointerCancel={() => { setDragging(null); setDropTarget(null) }}><GripVertical size={20} /></button>}
-      <button className="organized-cover" type="button" onClick={() => onOpen(book.id)} aria-label={`Open ${book.title}`}><span>{book.title.slice(0, 2)}</span>{book.coverUrl && <img src={book.coverUrl} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} />}</button>
+      <button className="organized-cover" type="button" onClick={() => onOpen(book.id)} aria-label={`Open ${book.title}`}><BookCoverImage book={book} /></button>
       <div className="organized-copy"><span className="eyebrow">{sort === 'order' && shelf !== 'all' && !groupSeries ? `#${rank} · ` : ''}{shelfNames[book.shelves[owner]]}</span><button className="organized-title" type="button" onClick={() => onOpen(book.id)}>{book.title}</button><p>{book.authors.join(', ')}</p><SeriesLabel book={book} />
         <div className="book-tag-list">{book.genres?.map((value) => <button type="button" key={value} onClick={() => setGenre(value)}>{value}</button>)}{book.readerOrganization?.[owner]?.tags?.map((value) => <button type="button" className="personal-tag" key={value} onClick={() => setTag(value)}>#{value}</button>)}</div>
         {!mine && <p>{ownerName} · Chapter {book.progress[owner]?.lastChapter ?? 0}{book.ratings[owner]?.stars ? ` · ${book.ratings[owner].stars}/5 stars` : ''}</p>}

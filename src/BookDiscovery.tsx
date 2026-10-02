@@ -4,6 +4,7 @@ import type { Book } from './types'
 import { discoveryPickLabel, findDiscoveryBook, loadBookDiscovery, type BookDiscoveryFeed, type DiscoveryPick } from './lib/bookDiscovery'
 import './BookDiscovery.css'
 import { shelfNames } from './lib/bookOrganization'
+import BookCoverImage from './BookCoverImage'
 
 type Props = {
   books: Book[]
@@ -51,7 +52,7 @@ export default function BookDiscovery({ books, currentUser, onAdd, onOpenBook }:
         const pollDisabled = Boolean(nominated || book?.passedOnAt || book?.club)
         const search = encodeURIComponent(`${pick.title} ${pick.authors.join(' ')}`)
         return <article className={`discovery-card ${pick.month === latestMonth ? 'is-featured' : ''}`} key={pick.id}>
-          <div className="discovery-book-heading"><div className="book-cover"><span>{pick.title.split(/\s+/).slice(0, 2).map((word) => word[0]).join('')}</span>{pick.coverUrl && <img loading="lazy" src={pick.coverUrl} alt={`Cover of ${pick.title}`} onError={(event) => { event.currentTarget.style.display = 'none' }} />}</div><div><span className="eyebrow">{discoveryPickLabel(pick, latestMonth)}</span><time dateTime={pick.month}>{monthLabel(pick.month)}</time><h3>{pick.title}</h3><p>{pick.authors.join(', ')}</p>{shelf && <span className="discovery-shelf"><Check size={13} /> On my shelf · {shelves[shelf]}</span>}</div></div>
+          <div className="discovery-book-heading"><div className="book-cover"><BookCoverImage book={pick} /></div><div><span className="eyebrow">{discoveryPickLabel(pick, latestMonth)}</span><time dateTime={pick.month}>{monthLabel(pick.month)}</time><h3>{pick.title}</h3><p>{pick.authors.join(', ')}</p>{shelf && <span className="discovery-shelf"><Check size={13} /> On my shelf · {shelves[shelf]}</span>}</div></div>
           <details className="discovery-synopsis"><summary>Synopsis</summary><p>{pick.description || 'A synopsis is not available for this edition. Open its catalog page for more information.'}</p>{pick.metadataUrl && <a href={pick.metadataUrl} target="_blank" rel="noreferrer">Book details & source <ExternalLink size={12} /></a>}</details>
           <div className="book-link-row discovery-links"><a href={pick.bookshopUrl} target="_blank" rel="noreferrer">Bookshop <ExternalLink size={12} /></a><a href={`https://www.amazon.com/s?k=${search}+kindle`} target="_blank" rel="noreferrer">Kindle</a><a href={`https://www.audible.com/search?keywords=${search}`} target="_blank" rel="noreferrer">Audible</a><a href={`https://www.overdrive.com/search?q=${search}`} target="_blank" rel="noreferrer">Libby / library</a></div>
           {pick.discussionUrl && <a className="discovery-discussion" href={pick.discussionUrl} target="_blank" rel="noreferrer"><Video size={16} /> Watch discussion <span>May contain spoilers</span></a>}
