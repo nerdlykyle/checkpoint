@@ -1,7 +1,8 @@
-import { useState, type PointerEvent } from 'react'
+import { useState } from 'react'
 import { ArrowDown, ArrowUp, BookMarked, GripVertical, Plus, Shuffle, SlidersHorizontal } from 'lucide-react'
 import type { Book, BookShelf, Member } from './types'
 import BookCoverImage from './BookCoverImage'
+import { useLiveReorder } from './useLiveReorder'
 import { movePersonalBook, normalizeBookText, personalQueue, sameSeries, shelfNames } from './lib/bookOrganization'
 import './BookOrganizer.css'
 
@@ -27,8 +28,6 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
   const [sort, setSort] = useState('order')
   const [moving, setMoving] = useState<string | null>(null)
   const [position, setPosition] = useState('1')
-  const [dragging, setDragging] = useState<string | null>(null)
-  const [dropTarget, setDropTarget] = useState<string | null>(null)
   const [announcement, setAnnouncement] = useState('')
   const owner = readers ? reader : currentUser
   const mine = owner === currentUser
@@ -50,20 +49,12 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
     onChange(movePersonalBook(books, currentUser, id, rank))
     setAnnouncement('Your reading order was updated.')
   }
-  const handlePointer = (event: PointerEvent<HTMLButtonElement>, ending: boolean) => {
-    if (!dragging) return
-    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-shelf-book]')?.dataset.shelfBook
-    setDropTarget(target ?? null)
-    if (ending) {
-      if (target && target !== dragging && visible.some((book) => book.id === target)) move(dragging, queue.findIndex((book) => book.id === target) + 1)
-      setDragging(null); setDropTarget(null)
-    } else if (event.clientY > window.innerHeight - 80) window.scrollBy(0, 16)
-    else if (event.clientY < 100) window.scrollBy(0, -16)
-  }
+  const drag = useLiveReorder({ ids: visible.map(book => book.id), enabled: canReorder,
+    onMove: (id, target) => move(id, queue.findIndex(book => book.id === target) + 1) })
   const card = (book: Book) => {
     const rank = queue.findIndex((item) => item.id === book.id) + 1
-    return <article key={book.id} data-shelf-book={book.id} className={`organized-book ${dropTarget === book.id ? 'is-drop-target' : ''} ${dragging === book.id ? 'is-dragging' : ''}`}>
-      {canReorder && <button type="button" className="book-drag-handle" aria-label={`Drag ${book.title} to reorder; use arrow buttons or Move for keyboard control`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); setDragging(book.id) }} onPointerMove={(event) => handlePointer(event, false)} onPointerUp={(event) => handlePointer(event, true)} onPointerCancel={() => { setDragging(null); setDropTarget(null) }}><GripVertical size={20} /></button>}
+    return <article key={book.id} data-shelf-book={book.id} data-reorder-id={book.id} className="organized-book">
+      {canReorder && <button type="button" className="book-drag-handle" aria-label={`Drag ${book.title} to reorder; use arrow buttons or Move for keyboard control`} {...drag.handleProps(book.id)}><GripVertical size={20} /></button>}
       <button className="organized-cover" type="button" onClick={() => onOpen(book.id)} aria-label={`Open ${book.title}`}><BookCoverImage book={book} /></button>
       <div className="organized-copy"><span className="eyebrow">{sort === 'order' && shelf !== 'all' && !groupSeries ? `#${rank} · ` : ''}{shelfNames[book.shelves[owner]]}</span><button className="organized-title" type="button" onClick={() => onOpen(book.id)}>{book.title}</button><p>{book.authors.join(', ')}</p><SeriesLabel book={book} />
         <div className="book-tag-list">{book.genres?.map((value) => <button type="button" key={value} onClick={() => setGenre(value)}>{value}</button>)}{book.readerOrganization?.[owner]?.tags?.map((value) => <button type="button" className="personal-tag" key={value} onClick={() => setTag(value)}>#{value}</button>)}</div>
@@ -95,7 +86,8 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
     <div className="book-organizer-options"><label><input type="checkbox" checked={groupSeries} onChange={(event) => setGroupSeries(event.target.checked)} /> Group by series</label>{mine && <button type="button" disabled={refreshing || !owned.length} onClick={onRefresh}>{refreshing ? 'Checking catalogs…' : 'Refresh series & genres'}</button>}<button type="button" disabled={!visible.some((book) => book.shelves[owner] === 'to-read')} onClick={() => { const choices = visible.filter((book) => book.shelves[owner] === 'to-read'); onOpen(choices[Math.floor(Math.random() * choices.length)].id) }}><Shuffle size={15} />Pick {mine ? 'my' : 'a'} next read</button>{(genre || tag || query) && <button type="button" onClick={() => { setGenre(''); setTag(''); setQuery('') }}>Clear filters</button>}</div>
     <p className="book-organizer-hint">{groupSeries ? 'Series order is separate from your personal reading queue. Missing books aren’t added automatically.' : canReorder ? 'Drag the grip, use arrows, or choose Move to set a position. Positions refer to the full shelf, even when filtered.' : mine ? 'Choose a shelf and Reading order to arrange books. Turn off series grouping to mix books from different series.' : 'Ratings and discussion remain shared. Private notes are never shown here.'}</p>
     <p className="sr-only" role="status">{announcement}</p>
-    <div className="organized-books">{groupSeries ? groups.map((items) => {
+    <p className="sr-only" role="status">{drag.announcement}</p>
+    <div className="organized-books" ref={drag.containerRef} onClickCapture={drag.onClickCapture}>{groupSeries ? groups.map((items) => {
       const first = items[0]
       if (!first.series) return card(first)
       const allSeries = owned.filter((book) => sameSeries(first, book))
