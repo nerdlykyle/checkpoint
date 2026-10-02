@@ -2,6 +2,14 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Private notes never live in the shared board document.
+    match /readerNotes/{userId}/books/{bookId} {
+      allow read, delete: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['note', 'updatedAt'])
+        && request.resource.data.note is string && request.resource.data.note.size() <= 4000
+        && request.resource.data.updatedAt is string && request.resource.data.updatedAt.size() <= 40;
+    }
     match /boards/{boardId} {
       function signedIn() {
         return request.auth != null;

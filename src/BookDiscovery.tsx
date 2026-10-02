@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import type { Book } from './types'
 import { discoveryPickLabel, findDiscoveryBook, loadBookDiscovery, type BookDiscoveryFeed, type DiscoveryPick } from './lib/bookDiscovery'
 import './BookDiscovery.css'
+import { shelfNames } from './lib/bookOrganization'
 
 type Props = {
   books: Book[]
@@ -11,7 +12,7 @@ type Props = {
   onOpenBook: (id: string) => void
 }
 
-const shelves = { 'to-read': 'To read', reading: 'Reading', read: 'Read' }
+const shelves = shelfNames
 const monthLabel = (month: string) => new Date(`${month}-01T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
 
 export default function BookDiscovery({ books, currentUser, onAdd, onOpenBook }: Props) {

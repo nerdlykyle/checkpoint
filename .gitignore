@@ -5,3 +5,4 @@ public/steam-games/
 .env.local
 .DS_Store
 .wrangler/
+*-debug.log

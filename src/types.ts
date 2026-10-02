@@ -3,7 +3,8 @@ export type Persona = 'Nern' | 'Jern' | 'Vern'
 export type ContentType = 'game' | 'dlc'
 export type SteamLinkPreference = 'auto' | 'app' | 'browser'
 export type AppMode = 'games' | 'books'
-export type BookShelf = 'to-read' | 'reading' | 'read'
+export type BookShelf = 'to-read' | 'reading' | 'read' | 'paused' | 'dnf'
+export type BookSeries = { name: string; position?: number; total?: number }
 export type ClubBookState = {
   status: 'up-next' | 'reading' | 'completed'
   order: number
@@ -33,6 +34,11 @@ export type BookComment = {
 
 export type Book = {
   id: string
+  genres?: string[]
+  series?: BookSeries
+  metadataEdited?: boolean
+  metadataCheckedAt?: string
+  readerOrganization?: Record<string, { order?: number; tags?: string[] }>
   discoveryIds?: string[]
   title: string
   authors: string[]
