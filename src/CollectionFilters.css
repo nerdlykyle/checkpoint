@@ -1,0 +1,11 @@
+.collection-filters { min-width:0; margin:14px 0; border:1px solid #303d43; border-radius:12px; background:#11181c; }
+.collection-filters > summary { display:flex; align-items:center; gap:10px; min-height:48px; padding:10px 14px; box-sizing:border-box; color:#dce1e6; list-style:none; cursor:pointer; font-size:13px; font-weight:650; touch-action:manipulation; }
+.collection-filters > summary::-webkit-details-marker { display:none; }
+.collection-filters > summary:focus-visible { outline:2px solid #a193fa; outline-offset:3px; border-radius:10px; }
+.collection-filters-label { min-width:0; flex:1; }
+.collection-filters-label small { display:block; margin-top:3px; color:#b7abd9; font-size:11px; font-weight:400; }
+.collection-filters-chevron { flex-shrink:0; transition:transform 150ms ease; }
+.collection-filters[open] > summary .collection-filters-chevron { transform:rotate(180deg); }
+.collection-filters-content { padding:0 14px 14px; }
+.collection-filters-content > .book-organizer-toolbar, .collection-filters-content > .music-filters { margin-top:8px; }
+@media(prefers-reduced-motion:reduce) { .collection-filters-chevron { transition:none; } }

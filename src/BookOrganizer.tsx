@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ArrowDown, ArrowUp, BookMarked, GripVertical, Plus, Shuffle, SlidersHorizontal } from 'lucide-react'
 import type { Book, BookShelf, Member } from './types'
 import BookCoverImage from './BookCoverImage'
+import CollectionFilters from './CollectionFilters'
 import { useLiveReorder } from './useLiveReorder'
 import { movePersonalBook, normalizeBookText, personalQueue, sameSeries, shelfNames } from './lib/bookOrganization'
 import './BookOrganizer.css'
@@ -77,6 +78,7 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
     {readers && <label className="reader-select">Browse a reader<select aria-label="Browse a reader" value={reader} onChange={(event) => { setReader(event.target.value); setGenre(''); setTag(''); setQuery(''); onShelfFilter('all') }}><option value={currentUser}>My books</option>{crew.filter((member) => member.id !== currentUser).map((member) => <option value={member.id} key={member.id}>{member.name}’s books</option>)}</select></label>}
     {!mine && <p className="reader-view-notice">Browsing {ownerName}’s library. Their shelves and reading order are read-only. Save a book to manage your own copy.</p>}
     <div className="filter-tabs book-filter-tabs">{(['all', ...Object.keys(shelfNames)] as (BookShelf | 'all')[]).map((value) => <button key={value} className={shelf === value ? 'active' : ''} type="button" onClick={() => { onShelfFilter(value); setGroupSeries(value === 'all') }}>{value === 'all' ? 'Library' : shelfNames[value]}<span>{value === 'all' ? owned.length : owned.filter((book) => book.shelves[owner] === value).length}</span></button>)}</div>
+    <CollectionFilters activeCount={[query || search, genre, tag, sort !== 'order'].filter(Boolean).length} groupedBy={groupSeries ? 'series' : undefined}>
     <div className="book-organizer-toolbar">
       <label>Search<input type="search" placeholder="Title, author, or series" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
       <label>Genre<select value={genre} onChange={(event) => setGenre(event.target.value)}><option value="">All genres</option>{genres.map((value) => <option key={value}>{value}</option>)}<option value="__none">Uncategorized</option></select></label>
@@ -84,6 +86,7 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
       <label>Sort<select value={sort} onChange={(event) => setSort(event.target.value)}><option value="order">Reading order</option><option value="title">Title</option><option value="author">Author</option><option value="newest">Recently added</option></select></label>
     </div>
     <div className="book-organizer-options"><label><input type="checkbox" checked={groupSeries} onChange={(event) => setGroupSeries(event.target.checked)} /> Group by series</label>{mine && <button type="button" disabled={refreshing || !owned.length} onClick={onRefresh}>{refreshing ? 'Checking catalogs…' : 'Refresh series & genres'}</button>}<button type="button" disabled={!visible.some((book) => book.shelves[owner] === 'to-read')} onClick={() => { const choices = visible.filter((book) => book.shelves[owner] === 'to-read'); onOpen(choices[Math.floor(Math.random() * choices.length)].id) }}><Shuffle size={15} />Pick {mine ? 'my' : 'a'} next read</button>{(genre || tag || query) && <button type="button" onClick={() => { setGenre(''); setTag(''); setQuery('') }}>Clear filters</button>}</div>
+    </CollectionFilters>
     <p className="book-organizer-hint">{groupSeries ? 'Series order is separate from your personal reading queue. Missing books aren’t added automatically.' : canReorder ? 'Drag the grip, use arrows, or choose Move to set a position. Positions refer to the full shelf, even when filtered.' : mine ? 'Choose a shelf and Reading order to arrange books. Turn off series grouping to mix books from different series.' : 'Ratings and discussion remain shared. Private notes are never shown here.'}</p>
     <p className="sr-only" role="status">{announcement}</p>
     <p className="sr-only" role="status">{drag.announcement}</p>
