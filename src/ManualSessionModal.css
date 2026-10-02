@@ -1,0 +1,21 @@
+.manual-session-dialog { box-sizing:border-box; width:min(580px,calc(100% - 24px)); max-height:calc(100dvh - 24px); border:1px solid #3a474d; border-radius:18px; padding:24px; background:#151d21; color:#edf1ef; }
+.manual-session-dialog::backdrop { background:#000a; backdrop-filter:blur(5px); }
+.manual-session-dialog header { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+.manual-session-dialog h2 { margin:6px 0 0; font-size:24px; }
+.manual-session-dialog p,.manual-session-dialog small { color:#b2bfba; font-size:13px; line-height:1.6; }
+.manual-session-dialog label { display:grid; gap:7px; margin-top:14px; font-size:14px; }
+.manual-session-dialog input,.manual-session-dialog select,.manual-session-dialog textarea { box-sizing:border-box; width:100%; min-width:0; padding:11px; min-height:44px; border:1px solid #425058; border-radius:9px; background:#0d1519; color:#edf1ef; font:inherit; font-size:16px; color-scheme:dark; }
+.manual-session-dialog textarea { resize:vertical; line-height:1.6; }
+.manual-session-dialog fieldset { min-width:0; margin:18px 0; padding:0; border:0; }
+.manual-session-dialog legend { font-size:14px; }
+.manual-session-duration>div { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.manual-session-players>div { margin-top:12px; display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; }
+.manual-session-players button { display:flex; align-items:center; gap:8px; min-width:0; padding:8px; background:#10181c; border:1px solid #414b53; border-radius:10px; color:#b7c0bd; cursor:pointer; }
+.manual-session-players button[aria-pressed=true] { background:#302646; border-color:#a18aee; color:#ede6ff; }
+.manual-session-players button>span:nth-child(2) { flex:1; min-width:0; overflow-wrap:anywhere; }
+.manual-session-players .member-portrait { width:30px; height:30px; flex-basis:30px; }
+.manual-session-dialog footer { margin-top:24px; display:flex; justify-content:flex-end; gap:10px; }
+.manual-session-dialog .manual-session-error { color:#ffb5b5; }
+.session-history-toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.session-history-card>.section-heading { flex-wrap:wrap; gap:12px; }
+@media(max-width:600px) { .manual-session-dialog { padding:20px 16px; }.manual-session-dialog footer .button { flex:1; justify-content:center; }.session-history-toolbar .button { min-height:44px; } }

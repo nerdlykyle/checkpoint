@@ -90,6 +90,7 @@ export type GameNight = {
 
 export type GameSession = {
   id: string
+  recordedManually?: boolean
   gameNightId?: string
   gameId: string
   gameTitle: string

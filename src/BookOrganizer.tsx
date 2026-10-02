@@ -1,3 +1,4 @@
+import MemberShelfPicker from './MemberShelfPicker'
 import { useState } from 'react'
 import { ArrowDown, ArrowUp, BookMarked, GripVertical, Plus, Shuffle, SlidersHorizontal } from 'lucide-react'
 import type { Book, BookShelf, Member } from './types'
@@ -75,7 +76,7 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
     if (group) group.push(book); else groups.push([book])
   }
   return <section className="book-organizer" aria-label="Personal book shelves">
-    {readers && <label className="reader-select">Browse a reader<select aria-label="Browse a reader" value={reader} onChange={(event) => { setReader(event.target.value); setGenre(''); setTag(''); setQuery(''); onShelfFilter('all') }}><option value={currentUser}>My books</option>{crew.filter((member) => member.id !== currentUser).map((member) => <option value={member.id} key={member.id}>{member.name}’s books</option>)}</select></label>}
+    {readers && <MemberShelfPicker key={currentUser} crew={crew} currentUser={currentUser} selected={reader} kind="books" onSelect={id => { setReader(id); setGenre(''); setTag(''); setQuery('') }} />}
     {!mine && <p className="reader-view-notice">Browsing {ownerName}’s library. Their shelves and reading order are read-only. Save a book to manage your own copy.</p>}
     <div className="filter-tabs book-filter-tabs">{(['all', ...Object.keys(shelfNames)] as (BookShelf | 'all')[]).map((value) => <button key={value} className={shelf === value ? 'active' : ''} type="button" onClick={() => { onShelfFilter(value); setGroupSeries(value === 'all') }}>{value === 'all' ? 'Library' : shelfNames[value]}<span>{value === 'all' ? owned.length : owned.filter((book) => book.shelves[owner] === value).length}</span></button>)}</div>
     <CollectionFilters activeCount={[query || search, genre, tag, sort !== 'order'].filter(Boolean).length} groupedBy={groupSeries ? 'series' : undefined}>

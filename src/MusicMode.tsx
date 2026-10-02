@@ -1,3 +1,4 @@
+import MemberShelfPicker from './MemberShelfPicker'
 import { useState, type PointerEvent } from 'react'
 import { Music2, Headphones, Library, ListMusic, ThumbsUp, Users, Settings, Heart, GripVertical, ArrowUp, ArrowDown, Shuffle, Plus } from 'lucide-react'
 import type { Member } from './types'
@@ -87,7 +88,7 @@ export function MusicContent({boardId,user,crew,section,onSection,search,showAdd
       <section className="music-home-section"><h2>Crew recommendations</h2>{poll.length?poll.slice(0,4).map(item=>card(item)):<p className="music-empty">Open an album and nominate it for our next listen.</p>}</section>
       <section className="music-home-section"><h2>Recently rated by the crew</h2>{recent.length?recent.slice(0,6).map(item=>card(item)):<p className="music-empty">Your ratings and reviews will appear here.</p>}</section>
     </>:section==='library'||section==='listeners'?<>
-      {section==='listeners'&&<label className="music-reader">Browse a listener<select value={reader} onChange={event=>{setReader(event.target.value);setShelf('all');setGenre('');setTag('');setQuery('')}}><option value={user}>My music</option>{crew.filter(member=>member.id!==user).map(member=><option key={member.id} value={member.id}>{member.name}’s music</option>)}</select></label>}
+      {section==='listeners'&&<MemberShelfPicker key={user} crew={crew} currentUser={user} selected={reader} kind="music" onSelect={id=>{setReader(id);setGenre('');setTag('');setQuery('')}}/>}
       {!mine&&<p className="music-notice">Browsing {name(owner)}’s collection. Their shelves and order are read-only; save music to manage your own copy.</p>}
       <div className="filter-tabs">{(['all',...Object.keys(musicShelves),'favorites'] as const).map(value=><button key={value} className={shelf===value?'active':''} onClick={()=>setShelf(value as typeof shelf)}>{value==='all'?'Library':value==='favorites'?'Favorites':musicShelves[value as MusicShelf]}</button>)}</div>
       <CollectionFilters activeCount={[query || search, genre, tag, kind !== 'albums'].filter(Boolean).length} groupedBy={group ? 'artist' : undefined}>
