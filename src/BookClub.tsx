@@ -12,6 +12,7 @@ import { addDiscoveryBook, type DiscoveryPick } from './lib/bookDiscovery'
 import BookOrganizer, { SeriesLabel } from './BookOrganizer'
 import BookMetadata, { PrivateBookNote } from './BookMetadata'
 import { nextSeriesBook, setPersonalShelf, shelfNames } from './lib/bookOrganization'
+import { findBookEdition, saveBookEdition } from './lib/bookEditions'
 
 export type BookSection = 'home' | 'library' | 'club' | 'poll' | 'discover' | 'readers'
 export type BookShelfFilter = BookShelf | 'all'
@@ -134,7 +135,7 @@ function AddBookModal({ existing, onClose, onAdd, replacing, initialQuery = '' }
         {loading && <div className="book-search-status">Searching book catalogs…</div>}
         {!loading && error && <div className="book-search-status">{error}</div>}
         {!loading && results.map((result) => {
-          const duplicate = existing.some((book) => (result.googleBooksId && book.googleBooksId === result.googleBooksId) || (result.isbn13 && book.isbn13 === result.isbn13))
+          const duplicate = findBookEdition(existing, result)
           return <button type="button" key={result.catalogId} onClick={() => add(result)}><span className="search-result-cover"><BookCoverImage book={result} /></span><span><strong>{result.title}</strong><small>{result.authors.join(', ')}{result.publishedYear ? ` · ${result.publishedYear}` : ''}</small></span><em>{replacing ? 'Use this book' : duplicate ? 'Save to my books' : 'Add'}</em></button>
         })}
       </div>
@@ -170,7 +171,7 @@ function BookDetails({ book, currentUser, crew, onClose, onUpdate, onChapter, on
         <div className="book-detail-main">
           <section><span className="eyebrow">Synopsis</span><p className="book-description">{book.description || 'No synopsis was provided by the book catalog.'}</p></section>
           <section><span className="eyebrow">Series & genres</span><SeriesLabel book={book} /><p className="book-empty-copy">{book.genres?.join(' · ') || 'No genres yet. Use Organize or refresh your shelf’s catalog data.'}</p><div className="current-book-actions"><button className="button button-secondary" type="button" onClick={() => setArtworkRetry(value => value + 1)}><RefreshCw size={15} /> Retry artwork</button><button className="button button-secondary" type="button" onClick={onEdit}>Organize book</button>{book.series && <button className="button button-secondary" type="button" onClick={onFindSeries}>Find other books in this series</button>}</div></section>
-          <PrivateBookNote key={book.id} bookId={book.id} />
+          <PrivateBookNote key={book.id} bookId={book.privateNoteIds?.[currentUser] ?? book.id} />
           <section><div className="book-section-title"><div><span className="eyebrow">Shared discussion</span><h3>Comments</h3></div><MessageCircle size={18} /></div>
             <div className="book-comments">{book.comments.length ? book.comments.map((item) => {
               const hidden = item.spoiler && !openSpoilers.includes(item.id)
@@ -298,37 +299,14 @@ export default function BookClub({ books, currentUser, crew, section, shelfFilte
   }
   const changeBook = (result: BookSearchResult) => {
     if (!changingBook) return
-    const duplicate = books.find((book) => (result.googleBooksId && book.googleBooksId === result.googleBooksId) || (result.isbn13 && book.isbn13 === result.isbn13) || (book.title.toLowerCase() === result.title.toLowerCase() && book.authors[0] === result.authors[0]))
+    const duplicate = findBookEdition(books, result)
     if (duplicate?.id === changingBook.id) { setChangingId(null); setSelectedId(changingBook.id); return }
     if (duplicate?.shelves[currentUser] && !window.confirm(`${duplicate.title} is already on your shelf. Combine them? Its existing chapter and rating will be kept.`)) return
-    const shelves = { ...changingBook.shelves }
-    const progress = { ...changingBook.progress }
-    const ratings = { ...changingBook.ratings }
-    const readerOrganization = { ...changingBook.readerOrganization }
-    delete shelves[currentUser]
-    delete progress[currentUser]
-    delete ratings[currentUser]
-    delete readerOrganization[currentUser]
-    const replacement: Book = duplicate ?? {
-      id: crypto.randomUUID(), title: result.title, authors: result.authors, description: result.description,
-      coverUrl: result.coverUrl, publishedYear: result.publishedYear, isbn10: result.isbn10, isbn13: result.isbn13,
-      googleBooksId: result.googleBooksId, openLibraryKey: result.openLibraryKey,
-      genres: result.genres, series: result.series,
-      addedBy: currentUser, createdAt: new Date().toISOString(), nominated: false,
-      upvotes: [], downvotes: [], shelves: {}, progress: {}, ratings: {}, comments: [],
-    }
-    const corrected: Book = {
-      ...replacement,
-      shelves: { ...replacement.shelves, [currentUser]: replacement.shelves[currentUser] ?? changingBook.shelves[currentUser] ?? 'to-read' },
-      progress: { ...replacement.progress, ...(replacement.progress[currentUser] || !changingBook.progress[currentUser] ? {} : { [currentUser]: changingBook.progress[currentUser] }) },
-      ratings: { ...replacement.ratings, ...(replacement.ratings[currentUser] || !changingBook.ratings[currentUser] ? {} : { [currentUser]: changingBook.ratings[currentUser] }) },
-      readerOrganization: { ...replacement.readerOrganization, ...(replacement.readerOrganization?.[currentUser] || !changingBook.readerOrganization?.[currentUser] ? {} : { [currentUser]: changingBook.readerOrganization[currentUser] }) },
-    }
-    const updated = books.map((book) => book.id === changingBook.id ? { ...book, shelves, progress, ratings, readerOrganization } : book.id === corrected.id ? corrected : book)
-    onChange(duplicate ? updated : [corrected, ...updated])
+    const corrected = saveBookEdition(books, result, currentUser, duplicate?.shelves[currentUser] ?? changingBook.shelves[currentUser] ?? 'to-read', changingBook.id)
+    onChange(corrected.books)
     setChangingId(null)
     setSelectedId(corrected.id)
-    notify(`Book changed to ${corrected.title}`)
+    notify(`Book changed to ${result.title}`)
   }
   const mutate = (book: Book) => onChange(books.map((item) => item.id === book.id ? book : item))
   const setShelf = (book: Book, shelf?: BookShelf) => {
@@ -352,14 +330,8 @@ export default function BookClub({ books, currentUser, crew, section, shelfFilte
     notify(`Chapter ${chapter} saved for ${book.title}`)
   }
   const addBook = (result: BookSearchResult, shelf: BookShelf) => {
-    const duplicate = books.find((book) => (result.googleBooksId && book.googleBooksId === result.googleBooksId) || (result.isbn13 && book.isbn13 === result.isbn13) || book.title.toLowerCase() === result.title.toLowerCase() && book.authors[0] === result.authors[0])
-    if (duplicate) {
-      setShelf(duplicate, shelf)
-      onShowMyBooks()
-      return
-    }
-    const book: Book = { id: crypto.randomUUID(), title: result.title, authors: result.authors, description: result.description, coverUrl: result.coverUrl, publishedYear: result.publishedYear, isbn10: result.isbn10, isbn13: result.isbn13, googleBooksId: result.googleBooksId, openLibraryKey: result.openLibraryKey, genres: result.genres, series: result.series, addedBy: currentUser, createdAt: new Date().toISOString(), nominated: false, upvotes: [], downvotes: [], shelves: {}, progress: {}, ratings: {}, comments: [] }
-    onChange(setPersonalShelf([book, ...books], currentUser, book.id, shelf)); onShowMyBooks(); notify(`${book.title} added to ${shelfLabels[shelf]}`)
+    const saved = saveBookEdition(books, result, currentUser, shelf)
+    onChange(saved.books); onShowMyBooks(); notify(`${result.title} added to ${shelfLabels[shelf]}`)
   }
   const myBooks = books.filter((book) => book.shelves[currentUser])
   const reading = myBooks.filter((book) => book.shelves[currentUser] === 'reading')

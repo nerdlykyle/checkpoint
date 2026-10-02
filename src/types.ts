@@ -34,6 +34,7 @@ export type BookComment = {
 
 export type Book = {
   id: string
+  privateNoteIds?: Record<string, string>
   genres?: string[]
   series?: BookSeries
   metadataEdited?: boolean

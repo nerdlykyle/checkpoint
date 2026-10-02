@@ -1,5 +1,5 @@
 import type { Book, BookSeries } from '../types'
-import { inferSeries, matchesCatalogBook, normalizeGenres } from './bookOrganization'
+import { inferSeries, matchesCatalogBook, normalizeGenres } from './bookOrganization.ts'
 
 export type BookSearchResult = {
   genres?: string[]
@@ -117,6 +117,16 @@ export async function searchBooks(input: string, signal?: AbortSignal) {
 }
 
 // Enrich only a verified matching book. User corrections always take precedence.
+function catalogSeries(data: { title?: string; subtitle?: string; series?: string[] }) {
+  const values = Array.isArray(data.series) ? data.series.filter((value): value is string => typeof value === 'string' && Boolean(value.trim())) : []
+  const inferred = inferSeries(data.subtitle, data.title, ...values)
+  if (inferred) return inferred
+  const raw = values[0]
+  if (!raw) return undefined
+  const numbered = raw.match(/^(.+?)\s*(?:--|;|#)\s*(\d+(?:\.\d+)?)\s*$/)
+  return numbered ? { name: numbered[1].trim(), position: Number(numbered[2]) } : { name: raw.trim() }
+}
+
 export async function lookupBookMetadata(book: Book, signal?: AbortSignal): Promise<Pick<Book, 'genres' | 'series'>> {
   signal = signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000)
   const query = book.isbn13 || book.isbn10 ? `isbn:${book.isbn13 ?? book.isbn10}` : `${book.title} ${book.authors[0] ?? ''}`
@@ -133,15 +143,26 @@ export async function lookupBookMetadata(book: Book, signal?: AbortSignal): Prom
       const response = await fetch(url, { signal })
       if (response.ok) {
         const data = await response.json() as { title?: string; subtitle?: string; series?: string[]; subjects?: string[] }
-        const rawSeries = data.series?.find((value) => typeof value === 'string' && value.trim())
-        series ??= inferSeries(data.subtitle, data.title, ...(data.series ?? []))
-        if (!series && rawSeries) {
-          const numbered = rawSeries.match(/^(.+?)\s*(?:--|;|#)\s*(\d+(?:\.\d+)?)\s*$/)
-          series = numbered ? { name: numbered[1].trim(), position: Number(numbered[2]) } : { name: rawSeries.trim() }
-        }
+        series ??= catalogSeries(data)
         if (!genres.length) genres = normalizeGenres(data.subjects)
       }
     } catch (error) { if (signal?.aborted) throw error }
+  }
+  // Series belongs to the work, not the chosen cover/format. Check sibling editions
+  // only after verifying both title and author; never replace the selected artwork.
+  if (!series) {
+    try {
+      const siblings = await openLibrary(`${book.title} ${book.authors[0] ?? ''}`, signal)
+      const works = siblings.filter(candidate => matchesCatalogBook({ title: book.title, authors: book.authors }, candidate))
+        .filter(candidate => /^\/works\/OL\d+W$/.test(candidate.openLibraryKey ?? '')).slice(0, 3)
+      for (const work of works) {
+        const response = await fetch(`https://openlibrary.org${work.openLibraryKey}/editions.json?limit=10`, { signal })
+        if (!response.ok) continue
+        const data = await response.json() as { entries?: Array<{ title?: string; subtitle?: string; series?: string[] }> }
+        series = data.entries?.map(catalogSeries).find(Boolean)
+        if (series) break
+      }
+    } catch (error) { if (signal.aborted) throw error }
   }
   return { genres, ...(series ? { series } : {}) }
 }
