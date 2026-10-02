@@ -835,3 +835,19 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
   .mobile-menu-footer > button:hover,
   .mobile-menu-footer > button:focus-visible { outline: 0; background: #1b2326; color: #d7dcda; }
 }
+
+/* Long-form discussion text should be comfortable to write and read on desktop. */
+@media (min-width: 701px) {
+  .book-comment-form textarea,
+  .book-review-input,
+  .book-comments article p,
+  .crew-ratings p {
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+  .book-comments article strong,
+  .book-comment-form label { font-size: 14px; }
+  .book-comments article time,
+  .book-comments article.is-spoiler > button { font-size: 12px; }
+}
