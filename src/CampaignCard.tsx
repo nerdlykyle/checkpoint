@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { ChevronDown, Clock3, MoreHorizontal, NotebookPen, Play, Plus, Puzzle, Timer } from 'lucide-react'
 import type { Game } from './types'
 import './CampaignCard.css'
@@ -21,19 +21,36 @@ type Props = {
 
 function CampaignArtwork({ urls }: { urls: string[] }) {
   const [index, setIndex] = useState(0)
-  return urls[index] ? <img className="campaign-art" src={urls[index]} alt="" fetchPriority="high" onError={() => setIndex(value => value + 1)} /> : null
+  return urls[index] ? <div className="campaign-artwork" aria-hidden="true">
+    <img className="campaign-art" src={urls[index]} alt="" fetchPriority="high" onError={() => setIndex(value => value + 1)} />
+    <div className="campaign-art-blur"><img className="campaign-art" src={urls[index]} alt="" /></div>
+  </div> : null
 }
 
 export default function CampaignCard({ game, artworkUrls, hours, note, liveNote, noteExpanded, hasActiveSession, onToggleNote, onNoteChange, onSession, onPuzzle, onDetails, onAdd }: Props) {
   const noteId = useId()
   const headingId = useId()
+  const heroRef = useRef<HTMLElement>(null)
+  const glassRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const hero = heroRef.current
+    const glass = glassRef.current
+    if (!hero || !glass) return
+    // Anchor the blur to the text, including wrapped titles and expanded notes.
+    const measure = () => hero.style.setProperty('--campaign-glass-top', `${glass.offsetTop}px`)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(hero)
+    observer.observe(glass)
+    return () => observer.disconnect()
+  }, [game?.id])
   if (!game) return <section className="campaign-hero campaign-empty" aria-label="Current campaign"><span className="campaign-badge">Current campaign</span><button type="button" onClick={onAdd}><Plus size={24} /><span>Choose a game to start</span></button><p>Ready when you are.</p></section>
   const progress = Math.min(100, Math.max(0, game.progress || 0))
-  return <section className="campaign-hero" aria-labelledby={headingId}>
+  return <section className="campaign-hero" aria-labelledby={headingId} ref={heroRef}>
     <CampaignArtwork key={artworkUrls.join('|')} urls={artworkUrls} />
     <div className="campaign-art-shade" />
     <header className="campaign-topline"><span className="campaign-badge">Current campaign</span><div><span className="campaign-badge campaign-status"><span /> In progress</span><button className="campaign-menu" type="button" onClick={onDetails} aria-label={`View details for ${game.title}`}><MoreHorizontal size={20} /></button></div></header>
-    <div className="campaign-glass">
+    <div className="campaign-glass" ref={glassRef}>
       {game.contentType === 'dlc' && game.parentGameTitle && <p className="campaign-parent">DLC for {game.parentGameTitle}</p>}
       <h2 id={headingId}>{game.title}</h2>
       <div className="campaign-metadata"><span>{[game.genre, game.platform, game.year].filter(Boolean).join(' · ')}</span><span><Clock3 size={15} />{Math.max(0, hours).toFixed(1).replace('.0', '')} hours logged</span></div>

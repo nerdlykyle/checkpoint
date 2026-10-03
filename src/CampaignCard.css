@@ -1,14 +1,19 @@
 .campaign-hero { position:relative; isolation:isolate; min-width:0; min-height:570px; overflow:hidden; align-self:start; border-radius:24px; color:#fafbfc; background:radial-gradient(ellipse at 60% 10%,#435775,transparent 65%),linear-gradient(145deg,#28334a,#111923); display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 16px 38px #0003; }
-.campaign-hero .campaign-art { position:absolute; z-index:-3; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 20%; }
-.campaign-art-shade { position:absolute; z-index:-2; inset:0; pointer-events:none; background:linear-gradient(180deg,#08101c50,transparent 35%,#09111c33 55%,#080f1b99); }
-.campaign-topline { padding:20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+.campaign-artwork { position:absolute; z-index:0; inset:0; pointer-events:none; }
+.campaign-hero .campaign-art { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 20%; }
+.campaign-artwork > .campaign-art { mask-image:linear-gradient(to bottom,#000 calc(var(--campaign-glass-top, 45%) - 70px),transparent var(--campaign-glass-top, 45%)); -webkit-mask-image:linear-gradient(to bottom,#000 calc(var(--campaign-glass-top, 45%) - 70px),transparent var(--campaign-glass-top, 45%)); }
+/* Blur the artwork itself rather than relying on masked backdrop-filter rendering. */
+.campaign-art-blur { position:absolute; inset:0; mask-image:linear-gradient(to bottom,transparent calc(var(--campaign-glass-top, 45%) - 70px),#000 var(--campaign-glass-top, 45%)); -webkit-mask-image:linear-gradient(to bottom,transparent calc(var(--campaign-glass-top, 45%) - 70px),#000 var(--campaign-glass-top, 45%)); }
+.campaign-art-blur .campaign-art { filter:blur(24px); }
+.campaign-art-shade { position:absolute; z-index:1; inset:0; pointer-events:none; background:linear-gradient(180deg,#08101c50,transparent 35%,#09111c22 55%,#080f1b44); }
+.campaign-topline { position:relative; z-index:2; padding:20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
 .campaign-topline > div { display:flex; align-items:center; gap:8px; }
 .campaign-badge { display:inline-flex; align-items:center; gap:7px; padding:8px 11px; border:1px solid #ffffff38; border-radius:999px; background:#111925b8; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); color:#f4f6fb; font-size:11px; font-weight:650; line-height:1.4; }
 .campaign-status > span { width:6px; height:6px; border-radius:50%; background:#80d4ad; }
 .campaign-hero button { background:transparent; color:#f3f5ff; cursor:pointer; font:inherit; }
 .campaign-hero .campaign-menu { width:44px; height:44px; display:grid; place-items:center; border:1px solid #ffffff50; border-radius:12px; }
-.campaign-glass { position:relative; padding:26px; margin-top:175px; }
-.campaign-glass::before { content:''; position:absolute; z-index:-1; inset:-64px 0 0; background:linear-gradient(180deg,#10192833,rgba(12,20,30,.72) 30%,#0b121cef); backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px); mask-image:linear-gradient(transparent,#000 24%); -webkit-mask-image:linear-gradient(transparent,#000 24%); pointer-events:none; }
+.campaign-glass { position:relative; z-index:2; padding:26px; margin-top:175px; }
+.campaign-glass::before { content:''; position:absolute; z-index:-1; inset:-70px 0 0; background:linear-gradient(180deg,transparent,rgba(12,20,30,.52) 25%,rgba(11,18,28,.65)); pointer-events:none; }
 .campaign-glass h2 { margin:0 0 15px; color:#fafbfc; font-size:clamp(27px,2.8vw,38px); line-height:1.12; font-weight:780; letter-spacing:-.035em; overflow-wrap:anywhere; }
 .campaign-parent { margin:0 0 8px; font-size:12px; line-height:1.5; color:#dee3ef; }
 .campaign-metadata { display:flex; flex-wrap:wrap; gap:9px 18px; color:#d2dae5; font-size:12px; line-height:1.5; }
@@ -36,7 +41,6 @@
 .campaign-empty { padding:26px; min-height:400px; gap:24px; align-items:flex-start; }
 .campaign-empty > button { align-self:stretch; flex:1; min-height:230px; padding:24px; border:1px dashed #ffffff50; border-radius:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; font-size:16px; }
 .campaign-empty > p { color:#b6c2d1; font-size:12px; margin:0; }
-@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) { .campaign-glass::before { background:linear-gradient(transparent,#111923 26%); } }
 @media(max-width:600px) {
  .campaign-hero { border-radius:22px; min-height:580px; }
  .campaign-topline { padding:16px; gap:8px; }
