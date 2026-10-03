@@ -836,6 +836,36 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
   .mobile-menu-footer > button:focus-visible { outline: 0; background: #1b2326; color: #d7dcda; }
 }
 
+/* Book details: separate action groups and keep idle buttons unfilled. */
+.book-detail-aside > section { min-width: 0; }
+.book-detail-aside > section > .eyebrow { display: block; margin-bottom: 12px; }
+.book-detail-aside .club-book-controls { display: flex; flex-direction: column; align-items: stretch; gap: 12px; margin-top: 0; }
+.book-detail-aside .book-manage-actions { gap: 12px; }
+.book-detail-aside .button,
+.book-detail-aside .text-button { width: 100%; margin: 0; white-space: normal; overflow-wrap: anywhere; }
+.book-detail-modal .button,
+.book-detail-aside .text-button { min-height: 44px; height: auto; padding: 11px 14px; line-height: 1.4; border: 1px solid #414b50; }
+.book-detail-modal .button svg { flex-shrink: 0; }
+.book-detail-modal .button-primary { border-color: #7165b5; color: #d4ceff; }
+.book-detail-modal .button-danger { border-color: #925353; color: #eea0a0; }
+.book-detail-modal .current-book-actions { gap: 12px; }
+.book-detail-modal .book-comment-form > div { flex-wrap: wrap; }
+.book-detail-modal :is(button, .book-link-row a),
+.book-detail-modal .book-comments article.is-spoiler > button {
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+.book-detail-modal :is(button, .book-link-row a):focus-visible { outline: 2px solid #b1a5ff; outline-offset: 3px; }
+/* Avoid sticky hover fills after tapping on touch screens. */
+@media (hover: hover) and (pointer: fine) {
+  .book-detail-modal :is(button, .book-link-row a):not(:disabled):hover { background: #29243f; }
+  .book-detail-modal .button-danger:not(:disabled):hover { background: #402629; }
+}
+.book-detail-modal :is(button, .book-link-row a):not(:disabled):active { background: #352e52; }
+.book-detail-modal .button-danger:not(:disabled):active { background: #512c31; }
+.book-detail-modal button:disabled { opacity: .45; cursor: not-allowed; }
+
 /* Long-form discussion text should be comfortable to write and read on desktop. */
 @media (min-width: 701px) {
   .book-comment-form textarea,
