@@ -1,6 +1,6 @@
 export type MusicShelf = 'to-listen' | 'listening' | 'listened' | 'not-for-me'
 export type MusicService = 'spotify' | 'youtube'
-export type MusicSection = 'home' | 'library' | 'club' | 'poll' | 'songs' | 'listeners' | 'settings'
+export type MusicSection = 'home' | 'library' | 'artists' | 'club' | 'poll' | 'songs' | 'listeners' | 'settings'
 export type MusicTrack = { id: string; title: string; number: string; duration?: number }
 export type MusicItem = {
   id: string; kind: 'album' | 'ep' | 'song'; title: string; artists: string[]; artistIds?: string[]; year?: string
@@ -17,7 +17,7 @@ export type MusicItem = {
   club?: { status: 'up-next' | 'listening' | 'listened'; order: number; participants: string[] }
 }
 export const musicShelves: Record<MusicShelf,string> = { 'to-listen':'To listen', listening:'Listening', listened:'Listened', 'not-for-me':'Not for me' }
-export const musicSections: Record<MusicSection,string> = { home:'Music home', library:'My music', club:'Club listens', poll:'Next-listen poll', songs:'Songs to share', listeners:'Listeners’ collections', settings:'Music settings' }
+export const musicSections: Record<MusicSection,string> = { home:'Music home', library:'My music', artists:'Favorite artists', club:'Club listens', poll:'Next-listen poll', songs:'Songs to share', listeners:'Listeners’ collections', settings:'Music settings' }
 export function safeHttpUrl(value: string) {
   try { const url = new URL(value); return ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password ? url.href : undefined } catch { return undefined }
 }

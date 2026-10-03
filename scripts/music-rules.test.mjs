@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {initializeApp,deleteApp} from 'firebase/app'
 import {initializeFirestore,connectFirestoreEmulator,doc,setDoc,getDoc,getDocs,collection,updateDoc,runTransaction} from 'firebase/firestore'
 import {makeMusicItem} from '../src/lib/music.ts'
+import {makeFavoriteArtist} from '../src/lib/musicArtists.ts'
 test('music records sync across crew, preserve concurrent edits, and isolate private data',{skip:!process.env.FIRESTORE_EMULATOR_HOST},async()=>{
   const [host,port]=process.env.FIRESTORE_EMULATOR_HOST.split(':'),apps=[]
   const create=(uid)=>{const app=initializeApp({projectId:'demo-checkpoint'},`music-${uid||'anon'}-${Date.now()}`);apps.push(app);const db=initializeFirestore(app,{});connectFirestoreEmulator(db,host,Number(port),uid?{mockUserToken:{sub:uid,user_id:uid,email:`${uid}@example.test`}}:undefined);return db}
@@ -28,5 +29,18 @@ test('music records sync across crew, preserve concurrent edits, and isolate pri
     await denied(setDoc(doc(other,'musicPreferences','owner'),{service:'spotify'}))
     await denied(setDoc(doc(owner,...path),{...item,tracks:Array.from({length:151},()=>({title:'too many'}))}))
     await denied(setDoc(doc(owner,'musicPreferences','owner'),{service:'invalid'}))
+    const artistPath=['boards',board,'artistFavorites','owner','artists','test-artist']
+    const artist=makeFavoriteArtist({id:'test-artist',name:'Test Artist'})
+    await setDoc(doc(owner,...artistPath),artist)
+    assert.equal((await getDoc(doc(other,...artistPath))).data().name,'Test Artist')
+    assert.equal((await getDocs(collection(other,'boards',board,'artistFavorites','owner','artists'))).size,1)
+    await denied(getDoc(doc(outsider,...artistPath)));await denied(getDoc(doc(anon,...artistPath)))
+    await denied(setDoc(doc(other,...artistPath),{...artist,active:false}))
+    await denied(setDoc(doc(owner,...artistPath),{...artist,imageUrl:'javascript:alert(1)'}))
+    await denied(setDoc(doc(owner,...artistPath),{...artist,extra:'not allowed'}))
+    await setDoc(doc(owner,...artistPath),{...artist,active:false})
+    assert.equal((await getDoc(doc(other,...artistPath))).data().active,false)
+    await setDoc(doc(owner,...artistPath),artist)
+    assert.equal((await getDoc(doc(owner,...artistPath))).data().active,true)
   }finally{await Promise.all(apps.map(deleteApp))}
 })

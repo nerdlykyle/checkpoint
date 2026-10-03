@@ -54,6 +54,13 @@ function catalogItem(item,kind) {
 }
 async function musicCatalog(query) {
   const action=String(query.action||'search')
+  if(action==='artist-search') {
+    const text=String(query.q||'').trim().slice(0,180).replace(/[+\-!(){}[\]^"~*?:\\/|&]/g,' ')
+    if(text.trim().length<2)return {items:[]}
+    const data=await mb(`artist?query=${encodeURIComponent(text)}&limit=20`)
+    return {items:(data.artists||[]).map(artist=>({id:artist.id,name:artist.name,description:[artist.disambiguation,artist.type,artist.country].filter(Boolean).join(' · ')}))}
+  }
+  if(action==='artist-detail')return artistDetail(String(query.id||''),query.refresh==='1')
   if(action==='resolve') {
     const parsed=parseMusicLink(String(query.url||''))
     if(!parsed) throw new Error('Use a Spotify album/track or YouTube Music watch/playlist link. Shortened links can be added as custom links after adding the title.')
@@ -90,3 +97,48 @@ async function musicCatalog(query) {
   return {items:(data[kind==='song'?'recordings':'release-groups']||[]).map(item=>catalogItem(item,kind))}
 }
 export {musicCatalog,parseMusicLink,catalogItem}
+
+const artistCache=new Map()
+function httpsUrl(value) {try{const url=new URL(value);return url.protocol==='https:'&&!url.username&&!url.password?url.href:''}catch{return ''}}
+async function artistDetail(id,refresh=false) {
+  if(!MBID.test(id))throw new Error('Invalid artist catalog ID.')
+  const saved=artistCache.get(id)
+  if(!refresh&&saved&&saved.until>Date.now())return saved.value
+  const artist=await mb(`artist/${id}?inc=url-rels`)
+  const result={id,name:artist.name,description:[artist.disambiguation,artist.type,artist.country].filter(Boolean).join(' · '),imageUrl:'',imageSource:'',imageCredit:'',imageLicense:'',imageLicenseUrl:'',spotify:'',youtube:''}
+  let wikidata=''
+  for(const relation of artist.relations||[]) {
+    try {
+      const url=new URL(relation.url?.resource)
+      if(url.username||url.password||!['http:','https:'].includes(url.protocol))continue
+      if(url.hostname==='open.spotify.com'&&/^\/artist\/[A-Za-z0-9]{22}\/?$/.test(url.pathname))result.spotify=`https://open.spotify.com${url.pathname}`
+      if(['www.youtube.com','youtube.com','music.youtube.com'].includes(url.hostname)&&/^\/channel\/UC[\w-]{22}\/?$/.test(url.pathname))result.youtube=`https://music.youtube.com${url.pathname}`
+      if(['wikidata.org','www.wikidata.org'].includes(url.hostname)&&/^\/wiki\/Q\d+$/.test(url.pathname))wikidata=url.pathname.split('/').pop()
+    }catch{ /* Ignore unsupported catalog relationships. */ }
+  }
+  if(wikidata)try {
+    const response=await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${wikidata}.json`,{signal:AbortSignal.timeout(8000),headers:{'User-Agent':'CheckpointMusic/1.0 (https://nerdlykyle.github.io/checkpoint/)'},cf:{cacheTtl:86400}})
+    if(response.ok) {
+      const data=await response.json()
+      const file=data.entities?.[wikidata]?.claims?.P18?.find(claim=>claim.rank!=='deprecated'&&typeof claim.mainsnak?.datavalue?.value==='string')?.mainsnak?.datavalue?.value
+      if(file) {
+        const params=new URLSearchParams({action:'query',format:'json',titles:`File:${file}`,prop:'imageinfo',iiprop:'url|extmetadata',iiurlwidth:'320'})
+        const picture=await fetch(`https://commons.wikimedia.org/w/api.php?${params}`,{signal:AbortSignal.timeout(8000),headers:{'User-Agent':'CheckpointMusic/1.0 (https://nerdlykyle.github.io/checkpoint/)'},cf:{cacheTtl:86400}})
+        if(picture.ok) {
+          const page=Object.values((await picture.json()).query?.pages||{})[0]
+          const info=page?.imageinfo?.[0],meta=info?.extmetadata||{}
+          const clean=value=>String(value||'').replace(/<[^>]*>/g,'').slice(0,600)
+          const image=httpsUrl(info?.thumburl||info?.url)
+          if(image&&['upload.wikimedia.org','thumb.wikimedia.org'].includes(new URL(image).hostname)) {
+            result.imageUrl=image;result.imageSource=`https://commons.wikimedia.org/wiki/File:${encodeURIComponent(file)}`
+            result.imageCredit=clean(meta.Artist?.value);result.imageLicense=clean(meta.LicenseShortName?.value)
+            result.imageLicenseUrl=httpsUrl(meta.LicenseUrl?.value)
+          }
+        }
+      }
+    }
+  }catch{ /* Missing photos never block adding an artist. */ }
+  if(artistCache.size>=128)artistCache.delete(artistCache.keys().next().value)
+  artistCache.set(id,{value:result,until:Date.now()+15*60000})
+  return result
+}

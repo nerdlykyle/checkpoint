@@ -111,6 +111,22 @@ service cloud.firestore {
           && request.resource.data.upvotes is list && request.resource.data.downvotes is list;
         allow delete: if false;
       }
+      match /artistFavorites/{readerId}/artists/{artistId} {
+        function artistMember() { return request.auth != null && get(/databases/$(database)/documents/boards/$(boardId)).data.members[request.auth.uid] != null; }
+        function artistUrl(value) { return value is string && value.size() <= 2048 && (value == '' || value.matches('https://.*')); }
+        allow read: if artistMember();
+        allow create, update: if artistMember() && request.auth.uid == readerId
+          && request.resource.data.keys().hasOnly(['id','name','description','imageUrl','imageSource','imageCredit','imageLicense','imageLicenseUrl','spotify','youtube','active','createdAt','updatedAt'])
+          && request.resource.data.id == artistId && artistId.matches('[a-zA-Z0-9-]{1,100}')
+          && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 250
+          && request.resource.data.description is string && request.resource.data.description.size() <= 500
+          && request.resource.data.imageCredit is string && request.resource.data.imageCredit.size() <= 600
+          && request.resource.data.imageLicense is string && request.resource.data.imageLicense.size() <= 200
+          && artistUrl(request.resource.data.imageUrl) && artistUrl(request.resource.data.imageSource)
+          && artistUrl(request.resource.data.imageLicenseUrl) && artistUrl(request.resource.data.spotify) && artistUrl(request.resource.data.youtube)
+          && request.resource.data.active is bool && request.resource.data.createdAt is string && request.resource.data.updatedAt is string;
+        allow delete: if false;
+      }
       match /musicState/{stateId} {
         function musicMember() { return request.auth != null && get(/databases/$(database)/documents/boards/$(boardId)).data.members[request.auth.uid] != null; }
         allow read: if musicMember();

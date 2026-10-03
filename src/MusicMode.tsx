@@ -1,4 +1,5 @@
 import MemberShelfPicker from './MemberShelfPicker'
+import FavoriteArtists from './FavoriteArtists'
 import { useState, type PointerEvent } from 'react'
 import { Music2, Headphones, Library, ListMusic, ThumbsUp, Users, Settings, Heart, GripVertical, ArrowUp, ArrowDown, Shuffle, Plus } from 'lucide-react'
 import type { Member } from './types'
@@ -10,7 +11,7 @@ import MusicDetails, { MusicCover, MusicLinks, MusicVotes } from './MusicDetails
 import CollectionFilters from './CollectionFilters'
 import './MusicMode.css'
 
-const navIcons={home:Headphones,library:Library,club:ListMusic,poll:ThumbsUp,songs:Music2,listeners:Users,settings:Settings}
+const navIcons={home:Headphones,library:Library,artists:Heart,club:ListMusic,poll:ThumbsUp,songs:Music2,listeners:Users,settings:Settings}
 export function MusicNavigation({section,onSelect,mobile=false}:{section:MusicSection;onSelect:(value:MusicSection)=>void;mobile?:boolean}) {return <nav className={mobile?'mobile-menu-nav':'main-nav'} aria-label="Music navigation">{Object.entries(musicSections).map(([value,label])=>{const Icon=navIcons[value as MusicSection];return <button key={value} className={section===value?'active':''} onClick={()=>onSelect(value as MusicSection)}>{mobile?<><span><Icon size={19}/></span><strong>{label}</strong></>:<><Icon size={19}/><span>{label}</span></>}</button>})}</nav>}
 type Props={boardId:string;user:string;crew:Member[];section:MusicSection;onSection:(section:MusicSection)=>void;search:string;showAdd:boolean;onCloseAdd:()=>void;onOpenAdd:()=>void;notify:(message:string)=>void;boardReady:boolean}
 export default function MusicMode(props:Props) {const store=useMusicStore(props.boardId,props.user,props.boardReady);return <MusicContent {...props} store={store}/>}
@@ -81,15 +82,17 @@ export function MusicContent({boardId,user,crew,section,onSection,search,showAdd
     {(store.error||error)&&<div className="music-error" role="alert">{error||store.error}<button onClick={()=>{setError('');store.retry()}}>Retry connection</button></div>}
     {!ready&&<p role="status">Waiting for the crew’s music collection…</p>}
     <fieldset className="music-workspace" disabled={!ready||busy}>
-    {section!=='settings'&&<div className="music-page-actions"><button className="button button-primary" onClick={onOpenAdd}><Plus size={16}/>Add music</button></div>}
+    {section!=='settings'&&section!=='artists'&&<div className="music-page-actions"><button className="button button-primary" onClick={onOpenAdd}><Plus size={16}/>Add music</button></div>}
     {section==='home'?<>
+      <FavoriteArtists boardId={boardId} user={user} enabled={ready}/>
       <section className="music-home-section"><h2>Our current group listen</h2>{current?<>{card(current)}<div className="music-inline-actions"><button className="button button-secondary" onClick={()=>clubAction(current,current.club!.participants.includes(user)?'leave':'join')}>{current.club!.participants.includes(user)?'Leave this listen':'Join this listen'}</button><button className="button button-secondary" onClick={()=>clubAction(current,'finish')}>Finish group listen</button><p>{current.club!.participants.map(name).join(', ')||'No listeners joined yet'}</p></div></>:<p className="music-empty">No group listen yet. Nominate an album or choose one from the club queue.</p>}</section>
       <section className="music-home-section"><h2>What I’m listening to</h2>{ownListening.length?ownListening.map(item=>card(item)):<p className="music-empty">Move an album to Listening whenever you’re ready.</p>}</section>
       <section className="music-home-section"><h2>Crew recommendations</h2>{poll.length?poll.slice(0,4).map(item=>card(item)):<p className="music-empty">Open an album and nominate it for our next listen.</p>}</section>
       <section className="music-home-section"><h2>Recently rated by the crew</h2>{recent.length?recent.slice(0,6).map(item=>card(item)):<p className="music-empty">Your ratings and reviews will appear here.</p>}</section>
-    </>:section==='library'||section==='listeners'?<>
+    </>:section==='artists'?<FavoriteArtists boardId={boardId} user={user} enabled={ready}/>:section==='library'||section==='listeners'?<>
       {section==='listeners'&&<MemberShelfPicker key={user} crew={crew} currentUser={user} selected={reader} kind="music" onSelect={id=>{setReader(id);setGenre('');setTag('');setQuery('')}}/>}
       {!mine&&<p className="music-notice">Browsing {name(owner)}’s collection. Their shelves and order are read-only; save music to manage your own copy.</p>}
+      {section==='listeners'&&<FavoriteArtists key={owner} boardId={boardId} user={user} owner={owner} enabled={ready} title={mine?'My favorite artists':`${name(owner)}’s favorite artists`}/>}
       <div className="filter-tabs">{(['all',...Object.keys(musicShelves),'favorites'] as const).map(value=><button key={value} className={shelf===value?'active':''} onClick={()=>setShelf(value as typeof shelf)}>{value==='all'?'Library':value==='favorites'?'Favorites':musicShelves[value as MusicShelf]}</button>)}</div>
       <CollectionFilters activeCount={[query || search, genre, tag, kind !== 'albums'].filter(Boolean).length} groupedBy={group ? 'artist' : undefined}>
       <div className="music-filters"><label>Search<input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Artist or title"/></label><label>Genre<select value={genre} onChange={event=>setGenre(event.target.value)}><option value="">All genres</option>{[...new Set(owned.flatMap(item=>item.genres))].sort().map(value=><option key={value}>{value}</option>)}<option value="__none">Uncategorized</option></select></label><label>Tag<select value={tag} onChange={event=>setTag(event.target.value)}><option value="">All tags</option>{[...new Set(owned.flatMap(item=>item.organization[owner]?.tags||[]))].sort().map(value=><option key={value}>{value}</option>)}</select></label><label>Type<select value={kind} onChange={event=>setKind(event.target.value)}><option value="albums">Albums & EPs</option><option value="songs">Songs</option><option value="all">All music</option></select></label></div>
