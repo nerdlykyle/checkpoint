@@ -1,13 +1,14 @@
 import { useState } from 'react'
-import { Heart, Star, ExternalLink, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { Heart, Star, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { listeningLink, musicShelves, safeHttpUrl, type MusicItem, type MusicService, type MusicShelf } from './lib/music'
 import type { MusicMutation } from './lib/musicStore'
 import type { Member } from './types'
 import { PrivateBookNote } from './BookMetadata'
 import { MusicModal } from './MusicForms'
+import MusicServiceLink from './MusicServiceLink'
 
 export function MusicCover({item}:{item:MusicItem}) {return <div className="music-cover"><span>{item.title.slice(0,2).toUpperCase()}</span>{item.coverUrl&&safeHttpUrl(item.coverUrl)&&<img key={item.coverUrl} src={item.coverUrl} alt={`Cover of ${item.title}`} loading="lazy" onError={event=>{event.currentTarget.style.display='none'}}/>}</div>}
-export function MusicLinks({item,service}:{item:MusicItem;service:MusicService}) {return <div className="music-listening-links">{([service,service==='spotify'?'youtube':'spotify'] as MusicService[]).map((value,index)=>{const link=listeningLink(item,value);return <a key={value} className={`button ${index===0?'button-primary':'button-secondary'}`} href={link.url} target="_blank" rel="noreferrer"><ExternalLink size={14}/>{link.label}</a>})}</div>}
+export function MusicLinks({item,service}:{item:MusicItem;service:MusicService}) {return <div className="music-listening-links">{([service,service==='spotify'?'youtube':'spotify'] as MusicService[]).map(value=>{const link=listeningLink(item,value);return <MusicServiceLink key={value} service={value} url={link.url} label={`${link.label}: ${item.title}`}/>})}</div>}
 export function MusicVotes({item,user,onVote}:{item:MusicItem;user:string;onVote:(value:'up'|'down')=>void}) {return <div className="music-votes"><button className={item.upvotes.includes(user)?'active':''} aria-label={`Thumbs up ${item.title}`} onClick={()=>onVote('up')}><ThumbsUp size={16}/>{item.upvotes.length}</button><button className={item.downvotes.includes(user)?'active':''} aria-label={`Thumbs down ${item.title}`} onClick={()=>onVote('down')}><ThumbsDown size={16}/>{item.downvotes.length}</button></div>}
 
 export default function MusicDetails({item,user,crew,service,onClose,onUpdate,onShelf,onLog,onEdit,onVote,onClub}:{item:MusicItem;user:string;crew:Member[];service:MusicService;onClose:()=>void;onUpdate:(update:MusicMutation)=>Promise<void>;onShelf:(value:MusicShelf)=>void;onLog:()=>void;onEdit:()=>void;onVote:(value:'up'|'down')=>void;onClub:(value:'queue'|'start'|'finish'|'join'|'leave'|'unqueue')=>void}) {

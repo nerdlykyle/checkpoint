@@ -1,0 +1,24 @@
+/* Shared interaction contract: fills indicate selection or direct interaction,
+   never a resting action. Important overrides legacy per-page button skins. */
+:is(button, a.button, a[role="button"]):not(:is(.active, .selected, .is-active, .is-selected, .is-voted, [aria-pressed="true"], [aria-selected="true"], [aria-checked="true"], [aria-current="page"])) {
+  background-color:transparent !important;
+  background-image:none !important;
+  box-shadow:none !important;
+}
+@media(hover:hover) {
+  :is(button, a.button, a[role="button"]):not(:disabled):hover { background-color:#8270db26 !important; }
+}
+:is(button, a.button, a[role="button"]):not(:disabled):active { background-color:#8270db40 !important; }
+:is(button, a.button):disabled { background-color:transparent !important; background-image:none !important; box-shadow:none !important; }
+body .button-light, body .google-button { color:#f1f4f3; border:1px solid #ffffff55; }
+body .button-primary { border:1px solid #9b8fea; color:#f0ecff; }
+body .mobile-menu-nav > button:not(.active) > span { background:transparent; }
+body .mode-switcher { grid-template-columns:repeat(3,minmax(0,1fr)); }
+body .mode-switcher button { min-height:44px; height:44px; }
+body .music-listening-links { flex-direction:row; }
+body .music-listening-links .music-service-link { display:inline-flex; align-items:center; justify-content:center; flex:0 0 44px; width:44px; height:44px; min-height:44px; padding:10px; border:1px solid #ffffff40; border-radius:12px; }
+.music-service-link img { display:block; width:23px; height:23px; filter:invert(1); }
+body .color-option { width:36px; height:36px; padding:3px; }
+.color-option > span { width:100%; height:100%; border-radius:5px; display:grid; place-items:center; }
+body .campaign-actions > button { flex:0 0 46px; width:46px; padding:10px; }
+body .topbar .add-button { width:44px; height:44px; min-width:44px; padding:10px; }

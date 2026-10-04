@@ -14,6 +14,7 @@ import BookClub, { type BookSection, type BookShelfFilter } from './BookClub'
 import MusicMode, { MusicNavigation } from './MusicMode'
 import ManualSessionModal from './ManualSessionModal'
 import CampaignCard from './CampaignCard'
+import ModeSwitcher from './ModeSwitcher'
 import { campaignArtworkUrls } from './lib/campaignArtwork'
 import { createManualSession, type ManualSessionInput } from './lib/manualSession'
 import type { MusicSection } from './lib/music'
@@ -1064,7 +1065,7 @@ function AddGameModal({ onClose, onAdd, games, defaultParentId }: { onClose: () 
           </div>
           <label className="field field-full"><span>Group note <em>optional</em></span><textarea name="note" placeholder="Why should this be on the list?" rows={3} /></label>
           <fieldset className="color-field"><legend>Cover color</legend><div className="color-options">
-            {colors.map((option) => <button key={option} className={`color-option ${color === option ? 'selected' : ''}`} style={{ background: option }} type="button" onClick={() => setColor(option)} aria-label={`Choose ${option}`}>{color === option && <Check size={15} />}</button>)}
+            {colors.map((option) => <button key={option} className={`color-option ${color === option ? 'selected' : ''}`} type="button" onClick={() => setColor(option)} aria-label={`Choose ${option}`} aria-pressed={color === option}><span style={{ background: option }}>{color === option && <Check size={15} />}</span></button>)}
           </div></fieldset>
           <div className="modal-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit"><Plus size={17} /> Add game</button></div>
         </form>
@@ -2352,7 +2353,7 @@ function App() {
       <aside className="sidebar">
         <button className="brand" type="button" onClick={() => mode === 'games' ? setView('dashboard') : mode === 'music' ? setMusicSection('home') : setBookSection('home')}><span className="brand-mark"><Flag size={21} fill="currentColor" /></span><span>checkpoint</span></button>
         <button className="server-switcher" type="button" onClick={() => setShowCrew(true)}><div className="server-icon">{mode === 'games' ? <Gamepad2 size={18} /> : mode === 'music' ? <Headphones size={18} /> : <BookOpen size={18} />}</div><div><strong>Checkpoint Crew</strong><span>{groupMembers.length} {groupMembers.length === 1 ? 'member' : 'members'}</span></div><ChevronDown size={16} /></button>
-        <div className="mode-switcher" role="group" aria-label="Checkpoint mode"><button className={mode === 'games' ? 'active' : ''} type="button" onClick={() => switchMode('games')}><Gamepad2 size={14} /> Games</button><button className={mode === 'books' ? 'active' : ''} type="button" onClick={() => switchMode('books')}><BookOpen size={14} /> Books</button><button className={mode === 'music' ? 'active' : ''} type="button" onClick={() => switchMode('music')}><Headphones size={14} /> Music</button></div>
+        <ModeSwitcher mode={mode} onChange={switchMode} />
         {mode === 'games' ? <><nav className="main-nav" aria-label="Main navigation">
           <button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}><LayoutDashboard size={19} /><span>Home</span></button>
           <button className={view === 'library' && libraryFilter === 'all' ? 'active' : ''} onClick={() => openLibrary('all')}><Library size={19} /><span>Game library</span><b>{activeGames.length}</b></button>
@@ -2375,7 +2376,7 @@ function App() {
       <main className="main-area">
         <header className="topbar"><MobileBrand />
           <label className="search-box"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} onFocus={() => mode === 'games' ? setView('library') : mode === 'music' ? setMusicSection('library') : setBookSection('library')} placeholder={mode === 'games' ? 'Search your games' : mode === 'music' ? 'Search your music' : 'Search your books'} /><kbd>⌘ K</kbd></label>
-          <div className="topbar-actions">{mode === 'games' && <button className="icon-button notification" type="button" onClick={() => setView('activity')} aria-label="Activity history"><History size={19} />{activity.length > 0 && <span />}</button>}<button className="member-stack member-stack-button" type="button" onClick={() => setShowCrew(true)} aria-label="Open Checkpoint Crew">{groupMembers.map((member) => <Avatar id={member.id} small key={member.id} />)}</button><button className="button button-primary add-button" type="button" onClick={() => mode === 'games' ? openAddGame() : mode === 'music' ? setShowAddMusic(true) : setShowAddBook(true)} aria-label={mode === 'games' ? 'Add game' : mode === 'music' ? 'Add music' : 'Add book'}><Plus size={18} /><span>{mode === 'games' ? 'Add game' : mode === 'music' ? 'Add music' : 'Add book'}</span></button><button className="mobile-menu-button" type="button" onClick={() => setMobileMenuOpen(true)} aria-label="Open navigation menu" aria-expanded={mobileMenuOpen}><Menu size={21} /></button></div>
+          <div className="topbar-actions">{mode === 'games' && <button className="icon-button notification" type="button" onClick={() => setView('activity')} aria-label="Activity history"><History size={19} />{activity.length > 0 && <span />}</button>}<button className="member-stack member-stack-button" type="button" onClick={() => setShowCrew(true)} aria-label="Open Checkpoint Crew">{groupMembers.map((member) => <Avatar id={member.id} small key={member.id} />)}</button><button className="button button-primary add-button" type="button" onClick={() => mode === 'games' ? openAddGame() : mode === 'music' ? setShowAddMusic(true) : setShowAddBook(true)} aria-label={mode === 'games' ? 'Add game' : mode === 'music' ? 'Add music' : 'Add book'} title={mode === 'games' ? 'Add game' : mode === 'music' ? 'Add music' : 'Add book'}><Plus size={21} /></button><button className="mobile-menu-button" type="button" onClick={() => setMobileMenuOpen(true)} aria-label="Open navigation menu" aria-expanded={mobileMenuOpen}><Menu size={21} /></button></div>
         </header>
 
         {mode === 'music' ? <MusicMode boardId={boardId} user={currentUser} crew={groupMembers} section={musicSection} onSection={(value) => { setMusicSection(value); setSearch('') }} search={search} showAdd={showAddMusic} onCloseAdd={() => setShowAddMusic(false)} onOpenAdd={() => setShowAddMusic(true)} notify={flash} boardReady={syncStatus === 'live' || syncStatus === 'local'} /> : mode === 'books' ? <BookClub books={books} currentUser={currentUser} crew={groupMembers} section={bookSection} shelfFilter={bookShelfFilter} onShelfFilterChange={setBookShelfFilter} search={search} showAdd={showAddBook} onCloseAdd={() => setShowAddBook(false)} onOpenAdd={() => setShowAddBook(true)} onShowMyBooks={() => { setBookSection('library'); setBookShelfFilter('all'); setSearch('') }} onChange={setBooks} notify={flash} /> : view === 'dashboard' ? <div className="page dashboard-page">
@@ -2407,7 +2408,7 @@ function App() {
       </main>
       {mobileMenuOpen && <div className="mobile-menu-backdrop" role="presentation" onClick={() => setMobileMenuOpen(false)}><aside className="mobile-menu-sheet" role="dialog" aria-modal="true" aria-label="Checkpoint navigation" onClick={(event) => event.stopPropagation()}>
         <div className="mobile-menu-heading"><MobileBrand /><button type="button" onClick={() => setMobileMenuOpen(false)} aria-label="Close navigation menu"><X size={20} /></button></div>
-        <div className="mode-switcher mobile-mode-switcher" role="group" aria-label="Checkpoint mode"><button className={mode === 'games' ? 'active' : ''} type="button" onClick={() => switchMode('games')}><Gamepad2 size={14} /> Games</button><button className={mode === 'books' ? 'active' : ''} type="button" onClick={() => switchMode('books')}><BookOpen size={14} /> Books</button><button className={mode === 'music' ? 'active' : ''} type="button" onClick={() => switchMode('music')}><Headphones size={14} /> Music</button></div>
+        <ModeSwitcher mode={mode} onChange={switchMode} mobile />
         {mode === 'games' ? <><nav className="mobile-menu-nav" aria-label="Mobile menu">
           <button className={view === 'dashboard' ? 'active' : ''} type="button" onClick={() => { setView('dashboard'); setMobileMenuOpen(false) }}><span><LayoutDashboard size={19} /></span><strong>Home</strong></button>
           <button className={view === 'tonight' ? 'active' : ''} type="button" onClick={() => { setView('tonight'); setMobileMenuOpen(false) }}><span><MoonStar size={19} /></span><strong>Game Night</strong>{activeSession && <em>Live</em>}</button>
