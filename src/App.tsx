@@ -15,6 +15,7 @@ import MusicMode, { MusicNavigation } from './MusicMode'
 import ManualSessionModal from './ManualSessionModal'
 import CampaignCard from './CampaignCard'
 import ModeSwitcher from './ModeSwitcher'
+import MoreActions from './MoreActions'
 import { campaignArtworkUrls } from './lib/campaignArtwork'
 import { createManualSession, type ManualSessionInput } from './lib/manualSession'
 import type { MusicSection } from './lib/music'
@@ -1271,7 +1272,7 @@ function SteamGamePanel({ game, onManualOwnershipChange }: { game: Game; onManua
   </section>
 }
 
-function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onChangeGame, onRefreshArtwork, onAddDlc, onOpenPuzzle, onManualOwnershipChange }: { game: Game; onClose: () => void; onSave: (updates: Partial<Game>) => void; onVote: () => void; onRemove: () => void; onChangeGame: () => void; onRefreshArtwork: () => void; onAddDlc: () => void; onOpenPuzzle: () => void; onManualOwnershipChange: (memberId: string, owned: boolean | undefined) => void }) {
+export function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onChangeGame, onRefreshArtwork, onAddDlc, onOpenPuzzle, onManualOwnershipChange }: { game: Game; onClose: () => void; onSave: (updates: Partial<Game>) => void; onVote: () => void; onRemove: () => void; onChangeGame: () => void; onRefreshArtwork: () => void; onAddDlc: () => void; onOpenPuzzle: () => void; onManualOwnershipChange: (memberId: string, owned: boolean | undefined) => void }) {
   const currentUser = useContext(CurrentUserContext)
   const crew = useContext(MembersContext)
   const steamLinkPreference = crew.find((member) => member.id === currentUser)?.steamLinkPreference ?? 'auto'
@@ -1304,7 +1305,7 @@ function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onChangeGam
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <section className="modal details-modal" onMouseDown={(event) => event.stopPropagation()} aria-modal="true" role="dialog">
-        <div className="details-hero"><Cover game={game} size="large" /><div className="details-title"><div className="details-pills"><span className="status-pill">{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="content-pill"><Puzzle size={10} /> DLC</span>}</div><h2>{game.title}</h2><p>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle} · ` : ''}{[game.year, game.genre, game.platform].filter(Boolean).join(' · ')}</p><div className="details-quick-actions"><VoteButton game={game} onVote={onVote} /><button className="refresh-artwork-button" type="button" onClick={onRefreshArtwork}><ImagePlus size={14} /> Refresh artwork</button><button className="change-game-button" type="button" onClick={onChangeGame}><RefreshCw size={14} /> Change game</button><button className="mobile-remove-game" type="button" onClick={onRemove}><Trash2 size={14} /> Remove game</button>{game.steamAppId && <a className="steam-store-button" href={steamStoreHref(game.steamAppId, steamLinkPreference)}><Gamepad2 size={14} /> Open in Steam</a>}<button className="puzzle-board-button" type="button" onClick={onOpenPuzzle}><Pencil size={14} /> Puzzle Board</button>{game.contentType !== 'dlc' && <button className="add-dlc-button" type="button" onClick={onAddDlc}><Puzzle size={14} /> Add DLC</button>}</div></div><button className="icon-button details-close" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
+        <div className="details-hero"><Cover game={game} size="large" /><div className="details-title"><div className="details-pills"><span className="status-pill">{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="content-pill"><Puzzle size={10} /> DLC</span>}</div><h2>{game.title}</h2><p>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle} · ` : ''}{[game.year, game.genre, game.platform].filter(Boolean).join(' · ')}</p><div className="details-quick-actions"><VoteButton game={game} onVote={onVote} />{game.steamAppId && <a className="steam-store-button" href={steamStoreHref(game.steamAppId, steamLinkPreference)}><Gamepad2 size={14} /> Open in Steam</a>}<button className="puzzle-board-button" type="button" onClick={onOpenPuzzle}><Pencil size={14} /> Puzzle Board</button>{game.contentType !== 'dlc' && <button className="add-dlc-button" type="button" onClick={onAddDlc}><Puzzle size={14} /> Add DLC</button>}</div></div><div className="detail-menu-tools"><MoreActions label="More game actions" actions={[{id:'artwork',label:'Refresh artwork',icon:<ImagePlus size={18}/>,onSelect:onRefreshArtwork,opensDialog:true,section:'Manage game'},{id:'change',label:'Change game',icon:<RefreshCw size={18}/>,onSelect:onChangeGame,opensDialog:true,section:'Manage game'},{id:'remove',label:'Remove game',icon:<Trash2 size={18}/>,onSelect:onRemove,danger:true,section:'Library'}]}/><button className="icon-button details-close" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div></div>
         <form onSubmit={save} className="details-form">
           <div className="form-grid">
             <label className="field"><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value as GameStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
@@ -1317,7 +1318,7 @@ function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onChangeGam
             {linkError && <p className="game-link-error">{linkError}</p>}
           </section>
           <SteamGamePanel game={game} onManualOwnershipChange={onManualOwnershipChange} />
-          <div className="modal-actions"><button className="button button-danger" type="button" onClick={onRemove}><Trash2 size={16} /> Remove game</button><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit">Save changes</button></div>
+          <div className="modal-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit">Save changes</button></div>
         </form>
       </section>
     </div>

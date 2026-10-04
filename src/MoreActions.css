@@ -1,0 +1,23 @@
+.more-actions-trigger { flex:0 0 44px; width:44px; height:44px; padding:10px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #637079; color:#e3dfff; cursor:pointer; }
+.more-actions-backdrop { position:fixed; z-index:20000; inset:0; background:#0005; }
+.more-actions-panel { position:fixed; left:var(--more-left); top:var(--more-top); width:min(330px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); overflow-y:auto; overscroll-behavior:contain; padding:14px; border:1px solid #52606b; border-radius:18px; background:#1b2329; color:#f1f4f3; box-shadow:0 16px 50px #0007; }
+.more-actions-heading { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.more-actions-heading h2 { flex:1; min-width:0; margin:0; font-size:15px; line-height:1.4; overflow-wrap:anywhere; }
+.more-actions-heading button { flex:0 0 44px; height:44px; padding:10px; border:1px solid #52606b; color:inherit; display:grid; place-items:center; cursor:pointer; }
+.more-actions-list { display:grid; gap:8px; }
+.more-actions-group h3 { margin:10px 2px 8px; color:#abb5bf; text-transform:uppercase; letter-spacing:.09em; font-size:10px; font-weight:700; }
+.more-actions-group button { width:100%; min-height:46px; display:flex; align-items:center; gap:12px; padding:12px; border:1px solid #52606b; color:inherit; font-size:14px; line-height:1.4; text-align:left; cursor:pointer; }
+.more-actions-group button svg { flex-shrink:0; }
+.more-actions-group button span { min-width:0; overflow-wrap:anywhere; }
+.more-actions-group .more-action-danger { border-color:#855057; color:#ffacb5; }
+.more-actions-group button:disabled { opacity:.45; cursor:not-allowed; }
+.detail-menu-tools { position:absolute; top:15px; right:15px; display:flex; align-items:center; gap:8px; z-index:4; }
+.detail-menu-tools .book-detail-close,.detail-menu-tools .details-close { position:static; width:44px; height:44px; }
+.book-detail-modal:has(.detail-menu-tools) .book-detail-hero,.details-hero:has(.detail-menu-tools) { padding-top:74px; }
+.music-modal-title-actions { display:flex; flex:0 0 auto; align-items:center; gap:8px; }
+.music-modal .modal-title h2 { min-width:0; overflow-wrap:anywhere; }
+@media(max-width:600px) {
+ .more-actions-panel { left:0; right:0; top:auto; bottom:0; width:100%; max-height:85dvh; padding:18px 18px max(20px,env(safe-area-inset-bottom)); border-radius:22px 22px 0 0; }
+ .more-actions-panel::before { content:''; display:block; width:36px; height:4px; margin:0 auto 14px; border-radius:4px; background:#76818b; }
+ .more-actions-group button { min-height:50px; font-size:15px; }
+}

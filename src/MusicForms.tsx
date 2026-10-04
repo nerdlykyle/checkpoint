@@ -3,8 +3,8 @@ import { X, Search } from 'lucide-react'
 import { musicRequest, type MusicResult } from './lib/musicSearch'
 import { safeHttpUrl, serviceLink, type MusicItem } from './lib/music'
 
-export function MusicModal({title,onClose,children}:{title:string;onClose:()=>void;children:React.ReactNode}) {
-  return <div className="modal-backdrop music-backdrop"><section className="modal-card music-modal" role="dialog" aria-modal="true" aria-label={title}><div className="modal-title"><h2>{title}</h2><button className="icon-button" aria-label="Close" type="button" onClick={onClose}><X size={18}/></button></div>{children}</section></div>
+export function MusicModal({title,onClose,children,actions}:{title:string;onClose:()=>void;children:React.ReactNode;actions?:React.ReactNode}) {
+  return <div className="modal-backdrop music-backdrop"><section className="modal-card music-modal" role="dialog" aria-modal="true" aria-label={title}><div className="modal-title"><h2>{title}</h2><div className="music-modal-title-actions">{actions}<button className="icon-button" aria-label="Close" type="button" onClick={onClose}><X size={18}/></button></div></div>{children}</section></div>
 }
 const csv=(value:string)=>[...new Set(value.split(',').map(part=>part.trim()).filter(Boolean))].slice(0,20)
 export function MusicEditor({initial,onSave,onClose,adding=false}:{initial:MusicResult;onSave:(data:MusicResult)=>Promise<void>;onClose:()=>void;adding?:boolean}) {
