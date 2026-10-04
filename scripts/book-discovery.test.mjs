@@ -34,6 +34,43 @@ test('layout changes, incomplete months and ambiguous books fail safely', () => 
   assert.throws(() => parseJeselnikPage(htmlPick('SEPTEMBER 2026', pick.isbn13) + '<a href="https://bookshop.org/a/122208/9780525541370">Other</a>'), /Ambiguous/)
 })
 
+test('discussion-only headings anchor to saved ISBN and month without guessing the current year', () => {
+  const parsed = parseJeselnikPage(htmlPick('SEPTEMBER DISCUSSION', pick.isbn13), [pick])
+  assert.equal(parsed[0].month, '2026-09')
+  assert.equal(parsed[0].id, pick.id)
+  assert.equal(parsed[0].monthNumber, undefined)
+  assert.throws(() => parseJeselnikPage(htmlPick('AUGUST DISCUSSION', pick.isbn13), [pick]), /verified saved/)
+})
+
+test('a later saved anchor can date a new pick and cross a year boundary', () => {
+  const october = parseJeselnikPage(htmlPick('OCTOBER DISCUSSION', '9780525541370') + htmlPick('SEPTEMBER DISCUSSION', pick.isbn13), [pick])
+  assert.deepEqual(october.map(item => item.month), ['2026-10', '2026-09'])
+  const december = { ...pick, month: '2026-12' }
+  const january = parseJeselnikPage(htmlPick('JANUARY DISCUSSION', '9780525541370') + htmlPick('DECEMBER DISCUSSION', pick.isbn13), [december])
+  assert.deepEqual(january.map(item => item.month), ['2027-01', '2026-12'])
+})
+
+test('ambiguous, conflicting and duplicate undated months fail closed', () => {
+  const html = htmlPick('SEPTEMBER DISCUSSION', pick.isbn13)
+  assert.throws(() => parseJeselnikPage(html, [pick, { ...pick, month: '2025-09' }]), /Ambiguous saved year/)
+  assert.throws(() => parseJeselnikPage(html + htmlPick('AUGUST DISCUSSION', '9780525541370'), [pick, { ...pick, isbn13: '9780525541370', month: '2025-08' }]), /Conflicting years/)
+  assert.throws(() => parseJeselnikPage(html + html, [pick]), /Duplicate month/)
+  assert.equal(parseJeselnikPage(htmlPick('SEPTEMBER 2027', pick.isbn13), [pick])[0].month, '2027-09')
+})
+
+test('successful undated refresh advances timestamp, adds discussion, and retains archived picks', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'checkpoint-book-feed-'))
+  const outputUrl = join(directory, 'feed.json')
+  const archived = { ...pick, id: 'jeselnik-2025-08', month: '2025-08' }
+  await writeFile(outputUrl, JSON.stringify({ version: 1, lastCheckedAt: '2026-09-01T12:00:00Z', picks: [pick, archived] }))
+  await refreshJeselnikBooks({ outputUrl, fetchSource: async () => htmlPick('SEPTEMBER DISCUSSION', pick.isbn13, '<iframe src="https://www.youtube.com/embed/TJbCYJPv--I"></iframe>'), lookupBook: async () => { throw new Error('Existing metadata should be reused') } })
+  const saved = JSON.parse(await readFile(outputUrl, 'utf8'))
+  assert.notEqual(saved.lastCheckedAt, '2026-09-01T12:00:00Z')
+  assert.equal(saved.picks.length, 2)
+  assert.equal(saved.picks[0].discussionUrl, 'https://www.youtube.com/watch?v=TJbCYJPv--I')
+  assert.deepEqual(saved.picks[1], archived)
+})
+
 test('refresh keeps archived months and updates discussion without duplicates', () => {
   const old = { ...pick, month: '2026-08', id: 'jeselnik-2026-08' }
   const merged = mergePicks([pick, old], [{ ...pick, discussionUrl: 'https://www.youtube.com/watch?v=TJbCYJPv--I' }])
@@ -62,6 +99,8 @@ test('source outages and changed layouts retain the exact saved list and timesta
   await refreshJeselnikBooks({ outputUrl, fetchSource: async () => { throw new Error('Offline') } })
   assert.equal(await readFile(outputUrl, 'utf8'), original)
   await refreshJeselnikBooks({ outputUrl, fetchSource: async () => '<p>New layout</p>' })
+  assert.equal(await readFile(outputUrl, 'utf8'), original)
+  await refreshJeselnikBooks({ outputUrl, fetchSource: async () => htmlPick('OCTOBER DISCUSSION', '9780525541370') })
   assert.equal(await readFile(outputUrl, 'utf8'), original)
   await refreshJeselnikBooks({ outputUrl, fetchSource: async () => htmlPick('OCTOBER 2026', '9780525541370'), lookupBook: async () => { throw new Error('Catalog outage') } })
   assert.equal(await readFile(outputUrl, 'utf8'), original)

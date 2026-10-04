@@ -1,15 +1,20 @@
 /* Shared interaction contract: fills indicate selection or direct interaction,
    never a resting action. Important overrides legacy per-page button skins. */
-:is(button, a.button, a[role="button"]):not(:is(.active, .selected, .is-active, .is-selected, .is-voted, [aria-pressed="true"], [aria-selected="true"], [aria-checked="true"], [aria-current="page"])) {
+:root { --button-radius:12px; --button-accent:var(--purple-dark, #6e60df); }
+:is(button, a.button, a[role="button"], a.text-button, .book-link-row a) {
+  border-radius:var(--button-radius) !important;
+}
+:is(button, a.button, a[role="button"], a.text-button, .book-link-row a):not(:is(.active, .selected, .is-active, .is-selected, .is-voted, [aria-pressed="true"], [aria-selected="true"], [aria-checked="true"], [aria-current="page"])) {
   background-color:transparent !important;
   background-image:none !important;
   box-shadow:none !important;
 }
 @media(hover:hover) {
-  :is(button, a.button, a[role="button"]):not(:disabled):hover { background-color:#8270db26 !important; }
+  :is(button, a.button, a[role="button"], a.text-button, .book-link-row a):not(:disabled):not([aria-disabled="true"]):hover { background-color:var(--button-accent) !important; background-image:none !important; border-color:var(--button-accent) !important; color:#fff !important; }
 }
-:is(button, a.button, a[role="button"]):not(:disabled):active { background-color:#8270db40 !important; }
+:is(button, a.button, a[role="button"], a.text-button, .book-link-row a):not(:disabled):not([aria-disabled="true"]):active { background-color:var(--button-accent) !important; background-image:none !important; border-color:var(--button-accent) !important; color:#fff !important; }
 :is(button, a.button):disabled { background-color:transparent !important; background-image:none !important; box-shadow:none !important; }
+body .text-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:44px; padding:10px 13px !important; border:1px solid #69737b !important; font-size:12px; line-height:1.4; text-decoration:none; }
 body .button-light, body .google-button { color:#f1f4f3; border:1px solid #ffffff55; }
 body .button-primary { border:1px solid #9b8fea; color:#f0ecff; }
 body .mobile-menu-nav > button:not(.active) > span { background:transparent; }

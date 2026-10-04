@@ -12,7 +12,7 @@ import '../src/MusicMode.css'
 
 const base = { authors: ['Frank Herbert'], description: 'Isolated UI preview.', addedBy: 'nern', createdAt: '2026-10-04', nominated: false, upvotes: [], downvotes: [], progress: { nern: { lastChapter: 26, updatedAt: '' } }, ratings: {}, comments: [], shelves: { nern: 'reading' as const } }
 const initial: Book[] = [
-  { ...base, id: 'qa-cover', title: 'Dune', coverUrl: 'https://covers.openlibrary.org/b/isbn/9780441172719-L.jpg' },
+  { ...base, id: 'qa-cover', title: 'Dune', coverUrl: 'https://covers.openlibrary.org/b/isbn/9780441172719-L.jpg', club: { status: 'up-next', order: 1, participantIds: [] } },
   { ...base, id: 'qa-fallback', title: 'An Exceptionally Long Book Title Without Cover Artwork to Check Wrapping', authors: [], coverUrl: 'https://example.invalid/missing.jpg' },
 ]
 const crew = [{ id: 'nern', name: 'Nern' }] as Member[]
