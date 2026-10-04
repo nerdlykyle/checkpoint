@@ -9,11 +9,17 @@
 .reading-glass::before { content:''; position:absolute; z-index:-1; inset:-70px 0 0; background:linear-gradient(transparent,rgba(12,18,28,.62) 30%,rgba(12,18,28,.82)); }
 .reading-glass .eyebrow { color:#e0d9ff; }
 .reading-glass h2 { font-size:clamp(25px,2.6vw,34px); letter-spacing:-.035em; line-height:1.15; margin:10px 0; overflow-wrap:anywhere; }
+.reading-title { font:inherit; letter-spacing:inherit; color:inherit; text-align:left; padding:0; border:0; cursor:pointer; overflow-wrap:anywhere; }
 .reading-glass p { color:#e0e4ee; font-size:14px; line-height:1.5; margin:0 0 20px; overflow-wrap:anywhere; }
 .reading-actions { display:flex; gap:10px; }
 .reading-hero-club .club-reader-progress { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); }
 .reading-hero-club .club-reader-progress li { width:auto; min-width:0; background:#ffffff08; border-color:#ffffff40; overflow-wrap:anywhere; }
 .reading-hero-club .club-reader-progress span { color:#e0e4ee; }
 .reading-hero-club .club-book-controls .button { color:#fafbfc; border-color:#ffffff66; }
+.reading-hero-club .club-book-controls small,.reading-hero-club .book-empty-copy { color:#dce1eb; }
+.reading-hero-club .club-queue-order { flex-direction:row; justify-content:flex-end; margin-top:16px; }
+.reading-hero-club .club-queue-order button { color:#fafbfc; border-color:#ffffff66; }
+.club-book-list > .book-empty-copy,.club-book-list > .book-empty-panel { grid-column:1/-1; }
+@media(min-width:701px) { .club-book-list { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 .reading-actions button { display:grid; place-items:center; width:46px; height:46px; border:1px solid #ffffff66; border-radius:12px; color:#fafbfc; cursor:pointer; }
 @media(max-width:600px) { .reading-glass { padding:21px; margin-top:240px; } }

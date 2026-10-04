@@ -16,13 +16,20 @@ const initial: Book[] = [
   { ...base, id: 'qa-fallback', title: 'An Exceptionally Long Book Title Without Cover Artwork to Check Wrapping', authors: [], coverUrl: 'https://example.invalid/missing.jpg' },
 ]
 const crew = [{ id: 'nern', name: 'Nern' }, { id: 'jern', name: 'Jern' }, { id: 'vern', name: 'Vern' }] as Member[]
+const clubPreview = new URLSearchParams(location.search).has('club')
+const clubBooks: Book[] = [
+  { ...initial[0], club: { status: 'up-next', order: 1, participantIds: [] } },
+  { ...initial[1], club: { status: 'up-next', order: 2, participantIds: [] } },
+  { ...initial[0], id: 'qa-completed', title: 'A completed club book', club: { status: 'completed', order: 0, participantIds: ['nern', 'jern'], completedAt: '2026-10-01' } },
+  { ...initial[0], id: 'qa-passed', title: 'A passed-on book', club: undefined, passedOnAt: '2026-10-01' },
+]
 const album = makeMusicItem({ id: 'qa-music', title: 'Test Album', artists: ['Example Artist'], kind: 'album', links: { spotify: 'https://open.spotify.com/album/0123456789012345678901' } }, 'nern')
 function Fixture() {
-  const [books, setBooks] = useState(initial), [mode, setMode] = useState<AppMode>('books')
+  const [books, setBooks] = useState(clubPreview ? clubBooks : initial), [mode, setMode] = useState<AppMode>('books')
   return <main style={{ maxWidth: 1000, margin: 'auto', padding: 16 }}>
     <div style={{ maxWidth: 240, paddingTop: 12 }}><ModeSwitcher mode={mode} onChange={setMode} /></div>
     <MusicLinks item={album} service="spotify" />
-    <BookClub books={books} currentUser="nern" crew={crew} section="home" shelfFilter="all" onShelfFilterChange={() => {}} search="" showAdd={false} onCloseAdd={() => {}} onOpenAdd={() => {}} onShowMyBooks={() => {}} onChange={setBooks} notify={() => {}} />
+    <BookClub books={books} currentUser="nern" crew={crew} section={clubPreview ? 'club' : 'home'} shelfFilter="all" onShelfFilterChange={() => {}} search="" showAdd={false} onCloseAdd={() => {}} onOpenAdd={() => {}} onShowMyBooks={() => {}} onChange={setBooks} notify={() => {}} />
   </main>
 }
 createRoot(document.getElementById('root')!).render(<Fixture />)
