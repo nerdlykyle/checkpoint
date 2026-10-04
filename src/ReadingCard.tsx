@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { BookMarked, MessageCircle } from 'lucide-react'
 import BookCoverImage from './BookCoverImage'
 import type { Book } from './types'
 import './ReadingCard.css'
 
-export default function ReadingCard({ book, user, onChapter, onDiscuss }: { book: Book; user: string; onChapter: () => void; onDiscuss: () => void }) {
+export default function ReadingCard({ book, user, onChapter, onDiscuss, children, club = false }: { book: Book; user: string; onChapter?: () => void; onDiscuss: () => void; children?: ReactNode; club?: boolean }) {
   const card = useRef<HTMLElement>(null)
   const glass = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -17,16 +17,17 @@ export default function ReadingCard({ book, user, onChapter, onDiscuss }: { book
     if (glass.current) observer.observe(glass.current)
     return () => observer.disconnect()
   }, [book.id])
-  return <article className="reading-hero" ref={card}>
+  return <article className={`reading-hero${club ? ' reading-hero-club' : ''}`} ref={card}>
     <div className="reading-artwork" aria-hidden="true"><BookCoverImage book={book} large cinematic /></div>
     <div className="reading-glass" ref={glass}>
-      <span className="eyebrow">Chapter {book.progress[user]?.lastChapter ?? 0}</span>
+      <span className="eyebrow">{club ? 'Club read' : `Chapter ${book.progress[user]?.lastChapter ?? 0}`}</span>
       <h2>{book.title}</h2>
       <p>{book.authors.join(', ')}</p>
       <div className="reading-actions">
-        <button type="button" onClick={onChapter} aria-label={`Update chapter for ${book.title}`} title="Update chapter"><BookMarked size={21} /></button>
+        {onChapter && <button type="button" onClick={onChapter} aria-label={`Update chapter for ${book.title}`} title="Update chapter"><BookMarked size={21} /></button>}
         <button type="button" onClick={onDiscuss} aria-label={`Open discussion for ${book.title}`} title="Open discussion"><MessageCircle size={21} /></button>
       </div>
+      {children}
     </div>
   </article>
 }

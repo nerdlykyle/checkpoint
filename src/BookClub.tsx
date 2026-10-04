@@ -346,15 +346,11 @@ export default function BookClub({ books, currentUser, crew, section, shelfFilte
   const averageRating = (book: Book) => { const values = Object.values(book.ratings); return values.length ? values.reduce((sum, item) => sum + item.stars, 0) / values.length : 0 }
   const currentClubReadPanel = <section className="book-reading-section">
     <div className="section-heading"><div><span className="eyebrow">Reading together</span><h2>Our current club read</h2></div><Users size={21} /></div>
-    {currentClubBook ? <article className="current-book-card club-current-card">
-      <BookCover book={currentClubBook} large />
-      <div><span className="eyebrow">Club read</span><h2>{currentClubBook.title}</h2><p>{currentClubBook.authors.join(', ')}</p>
+    {currentClubBook ? <ReadingCard book={currentClubBook} user={currentUser} club onDiscuss={() => setSelectedId(currentClubBook.id)} onChapter={currentClubBook.club!.participantIds.includes(currentUser) ? () => setChapterBookId(currentClubBook.id) : undefined}>
         <ul className="club-reader-progress">{currentClubBook.club!.participantIds.map((id) => <li key={id}><strong>{memberName(crew, id)}</strong><span>Chapter {currentClubBook.progress[id]?.lastChapter ?? 0}</span></li>)}</ul>
         {!currentClubBook.club!.participantIds.length && <p>No readers joined yet.</p>}
-        <div className="current-book-actions"><button className="button button-secondary" type="button" onClick={() => setSelectedId(currentClubBook.id)}>Open discussion</button>{currentClubBook.club!.participantIds.includes(currentUser) && <button className="button button-primary" type="button" onClick={() => setChapterBookId(currentClubBook.id)}>Update my chapter</button>}</div>
         {clubControls(currentClubBook)}
-      </div>
-    </article> : <div className="book-empty-panel"><Users size={28} /><h2>No club read yet</h2><p>Open a book in the poll or your shelves and choose Start club read.</p></div>}
+    </ReadingCard> : <div className="book-empty-panel"><Users size={28} /><h2>No club read yet</h2><p>Open a book in the poll or your shelves and choose Start club read.</p></div>}
   </section>
   const clubList = clubTab === 'up-next' ? clubQueue : clubTab === 'completed' ? completedClubBooks : books.filter((book) => book.passedOnAt && !book.club)
   return <div className="page book-club-page">
