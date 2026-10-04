@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#142d50"/><stop offset=".55" stop-color="#d67777"/><stop offset="1" stop-color="#f3b073"/></linearGradient></defs>
+  <path fill="url(#sky)" d="M0 0h800v800H0z"/>
+  <circle cx="410" cy="330" r="145" fill="#ffd897"/>
+  <path d="M0 520 210 350 360 490 565 370 800 530V800H0Z" fill="#354d62"/>
+  <path d="m0 640 270-150 200 100 330-120v330H0Z" fill="#182c42"/>
+  <text x="400" y="125" text-anchor="middle" fill="#fff2d9" font-family="sans-serif" letter-spacing="14" font-size="46">FIRST LIGHT</text>
+</svg>

@@ -7,7 +7,8 @@ import { useMusicStore, type MusicMutation } from './lib/musicStore'
 import { makeMusicItem, musicQueue, musicSections, musicShelves, recordListen, saveMusicShelf, voteMusic, type MusicItem, type MusicSection, type MusicShelf } from './lib/music'
 import { AddMusic, LogListen, MusicEditor, MusicModal } from './MusicForms'
 import type { MusicResult } from './lib/musicSearch'
-import MusicDetails, { MusicCover, MusicLinks, MusicVotes } from './MusicDetails'
+import MusicDetails, { MusicLinks, MusicVotes } from './MusicDetails'
+import MusicCard from './MusicCard'
 import CollectionFilters from './CollectionFilters'
 import './MusicMode.css'
 
@@ -70,12 +71,19 @@ export function MusicContent({boardId,user,crew,section,onSection,search,showAdd
   const card=(item:MusicItem,reordering=false,other=false)=>{
     const rank=queue.findIndex(entry=>entry.id===item.id)+1
     const ratings=Object.values(item.ratings),average=ratings.length?(ratings.reduce((sum,value)=>sum+value.stars,0)/ratings.length).toFixed(1):''
-    return <article className={`music-card ${target===item.id?'is-drop-target':''}`} data-music-id={item.id} key={item.id}>
+    return <MusicCard key={item.id} item={item} dropTarget={target===item.id} onOpen={()=>setSelectedId(item.id)} tools={<>
       {reordering&&<button className="music-drag" aria-label={`Drag ${item.title}`} onPointerDown={event=>{event.currentTarget.setPointerCapture(event.pointerId);setDragging(item.id)}} onPointerMove={event=>pointer(event,false)} onPointerUp={event=>pointer(event,true)} onPointerCancel={()=>{setDragging(null);setTarget(null)}}><GripVertical size={20}/></button>}
-      <button className="music-cover-button" aria-label={`Open ${item.title}`} onClick={()=>setSelectedId(item.id)}><MusicCover item={item}/></button>
-      <div className="music-card-copy"><span className="eyebrow">{reordering?`#${rank} · `:''}{item.kind} {item.year?`· ${item.year}`:''}</span><button className="music-title-button" onClick={()=>setSelectedId(item.id)}>{item.title}</button><p>{item.artists.join(', ')}</p><small>{item.genres.join(' · ')}{average?` · ★ ${average}`:''}</small>{other&&<p>{name(owner)} · {item.shelves[owner]?musicShelves[item.shelves[owner]]:'Favorite'}{item.favorites.includes(owner)?' · ♥ Favorite':''}</p>}{item.kind==='song'&&item.sharedBy&&<p>Shared by {name(item.sharedBy)}</p>}<MusicLinks item={item} service={service}/></div>
-      <div className="music-card-actions">{other?<button className="button button-secondary" disabled={!!item.shelves[user]} onClick={()=>setPersonal(item,'to-listen')}>{item.shelves[user]?'On my shelf':'Save to my music'}</button>:<><button className="music-heart" aria-label={`Favorite ${item.title}`} aria-pressed={item.favorites.includes(user)} onClick={()=>run(()=>update(item.id,old=>({...old,favorites:old.favorites.includes(user)?old.favorites.filter(id=>id!==user):[...old.favorites,user]})),'Favorite updated')}><Heart size={18} fill={item.favorites.includes(user)?'currentColor':'none'}/></button><select aria-label={`Shelf for ${item.title}`} value={item.shelves[user]||''} onChange={event=>setPersonal(item,event.target.value as MusicShelf)}><option value="" disabled>Save to my shelf…</option>{Object.entries(musicShelves).map(([value,label])=><option value={value} key={value}>{label}</option>)}</select><button className="button button-secondary" onClick={()=>setLogId(item.id)}>Mark listened</button>{reordering&&<div className="music-order"><button aria-label={`Move ${item.title} up`} disabled={rank===1} onClick={()=>move(item.id,rank-1)}><ArrowUp size={15}/></button><button aria-label={`Move ${item.title} down`} disabled={rank===queue.length} onClick={()=>move(item.id,rank+1)}><ArrowDown size={15}/></button><button onClick={()=>{setMoving(item.id);setPosition(String(rank))}}>Move…</button></div>}</>}{item.nominated&&!item.passedOn&&!item.club&&<MusicVotes item={item} user={user} onVote={value=>vote(item,value)}/>}</div>
-    </article>
+      {!other&&<button className="music-heart" aria-label={`Favorite ${item.title}`} aria-pressed={item.favorites.includes(user)} onClick={()=>run(()=>update(item.id,old=>({...old,favorites:old.favorites.includes(user)?old.favorites.filter(id=>id!==user):[...old.favorites,user]})),'Favorite updated')}><Heart size={18} fill={item.favorites.includes(user)?'currentColor':'none'}/></button>}
+    </>}>
+      <div className="music-card-copy"><span className="eyebrow">{reordering?`#${rank} · `:''}{item.kind} {item.year?`· ${item.year}`:''}</span><button className="music-title-button" onClick={()=>setSelectedId(item.id)}>{item.title}</button><p>{item.artists.join(', ')}</p><small>{item.genres.join(' · ')}{average?` · ★ ${average}`:''}</small>{other&&<p>{name(owner)} · {item.shelves[owner]?musicShelves[item.shelves[owner]]:'Favorite'}{item.favorites.includes(owner)?' · ♥ Favorite':''}</p>}{item.kind==='song'&&item.sharedBy&&<p>Shared by {name(item.sharedBy)}</p>}</div>
+      <div className="music-card-actions">
+        <MusicLinks item={item} service={service}/>
+        {other?<button className="button button-secondary" disabled={!!item.shelves[user]} onClick={()=>setPersonal(item,'to-listen')}>{item.shelves[user]?'On my shelf':'Save to my music'}</button>:<>
+          <select aria-label={`Shelf for ${item.title}`} value={item.shelves[user]||''} onChange={event=>setPersonal(item,event.target.value as MusicShelf)}><option value="" disabled>Save to my shelf…</option>{Object.entries(musicShelves).map(([value,label])=><option value={value} key={value}>{label}</option>)}</select>
+          {reordering&&<div className="music-order"><button aria-label={`Move ${item.title} up`} disabled={rank===1} onClick={()=>move(item.id,rank-1)}><ArrowUp size={15}/></button><button aria-label={`Move ${item.title} down`} disabled={rank===queue.length} onClick={()=>move(item.id,rank+1)}><ArrowDown size={15}/></button><button onClick={()=>{setMoving(item.id);setPosition(String(rank))}}>Move…</button></div>}
+        </>}
+        {item.nominated&&!item.passedOn&&!item.club&&<MusicVotes item={item} user={user} onVote={value=>vote(item,value)}/>}</div>
+    </MusicCard>
   }
   const recent=items.filter(item=>Object.keys(item.ratings).length).sort((a,b)=>Math.max(...Object.values(b.ratings).map(value=>Date.parse(value.updatedAt)))-Math.max(...Object.values(a.ratings).map(value=>Date.parse(value.updatedAt))))
   return <div className="page music-page"><div className="page-title-row"><div><span className="eyebrow">Checkpoint Music</span><h1>{section==='home'?"What’re we listenin’ to?":musicSections[section]}</h1><p>Your music, with a shared place to discover and discuss.</p></div><span className="music-sync" role="status">{store.status}</span></div>
