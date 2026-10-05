@@ -92,9 +92,9 @@ export function MusicContent({boardId,user,crew,section,onSection,search,showAdd
     <fieldset className="music-workspace" disabled={!ready||busy}>
     {section!=='settings'&&section!=='artists'&&<div className="music-page-actions"><button className="button button-primary" onClick={onOpenAdd}><Plus size={16}/>Add music</button></div>}
     {section==='home'?<>
-      <FavoriteArtists boardId={boardId} user={user} enabled={ready}/>
       <section className="music-home-section"><h2>Our current group listen</h2>{current?<>{card(current)}<div className="music-inline-actions"><button className="button button-secondary" onClick={()=>clubAction(current,current.club!.participants.includes(user)?'leave':'join')}>{current.club!.participants.includes(user)?'Leave this listen':'Join this listen'}</button><button className="button button-secondary" onClick={()=>clubAction(current,'finish')}>Finish group listen</button><p>{current.club!.participants.map(name).join(', ')||'No listeners joined yet'}</p></div></>:<p className="music-empty">No group listen yet. Nominate an album or choose one from the club queue.</p>}</section>
       <section className="music-home-section"><h2>What I’m listening to</h2>{ownListening.length?ownListening.map(item=>card(item)):<p className="music-empty">Move an album to Listening whenever you’re ready.</p>}</section>
+      <FavoriteArtists boardId={boardId} user={user} enabled={ready}/>
       <section className="music-home-section"><h2>Crew recommendations</h2>{poll.length?poll.slice(0,4).map(item=>card(item)):<p className="music-empty">Open an album and nominate it for our next listen.</p>}</section>
       <section className="music-home-section"><h2>Recently rated by the crew</h2>{recent.length?recent.slice(0,6).map(item=>card(item)):<p className="music-empty">Your ratings and reviews will appear here.</p>}</section>
     </>:section==='artists'?<FavoriteArtists boardId={boardId} user={user} enabled={ready}/>:section==='library'||section==='listeners'?<>
@@ -118,6 +118,5 @@ export function MusicContent({boardId,user,crew,section,onSection,search,showAdd
     {logging&&<LogListen item={logging} onClose={()=>setLogId(null)} onSave={async(date,note)=>{const id=crypto.randomUUID();await update(logging.id,old=>recordListen(old,user,date,note,id));setLogId(null);notify('Listen logged. Previous notes and ratings were preserved.')}}/>}
     {showAdd&&<AddMusic boardId={boardId} onClose={onCloseAdd} onSave={add}/>}
     {moving&&<MusicModal title="Move music" onClose={()=>setMoving(null)}><form className="music-form" onSubmit={async event=>{event.preventDefault();if(await move(moving,Number(position)))setMoving(null)}}><label>Position<input autoFocus type="number" required min={1} max={queue.length} value={position} onFocus={event=>event.currentTarget.select()} onChange={event=>setPosition(event.target.value)}/></label><button className="button button-primary">Move music</button></form></MusicModal>}
-    <footer className="music-attribution">Metadata: <a href="https://musicbrainz.org" target="_blank" rel="noreferrer">MusicBrainz</a> · Artwork: <a href="https://coverartarchive.org" target="_blank" rel="noreferrer">Cover Art Archive</a>. Metadata can be incomplete; edit details when needed.</footer>
   </div>
 }
