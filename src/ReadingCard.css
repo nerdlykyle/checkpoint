@@ -17,8 +17,12 @@
 .reading-hero-club .club-reader-progress span { color:#e0e4ee; }
 .reading-hero-club .club-book-controls .button { color:#fafbfc; border-color:#ffffff66; }
 .reading-hero-club .club-book-controls small,.reading-hero-club .book-empty-copy { color:#dce1eb; }
-.reading-hero-club .club-queue-order { flex-direction:row; justify-content:flex-end; margin-top:16px; }
-.reading-hero-club .club-queue-order button { color:#fafbfc; border-color:#ffffff66; }
+.reading-hero-club .club-queue-toolbar { display:grid; grid-template-columns:minmax(0,1fr) repeat(3,44px); gap:6px; align-items:stretch; }
+.club-queue-toolbar > .button { width:100%; min-width:0; padding:6px; gap:5px; font-size:11px; line-height:1.25; }
+.club-queue-toolbar > .button svg { flex-shrink:0; }
+.club-queue-toolbar .club-queue-move,.club-queue-toolbar .more-actions-trigger { width:44px; height:auto; min-height:44px; padding:10px; display:grid; place-items:center; border:1px solid #ffffff66; color:#fafbfc; cursor:pointer; }
+.club-queue-toolbar > small { grid-column:1/-1; margin-top:4px; }
+@media(max-width:360px) { .club-queue-toolbar > .button svg { display:none; } }
 .club-book-list > .book-empty-copy,.club-book-list > .book-empty-panel { grid-column:1/-1; }
 @media(min-width:701px) { .club-book-list { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 .reading-actions button { display:grid; place-items:center; width:46px; height:46px; border:1px solid #ffffff66; border-radius:12px; color:#fafbfc; cursor:pointer; }

@@ -201,21 +201,22 @@ function BookDetails({ book, currentUser, crew, onClose, onUpdate, onChapter, on
   </div>
 }
 
-function ClubControls({ book, currentUser, hasCurrentRead, onAction, hideUnqueue = false }: { book: Book; currentUser: string; hasCurrentRead: boolean; onAction: (action: ClubBookAction) => void; hideUnqueue?: boolean }) {
+function ClubControls({ book, currentUser, hasCurrentRead, onAction, hideUnqueue = false, queueOrder }: { book: Book; currentUser: string; hasCurrentRead: boolean; onAction: (action: ClubBookAction) => void; hideUnqueue?: boolean; queueOrder?: ReactNode }) {
   const status = book.club?.status
   const joined = book.club?.participantIds.includes(currentUser)
-  return <div className="club-book-controls">
+  return <div className={`club-book-controls${queueOrder ? ' club-queue-toolbar' : ''}`}>
     {!status && <button className="button button-secondary" type="button" onClick={() => onAction('queue')}><Plus size={15} /> Add to club Up Next</button>}
     {(!status || status === 'up-next') && <>
-      <button className="button button-primary" type="button" disabled={hasCurrentRead} onClick={() => onAction('start')}><BookOpen size={15} /> Start club read</button>
-      {hasCurrentRead && <small>Finish the current club read to start another.</small>}
+      <button className="button button-primary" type="button" disabled={hasCurrentRead} onClick={() => onAction('start')}><BookOpen size={15} /><span>Start club read</span></button>
     </>}
+    {queueOrder}
     {status === 'up-next' && !hideUnqueue && <MoreActions label={`More actions for ${book.title}`} actions={[{ id: 'unqueue', label: 'Remove from club queue', icon: <ListMinus size={18} />, onSelect: () => onAction('unqueue'), section: 'Club queue' }]} />}
     {status === 'reading' && <>
       <button className="button button-secondary" type="button" onClick={() => onAction(joined ? 'leave' : 'join')}><Users size={15} />{joined ? 'Leave this read' : 'Join this read'}</button>
       <button className="button button-secondary" type="button" onClick={() => onAction('finish')}><BookCheck size={15} /> Finish club read</button>
     </>}
     {status === 'completed' && <p className="book-empty-copy">Club read completed {book.club?.completedAt ? new Date(book.club.completedAt).toLocaleDateString() : ''}. Your personal shelf is managed separately.</p>}
+    {(!status || status === 'up-next') && hasCurrentRead && <small>Finish the current club read to start another.</small>}
   </div>
 }
 
@@ -290,7 +291,7 @@ export default function BookClub({ books, currentUser, crew, section, shelfFilte
     const messages: Record<ClubBookAction, string> = { queue: 'Added to the club’s Up Next', start: 'Club read started — others can join', join: 'You joined this club read', leave: 'You left this club read', finish: 'Club read completed', unqueue: 'Removed from the club queue' }
     notify(messages[action])
   }
-  const clubControls = (book: Book, hideUnqueue = false) => <ClubControls hideUnqueue={hideUnqueue} book={book} currentUser={currentUser} hasCurrentRead={Boolean(currentClubBook)} onAction={(action) => clubAction(book, action)} />
+  const clubControls = (book: Book, hideUnqueue = false, queueOrder?: ReactNode) => <ClubControls hideUnqueue={hideUnqueue} queueOrder={queueOrder} book={book} currentUser={currentUser} hasCurrentRead={Boolean(currentClubBook)} onAction={(action) => clubAction(book, action)} />
   const [changingId, setChangingId] = useState<string | null>(null)
   const changingBook = books.find((book) => book.id === changingId)
   const [chapterBookId, setChapterBookId] = useState<string | null>(null)
@@ -368,8 +369,7 @@ export default function BookClub({ books, currentUser, crew, section, shelfFilte
         {clubTab === 'up-next' && <p className="book-empty-copy">The group’s to-read queue. Use the arrows to change the reading order.</p>}
         {clubList.length ? clubList.map((book, index) => <ReadingCard key={book.id} book={book} user={currentUser} club label={clubTab === 'up-next' ? `#${index + 1} · Club Up Next` : clubTab === 'completed' ? 'Completed club read' : 'Passed on by the club'} onDiscuss={() => setSelectedId(book.id)}>
             {clubTab === 'completed' && <p>{book.club?.participantIds.map((id) => memberName(crew,id)).join(', ')}</p>}
-            {clubTab !== 'passed' && clubControls(book)}
-          {clubTab === 'up-next' && <div className="club-queue-order"><button type="button" disabled={index === 0} aria-label={`Move ${book.title} up`} onClick={() => onChange(moveClubBook(books, book.id, -1))}><ArrowUp size={19} /></button><button type="button" disabled={index === clubQueue.length - 1} aria-label={`Move ${book.title} down`} onClick={() => onChange(moveClubBook(books, book.id, 1))}><ArrowDown size={19} /></button></div>}
+            {clubTab !== 'passed' && clubControls(book, false, clubTab === 'up-next' ? <><button className="club-queue-move" type="button" disabled={index === 0} aria-label={`Move ${book.title} up`} onClick={() => onChange(moveClubBook(books, book.id, -1))}><ArrowUp size={19} /></button><button className="club-queue-move" type="button" disabled={index === clubQueue.length - 1} aria-label={`Move ${book.title} down`} onClick={() => onChange(moveClubBook(books, book.id, 1))}><ArrowDown size={19} /></button></> : undefined)}
         </ReadingCard>) : <div className="book-empty-panel"><Library size={28} /><h2>{clubTab === 'up-next' ? 'No books in the club queue' : clubTab === 'completed' ? 'No completed club reads yet' : 'No passed-on books'}</h2><p>{clubTab === 'up-next' ? 'Open a nominated book and choose Add to club Up Next.' : 'Your personal shelves are managed in My Books.'}</p></div>}
       </div>}
     </> : section === 'library' || section === 'readers' ? <BookOrganizer key={`${section}-${currentUser}`} books={books} currentUser={currentUser} crew={crew} readers={section === 'readers'} shelf={shelfFilter} search={search} onShelfFilter={onShelfFilterChange} onChange={onChange} onOpen={setSelectedId} onChapter={setChapterBookId} onEdit={setMetadataId} onShelf={setShelf} onFindSeries={findSeries} onRefresh={refreshMetadata} refreshing={refreshing} /> : <>
