@@ -36,6 +36,24 @@ test('filtered moves use full shelf positions and cannot modify absent reader sh
   assert.equal(personalQueue(movePersonalBook(initial, 'nern', 'a', 999),'nern').at(-1).id, 'a')
 })
 
+test('home reading status choices preserve chapters, notes, ratings, other readers and the active club read', () => {
+  const original = book('current', {
+    shelves: { nern: 'reading', jern: 'reading' },
+    progress: { nern: { lastChapter: 26 }, jern: { lastChapter: 12 } },
+    club: { status: 'reading', participantIds: ['nern', 'jern'] },
+    readerOrganization: { nern: { order: 1, tags: ['Audio'] }, jern: { order: 3 } },
+  })
+  for (const shelf of ['read', 'dnf', 'paused']) {
+    const result = setPersonalShelf([original], 'nern', original.id, shelf)[0]
+    assert.equal(result.shelves.nern, shelf)
+    assert.equal(result.shelves.jern, 'reading')
+    for (const field of ['progress', 'ratings', 'comments', 'club']) assert.deepEqual(result[field], original[field])
+    assert.deepEqual(result.readerOrganization.jern, original.readerOrganization.jern)
+    assert.deepEqual(result.readerOrganization.nern.tags, ['Audio'])
+    assert.equal(original.shelves.nern, 'reading')
+  }
+})
+
 test('series inference only uses explicit numbers and does not invent a total', () => {
   assert.deepEqual(inferSeries('A Title (The Saga, #2 of 6)'), { name: 'The Saga', position: 2, total: 6 })
   assert.deepEqual(inferSeries('The Saga: Book 2.5'), { name: 'The Saga', position: 2.5 })

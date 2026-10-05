@@ -12,6 +12,7 @@ const initial: Book[] = [
   { ...base, id:'qa-b', title:'The Second Signal', series:{name:'Signal Trilogy',position:2,total:3}, genres:['Sci-fi'], shelves:{nern:'to-read',vern:'reading'}, readerOrganization:{nern:{order:2}}, progress:{vern:{lastChapter:9,updatedAt:''}} },
   { ...base, id:'qa-c', title:'The Haunted Garden', genres:['Horror'], shelves:{nern:'to-read',jern:'reading'}, readerOrganization:{nern:{order:3}}, ratings:{jern:{stars:4,review:'Eerie!',updatedAt:''}} },
   { ...base, id:'qa-d', title:'The Final Signal', series:{name:'Signal Trilogy',position:3,total:3}, genres:['Sci-fi'], shelves:{jern:'to-read'} },
+  { ...base, id:'qa-reading', title:'A Shared Adventure', coverUrl:`${location.origin}/tests/music-cover.svg`, shelves:{nern:'reading',jern:'reading'}, progress:{nern:{lastChapter:26,updatedAt:''},jern:{lastChapter:12,updatedAt:''}}, club:{status:'reading',order:0,participantIds:['nern','jern']} },
 ]
 const crew = [{id:'nern',name:'Nern'},{id:'jern',name:'Jern'},{id:'vern',name:'Vern'}] as Member[]
 function Fixture() {
@@ -20,6 +21,6 @@ function Fixture() {
   const [shelf,setShelf] = useState<BookShelfFilter>('all')
   const [add,setAdd] = useState(false)
   const [message,setMessage] = useState('Isolated test shelf — no cloud writes')
-  return <><nav style={{padding:16,display:'flex',gap:12}}><button onClick={() => setSection('library')}>My books</button><button onClick={() => {setSection('readers');setShelf('all')}}>Readers’ shelves</button><span role="status">{message}</span></nav><BookClub books={books} currentUser="nern" crew={crew} section={section} shelfFilter={shelf} onShelfFilterChange={setShelf} search="" showAdd={add} onCloseAdd={() => setAdd(false)} onOpenAdd={() => setAdd(true)} onShowMyBooks={() => {setSection('library');setShelf('all')}} onChange={setBooks} notify={setMessage}/></>
+  return <><nav style={{padding:16,display:'flex',gap:12,flexWrap:'wrap'}}><button onClick={() => setSection('home')}>Book home</button><button onClick={() => setSection('library')}>My books</button><button onClick={() => {setSection('readers');setShelf('all')}}>Readers’ shelves</button><span role="status">{message}</span></nav><BookClub books={books} currentUser="nern" crew={crew} section={section} shelfFilter={shelf} onShelfFilterChange={setShelf} search="" showAdd={add} onCloseAdd={() => setAdd(false)} onOpenAdd={() => setAdd(true)} onShowMyBooks={() => {setSection('library');setShelf('all')}} onChange={setBooks} notify={setMessage}/></>
 }
 createRoot(document.getElementById('root')!).render(<Fixture />)

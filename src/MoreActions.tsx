@@ -6,7 +6,7 @@ import './MoreActions.css'
 export type MoreAction = { id: string; label: string; icon: ReactNode; onSelect: () => void; disabled?: boolean; danger?: boolean; section?: string; opensDialog?: boolean }
 
 /** One action list: anchored popover on desktop, bottom sheet on phones. */
-export default function MoreActions({ label, actions }: { label: string; actions: MoreAction[] }) {
+export default function MoreActions({ label, actions, icon = <MoreHorizontal size={21} /> }: { label: string; actions: MoreAction[]; icon?: ReactNode }) {
   const [open, setOpen] = useState(false)
   const [position, setPosition] = useState({ left: 12, top: 12 })
   const trigger = useRef<HTMLButtonElement>(null)
@@ -43,7 +43,7 @@ export default function MoreActions({ label, actions }: { label: string; actions
   if (!actions.length) return null
   const close = () => { restoreFocus.current = true; setOpen(false) }
   return <>
-    <button ref={trigger} type="button" className="more-actions-trigger" aria-label={label} title={label} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined} onClick={event => { event.stopPropagation(); restoreFocus.current = true; setOpen(true) }}><MoreHorizontal size={21} /></button>
+    <button ref={trigger} type="button" className="more-actions-trigger" aria-label={label} title={label} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined} onClick={event => { event.stopPropagation(); restoreFocus.current = true; setOpen(true) }}>{icon}</button>
     {open && createPortal(<div className="more-actions-backdrop" onMouseDown={event => { event.stopPropagation(); if (event.target === event.currentTarget) close() }} onClick={event => event.stopPropagation()}>
       <div ref={panel} id={id} className="more-actions-panel" role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} style={{ '--more-left': `${position.left}px`, '--more-top': `${position.top}px` } as CSSProperties} onKeyDown={event => {
         if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); return }
