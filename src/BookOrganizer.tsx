@@ -1,3 +1,4 @@
+import StyledSelect from "./StyledSelect"
 import MemberShelfPicker from './MemberShelfPicker'
 import { useState } from 'react'
 import { ArrowDown, ArrowUp, BookMarked, GripVertical, Plus, Shuffle, SlidersHorizontal } from 'lucide-react'
@@ -65,7 +66,7 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
         {!mine && <p>{ownerName} · Chapter {book.progress[owner]?.lastChapter ?? 0}{book.ratings[owner]?.stars ? ` · ${book.ratings[owner].stars}/5 stars` : ''}</p>}
       </div>
       <div className="organized-actions">{mine ? <>
-        <select aria-label={`Shelf for ${book.title}`} value={book.shelves[currentUser]} onChange={(event) => onShelf(book, event.target.value as BookShelf)}>{Object.entries(shelfNames).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select>
+        <StyledSelect aria-label={`Shelf for ${book.title}`} value={book.shelves[currentUser]} onValueChange={(value) => onShelf(book, value as BookShelf)}>{Object.entries(shelfNames).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</StyledSelect>
         <div className="organized-action-row"><button type="button" onClick={() => onEdit(book.id)} aria-label={`Organize ${book.title}`}><SlidersHorizontal size={15} />Organize</button>{book.shelves[currentUser] === 'reading' && <button type="button" onClick={() => onChapter(book.id)}><BookMarked size={15} />Ch. {book.progress[currentUser]?.lastChapter ?? 0}</button>}</div>
         {canReorder && <div className="organized-action-row"><button type="button" disabled={rank === 1} aria-label={`Move ${book.title} up`} onClick={() => move(book.id, rank - 1)}><ArrowUp size={15} /></button><button type="button" disabled={rank === queue.length} aria-label={`Move ${book.title} down`} onClick={() => move(book.id, rank + 1)}><ArrowDown size={15} /></button><button type="button" onClick={() => { setMoving(book.id); setPosition(String(rank)) }}>Move…</button></div>}
         {book.shelves[currentUser] === 'to-read' && <button type="button" onClick={() => { move(book.id, 1); setSort('order'); setGroupSeries(false); onShelfFilter('to-read') }}>Read next</button>}
@@ -85,9 +86,9 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
     <CollectionFilters activeCount={[query || search, genre, tag, sort !== 'order'].filter(Boolean).length} groupedBy={groupSeries ? 'series' : undefined}>
     <div className="book-organizer-toolbar">
       <label>Search<input type="search" placeholder="Title, author, or series" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
-      <label>Genre<select value={genre} onChange={(event) => setGenre(event.target.value)}><option value="">All genres</option>{genres.map((value) => <option key={value}>{value}</option>)}<option value="__none">Uncategorized</option></select></label>
-      <label>Tag<select value={tag} onChange={(event) => setTag(event.target.value)}><option value="">All tags</option>{tags.map((value) => <option key={value}>{value}</option>)}</select></label>
-      <label>Sort<select value={sort} onChange={(event) => setSort(event.target.value)}><option value="order">Reading order</option><option value="title">Title</option><option value="author">Author</option><option value="newest">Recently added</option></select></label>
+      <label>Genre<StyledSelect value={genre} onValueChange={(value) => setGenre(value)}><option value="">All genres</option>{genres.map((value) => <option key={value}>{value}</option>)}<option value="__none">Uncategorized</option></StyledSelect></label>
+      <label>Tag<StyledSelect value={tag} onValueChange={(value) => setTag(value)}><option value="">All tags</option>{tags.map((value) => <option key={value}>{value}</option>)}</StyledSelect></label>
+      <label>Sort<StyledSelect value={sort} onValueChange={(value) => setSort(value)}><option value="order">Reading order</option><option value="title">Title</option><option value="author">Author</option><option value="newest">Recently added</option></StyledSelect></label>
     </div>
     <div className="book-organizer-options"><label><input type="checkbox" checked={groupSeries} onChange={(event) => setGroupSeries(event.target.checked)} /> Group by series</label>{mine && <button type="button" disabled={refreshing || !owned.length} onClick={onRefresh}>{refreshing ? 'Checking catalogs…' : 'Refresh series & genres'}</button>}<button type="button" disabled={!visible.some((book) => book.shelves[owner] === 'to-read')} onClick={() => { const choices = visible.filter((book) => book.shelves[owner] === 'to-read'); onOpen(choices[Math.floor(Math.random() * choices.length)].id) }}><Shuffle size={15} />Pick {mine ? 'my' : 'a'} next read</button>{(genre || tag || query) && <button type="button" onClick={() => { setGenre(''); setTag(''); setQuery('') }}>Clear filters</button>}</div>
     </CollectionFilters>

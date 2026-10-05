@@ -1,3 +1,4 @@
+import StyledSelect from "./StyledSelect"
 import { BookOpen, Check, ExternalLink, Plus, RefreshCw, Search, ThumbsUp, Video } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { Book } from './types'
@@ -44,7 +45,7 @@ export default function BookDiscovery({ books, currentUser, onAdd, onOpenBook }:
     {error && <p className="discovery-notice" role="alert">{error}</p>}
     {loading && !feed && <p role="status">Loading Jeselnik’s monthly picks…</p>}
     {feed && <>
-      <div className="discovery-filters"><label className="book-search-input"><Search size={17} /><input aria-label="Search Jeselnik picks" placeholder="Search titles or authors" value={query} onChange={(event) => setQuery(event.target.value)} /></label><label><span className="sr-only">Pick year</span><select aria-label="Pick year" value={year} onChange={(event) => setYear(event.target.value)}><option value="all">All years</option>{[...new Set(picks.map((pick) => pick.month.slice(0, 4)))].map((value) => <option key={value}>{value}</option>)}</select></label></div>
+      <div className="discovery-filters"><label className="book-search-input"><Search size={17} /><input aria-label="Search Jeselnik picks" placeholder="Search titles or authors" value={query} onChange={(event) => setQuery(event.target.value)} /></label><label><span className="sr-only">Pick year</span><StyledSelect aria-label="Pick year" value={year} onValueChange={(value) => setYear(value)}><option value="all">All years</option>{[...new Set(picks.map((pick) => pick.month.slice(0, 4)))].map((value) => <option key={value}>{value}</option>)}</StyledSelect></label></div>
       <div className="discovery-grid">{filtered.map((pick) => {
         const book = findDiscoveryBook(books, pick)
         const shelf = book?.shelves[currentUser]

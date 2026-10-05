@@ -1,0 +1,40 @@
+/* Portal menus escape card clipping and never use the device's native picker. */
+body button.styled-select {
+  display:inline-flex; align-items:center; justify-content:space-between; gap:10px;
+  width:clamp(140px,25%,260px); max-width:100%; min-width:0; min-height:44px;
+  padding:9px 12px; border:1px solid #556168; border-radius:var(--button-radius,12px);
+  color:#edf2f5; font:inherit; font-size:14px; text-align:left; cursor:pointer;
+}
+.styled-select > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.styled-select > svg { flex-shrink:0; }
+body button.styled-select:focus-visible { outline:2px solid #a38cfc; outline-offset:2px; }
+body button.styled-select:disabled { opacity:.45; cursor:default; }
+.styled-select-menu {
+  position:fixed; z-index:20000; box-sizing:border-box; overflow-y:auto; overscroll-behavior:contain;
+  padding:6px; border:1px solid #556168; border-radius:12px; background:#171e22;
+  color:#edf2f5; box-shadow:0 12px 36px #0009; font-family:inherit; font-size:14px;
+  color-scheme:dark;
+}
+.styled-select-option {
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  min-height:44px; box-sizing:border-box; padding:10px; border-radius:8px; cursor:pointer;
+}
+.styled-select-option > span { overflow-wrap:anywhere; }
+.styled-select-option > svg { flex-shrink:0; }
+.styled-select-option.is-highlighted:not([aria-disabled=true]) { background:var(--button-accent,#6e60df); color:#fff; }
+.styled-select-option[aria-disabled=true] { opacity:.45; cursor:default; }
+body .organized-book.clean-split .organized-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+body .organized-book.clean-split .organized-action-row { flex:0 1 auto; }
+body .music-card.music-cinematic .music-card-actions { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+.music-card-actions > .music-votes,.music-card-actions > .music-order { flex-basis:100%; }
+body .book-shelf-select,body .book-detail-aside .book-shelf-select { width:clamp(140px,25%,260px); max-width:100%; height:auto; border:0; background:transparent; }
+body .book-shelf-select > .styled-select { width:100%; }
+body .book-shelf-select .styled-select svg { position:static; }
+.book-organizer-toolbar .styled-select,.music-filters .styled-select { width:100%; }
+@media(max-width:650px) {
+  body button.styled-select,.styled-select-menu { font-size:16px; }
+  body button.styled-select,body .book-shelf-select,body .book-detail-aside .book-shelf-select { width:clamp(160px,25%,260px); }
+  body .book-shelf-select > .styled-select { width:100%; }
+  .book-organizer-toolbar button.styled-select,.music-filters button.styled-select { width:100%; }
+  body .organized-book.clean-split .organized-actions > .styled-select { width:100%; }
+}

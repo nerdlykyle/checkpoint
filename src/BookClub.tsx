@@ -1,5 +1,6 @@
+import StyledSelect from "./StyledSelect"
 import {
-  BookCheck, BookMarked, BookOpen, Check, ChevronDown, ExternalLink, Headphones, Library, MessageCircle,
+  BookCheck, BookMarked, BookOpen, Check, ExternalLink, Headphones, Library, MessageCircle,
   Minus, Plus, Search, Star, ThumbsDown, ThumbsUp, X, RefreshCw, Trash2, ArrowUp, ArrowDown, Users, Tags, ListMinus,
 } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
@@ -69,15 +70,14 @@ function VoteControls({ book, currentUser, onVote }: { book: Book; currentUser: 
 function ShelfSelect({ value, onChange }: { value?: BookShelf; onChange: (shelf?: BookShelf) => void }) {
   return <label className="book-shelf-select" onClick={(event) => event.stopPropagation()}>
     <span className="sr-only">Personal shelf</span>
-    <select value={value ?? ''} onChange={(event) => onChange((event.target.value || undefined) as BookShelf | undefined)}>
+    <StyledSelect value={value ?? ''} onValueChange={(value) => onChange((value || undefined) as BookShelf | undefined)}>
       <option value="" disabled>Choose my shelf…</option>
       <option value="to-read">To read</option>
       <option value="reading">Reading</option>
       <option value="read">Read</option>
       <option value="paused">Paused</option>
       <option value="dnf">Didn’t finish</option>
-    </select>
-    <ChevronDown size={13} />
+    </StyledSelect>
   </label>
 }
 

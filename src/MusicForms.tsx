@@ -1,3 +1,4 @@
+import StyledSelect from "./StyledSelect"
 import { useEffect, useState } from 'react'
 import { X, Search } from 'lucide-react'
 import { musicRequest, type MusicResult } from './lib/musicSearch'
@@ -23,7 +24,7 @@ export function MusicEditor({initial,onSave,onClose,adding=false}:{initial:Music
     <p className="music-muted">{adding?'Confirm the title and artist. Albums/EPs go to your To listen shelf; songs are shared with the crew.':'Metadata and links describe this music for everyone. Personal shelves and reviews stay separate.'}</p>
     <label>Title<input required maxLength={250} value={title} onChange={event=>setTitle(event.target.value)}/></label>
     <label>Artist(s)<input required maxLength={400} value={artists} onChange={event=>setArtists(event.target.value)} placeholder="Separate artists with commas"/></label>
-    <div className="music-form-row"><label>Type<select value={kind} disabled={!adding} onChange={event=>setKind(event.target.value as MusicItem['kind'])}><option value="album">Album</option><option value="ep">EP</option><option value="song">Song</option></select></label><label>Release year<input maxLength={4} pattern="[0-9]{4}|^$" value={year} onChange={event=>setYear(event.target.value)}/></label></div>
+    <div className="music-form-row"><label>Type<StyledSelect value={kind} disabled={!adding} onValueChange={value=>setKind(value as MusicItem['kind'])}><option value="album">Album</option><option value="ep">EP</option><option value="song">Song</option></StyledSelect></label><label>Release year<input maxLength={4} pattern="[0-9]{4}|^$" value={year} onChange={event=>setYear(event.target.value)}/></label></div>
     <label>Genres<input value={genres} maxLength={500} onChange={event=>setGenres(event.target.value)} placeholder="Rock, Electronic, Jazz…"/></label>
     <label>Spotify link<input type="url" value={spotify} onChange={event=>setSpotify(event.target.value)} placeholder="Optional — otherwise searches Spotify"/></label>
     <label>YouTube Music link<input type="url" value={youtube} onChange={event=>setYoutube(event.target.value)} placeholder="Optional — otherwise searches YouTube Music"/></label>
@@ -48,7 +49,7 @@ export function AddMusic({boardId,onSave,onClose}:{boardId:string;onSave:(data:M
     catch{setDraft(result)}finally{setLoading(false)}
   }
   return <MusicModal title={draft?'Confirm music':'Add music'} onClose={onClose}>{draft?<MusicEditor key={draft.id} initial={draft} adding onClose={()=>setDraft(null)} onSave={onSave}/>:<>
-    <div className="music-form"><label>Find music<input autoFocus aria-label="Find music" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Artist, album, song, or Spotify/YouTube Music link"/></label><label>Search for<select value={kind} onChange={event=>setKind(event.target.value as 'album'|'song')}><option value="album">Albums & EPs</option><option value="song">Songs</option></select></label></div>
+    <div className="music-form"><label>Find music<input autoFocus aria-label="Find music" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Artist, album, song, or Spotify/YouTube Music link"/></label><label>Search for<StyledSelect value={kind} onValueChange={value=>setKind(value as 'album'|'song')}><option value="album">Albums & EPs</option><option value="song">Songs</option></StyledSelect></label></div>
     {isLink&&<button className="button button-primary" disabled={loading} type="button" onClick={async()=>{setLoading(true);setError('');try{const result=await musicRequest<Partial<MusicResult>>(boardId,{action:'resolve',url:query.trim()});setDraft({id:`music-${crypto.randomUUID()}`,kind:result.kind||kind,title:result.title||'',artists:result.artists||[],...result} as MusicResult)}catch(reason){setError(reason instanceof Error?reason.message:'Could not resolve this link.')}finally{setLoading(false)}}}>Use this link</button>}
     <div className="music-search-results">{loading?<p role="status">Searching music catalogs…</p>:results.map(result=><button key={result.id} type="button" onClick={()=>choose(result)}><Search size={18}/><span><strong>{result.title}</strong><small>{result.artists.join(', ')} · {result.year||'Year unknown'} · {result.kind.toUpperCase()}</small></span></button>)}</div>
     {error&&<p role="alert" className="music-error">{error}</p>}{!loading&&query.trim().length>=2&&!results.length&&!error&&!isLink&&<p>No matches. Try title and artist, or add it manually.</p>}
