@@ -1,0 +1,26 @@
+.glass-comparison { max-width:860px; margin:0 auto; padding:24px 16px; }
+.glass-comparison h1 { font-size:23px; margin:0 0 20px; }
+.glass-comparison-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; }
+.glass-comparison .comparison-label { margin:0 0 6px; font-size:18px; }
+.comparison-setting,.glass-comparison > p { font-size:13px; color:#b6c1ce; }
+.comparison-setting { margin:0 0 16px; }
+.glass-tuning { display:flex; flex-wrap:wrap; gap:24px; margin-bottom:24px; }
+.glass-tuning label { display:grid; gap:8px; font-size:14px; }
+.glass-tuning input { width:190px; accent-color:#8a78eb; }
+.glass-comparison .reading-glass { margin-top:240px; }
+/* Keep the real cover sharp. The proposed layer samples the actual artwork,
+   extending upward to include nearby pixels before its mask is applied. */
+.glass-trial .reading-artwork > img { mask-image:none; }
+.glass-trial .reading-art-blur { display:none; }
+.glass-trial .reading-glass::before { inset:0; background:rgb(12 18 28 / .9); pointer-events:none; }
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) and (mask-image:linear-gradient(transparent,#000)) {
+  .glass-trial .reading-glass::before {
+    top:-100%; bottom:0;
+    background:rgb(12 18 28 / var(--trial-tint));
+    -webkit-backdrop-filter:blur(var(--trial-blur));
+    backdrop-filter:blur(var(--trial-blur));
+    -webkit-mask-image:linear-gradient(to bottom,transparent calc(50% - 70px),#000 50%);
+    mask-image:linear-gradient(to bottom,transparent calc(50% - 70px),#000 50%);
+  }
+}
+@media(max-width:700px) { .glass-comparison-grid { grid-template-columns:1fr; } .glass-tuning { gap:14px; } .glass-comparison { padding:20px 16px; } }

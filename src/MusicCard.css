@@ -2,14 +2,10 @@
 .music-card-artwork { position:absolute; inset:0; z-index:-2; pointer-events:none; }
 .music-card-artwork > span { position:absolute; top:60px; width:100%; text-align:center; font-size:80px; font-weight:800; color:#ffffff65; }
 .music-card-artwork img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 30%; }
-.music-card-artwork > img { mask-image:linear-gradient(#000 calc(var(--music-glass-top,55%) - 60px),transparent var(--music-glass-top,55%)); }
-.music-card-art-blur { position:absolute; inset:0; mask-image:linear-gradient(transparent calc(var(--music-glass-top,55%) - 60px),#000 var(--music-glass-top,55%)); }
-.music-card-art-blur img { filter:blur(24px); }
 .music-cinematic .music-artwork-open { width:100%; height:clamp(200px,36vw,280px); flex-shrink:0; padding:0; border:0; cursor:pointer; }
 body .music-cinematic .music-artwork-open:hover,body .music-cinematic .music-artwork-open:active { background:transparent !important; }
 .music-cinematic .music-artwork-open:focus-visible { outline:2px solid #c1b5ff; outline-offset:-6px; }
 .music-card-glass { position:relative; padding:22px; }
-.music-card-glass::before { content:''; position:absolute; inset:-60px 0 0; z-index:-1; background:linear-gradient(transparent,rgba(9,15,24,.65) 25%,rgba(9,15,24,.9)); }
 .music-cinematic .music-card-copy { padding:0 !important; }
 .music-cinematic .music-title-button { font-size:clamp(22px,2vw,28px); line-height:1.16; letter-spacing:-.025em; margin:8px 0; color:#fff; }
 .music-cinematic .music-card-copy p { font-size:14px; line-height:1.5; color:#eef0f6; }
@@ -29,8 +25,6 @@ body .music-cinematic .music-artwork-open:hover,body .music-cinematic .music-art
  .music-card.music-cinematic { flex-direction:row; min-height:300px; }
  .music-cinematic .music-artwork-open { width:40%; height:auto; }
  .music-card-glass { flex:1; min-width:0; margin-top:60px; align-self:flex-end; }
- .music-card-artwork > img { mask-image:linear-gradient(to right,#000 30%,transparent 45%); }
- .music-card-art-blur { mask-image:linear-gradient(to right,transparent 30%,#000 45%); }
  .music-card-artwork > span { width:40%; top:90px; }
 }
 @media(max-width:360px) { .music-card-glass { padding:18px; } .music-card.music-cinematic .music-card-actions { gap:8px; } }

@@ -1,0 +1,40 @@
+/* One glass treatment for campaign, reading, and music cards. The layer
+   extends above the text to sample nearby artwork, then masks the excess.
+   Text and controls are not filtered and never lose pointer events. */
+.card-glass::before {
+  content:'';
+  position:absolute;
+  z-index:-1;
+  inset:0;
+  background:rgb(12 18 28 / .9);
+  pointer-events:none;
+}
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) and ((mask-image:linear-gradient(transparent,#000)) or (-webkit-mask-image:linear-gradient(transparent,#000))) {
+  .card-glass::before {
+    top:-100%;
+    background:rgb(12 18 28 / .45);
+    -webkit-backdrop-filter:blur(16px);
+    backdrop-filter:blur(16px);
+    -webkit-mask-image:linear-gradient(to bottom,transparent calc(50% - 70px),#000 50%);
+    mask-image:linear-gradient(to bottom,transparent calc(50% - 70px),#000 50%);
+  }
+  /* Wide music cards place the text beside, rather than below, the artwork. */
+  @media(min-width:701px) {
+    .music-card-glass.card-glass::before {
+      top:-60px;
+      left:-100%;
+      -webkit-mask-image:linear-gradient(to right,transparent calc(50% - 70px),#000 50%);
+      mask-image:linear-gradient(to right,transparent calc(50% - 70px),#000 50%);
+    }
+  }
+}
+@media(prefers-reduced-transparency:reduce) {
+  .card-glass::before,.music-card-glass.card-glass::before {
+    inset:0;
+    background:rgb(12 18 28 / .95);
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+    -webkit-mask-image:none;
+    mask-image:none;
+  }
+}
