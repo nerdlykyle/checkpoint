@@ -1,0 +1,86 @@
+/* Approved Clean Split: edge-to-edge art with an opaque, unblurred reading area. */
+.library-card.clean-split {
+  --split-art-width:38%;
+  position:relative; display:block; padding:0; min-height:234px;
+  border-radius:20px; background:#171e22;
+}
+.library-card.clean-split > .game-cover {
+  position:absolute; inset:0 auto 0 0; width:var(--split-art-width); height:100%;
+  border-radius:0; box-shadow:none; border-right:1px solid #ffffff20;
+}
+.library-card.clean-split .library-card-copy {
+  margin-left:var(--split-art-width); padding:14px; min-height:234px; overflow:visible;
+}
+.library-card.clean-split h3 { margin:11px 0 6px; font-size:19px; line-height:1.2; }
+.library-card.clean-split p { font-size:11px; white-space:normal; }
+.library-card.clean-split .library-card-topline { font-size:11px; flex-wrap:wrap; }
+.library-card.clean-split .more-button { width:32px; height:32px; }
+.library-card.clean-split .card-integrations { margin:12px 0 16px; }
+.library-card.clean-split .library-card-footer {
+  flex-wrap:wrap; gap:10px; padding-top:12px; border-top:1px solid #ffffff18;
+}
+.library-card.clean-split .library-card-footer > span { font-size:11px; }
+.library-card.clean-split .library-card-actions { margin-left:auto; }
+.library-card.clean-split .library-card-actions button { min-width:36px; min-height:36px; }
+.library-card.clean-split .mini-progress { margin-top:auto; }
+
+.organized-book.clean-split {
+  --split-art-width:clamp(96px,32%,190px);
+  position:relative; display:block; padding:0; min-height:230px; overflow:hidden;
+  border-radius:20px; background:#171e22;
+}
+body .organized-book.clean-split > .organized-cover {
+  position:absolute; inset:0 auto 0 0; width:var(--split-art-width); height:100%;
+  border-radius:0 !important; border-right:1px solid #ffffff20;
+  display:grid; place-items:center;
+}
+body .organized-book.clean-split > .organized-cover:focus-visible { outline-offset:-4px; }
+.organized-book.clean-split .organized-content {
+  min-width:0; min-height:230px; margin-left:var(--split-art-width); padding:20px;
+  display:flex; flex-direction:column; gap:16px;
+}
+.organized-book.clean-split .organized-copy { flex:1; }
+.organized-book.clean-split .organized-title { font-size:21px; line-height:1.2; }
+.organized-book.clean-split .organized-actions {
+  width:100%; min-width:0; border-top:1px solid #ffffff18; padding-top:12px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.organized-book.clean-split .organized-action-row { flex-wrap:wrap; }
+.organized-book.clean-split .organized-actions button { min-height:44px; overflow-wrap:anywhere; }
+.organized-book.clean-split .book-drag-handle {
+  position:absolute; z-index:2; left:8px; top:8px; width:44px; height:44px; min-height:44px;
+  color:#fff; border:1px solid #ffffff80; backdrop-filter:blur(12px) brightness(.5);
+}
+@media(max-width:650px) {
+  .organized-book.clean-split { --split-art-width:34%; }
+  .organized-book.clean-split .organized-content { padding:14px; }
+  .organized-book.clean-split .organized-title { font-size:19px; }
+  .organized-book.clean-split .organized-actions { grid-template-columns:minmax(0,1fr); }
+}
+@media(pointer:coarse) {
+  .library-card.clean-split .library-card-actions button,
+  .library-card.clean-split .more-button { min-width:44px; min-height:44px; }
+}
+
+/* Phones retain the existing cinematic music card; desktop adopts Clean Split. */
+@media(min-width:701px) {
+  .music-card.music-cinematic.music-split-desktop {
+    --music-art-width:clamp(180px,32%,300px);
+    display:grid; grid-template-columns:var(--music-art-width) minmax(0,1fr);
+    min-height:280px; background:#171e22; border-radius:20px;
+  }
+  .music-split-desktop .music-card-artwork {
+    right:auto; width:var(--music-art-width); border-right:1px solid #ffffff20;
+    background:linear-gradient(140deg,#534374,#234446);
+  }
+  .music-split-desktop .music-card-artwork > span { width:100%; top:50%; transform:translateY(-50%); }
+  .music-split-desktop .music-card-artwork img { object-position:center; }
+  .music-card.music-split-desktop .music-artwork-open { grid-column:1; grid-row:1; width:100%; height:100%; }
+  .music-split-desktop .music-card-glass {
+    grid-column:2; grid-row:1; align-self:stretch; margin:0; padding:60px 24px 24px;
+    display:flex; flex-direction:column; background:#171e22;
+  }
+  .music-split-desktop .music-card-glass.card-glass::before { display:none; }
+  .music-card.music-cinematic.music-split-desktop .music-card-actions { margin-top:20px; padding-top:16px; border-top:1px solid #ffffff18; }
+  .music-card.music-split-desktop .music-heart { backdrop-filter:none; }
+}

@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { safeHttpUrl, type MusicItem } from './lib/music'
 import './MusicCard.css'
 import './CardGlass.css'
+import './CleanSplitCards.css'
 
 // Glass filters the actual artwork behind the text, not a baked-in image.
 export default function MusicCard({ item, dropTarget, onOpen, tools, children }: {
@@ -10,7 +11,7 @@ export default function MusicCard({ item, dropTarget, onOpen, tools, children }:
   const [failedUrl, setFailedUrl] = useState<string>()
   const url = item.coverUrl && safeHttpUrl(item.coverUrl)
   const artwork = url && url !== failedUrl ? url : undefined
-  return <article className={`music-card music-cinematic${dropTarget ? ' is-drop-target' : ''}`} data-music-id={item.id}>
+  return <article className={`music-card music-cinematic music-split-desktop${dropTarget ? ' is-drop-target' : ''}`} data-music-id={item.id}>
     <div className="music-card-artwork" aria-hidden="true">
       <span>{item.title.slice(0, 2).toUpperCase()}</span>
       {artwork && <>

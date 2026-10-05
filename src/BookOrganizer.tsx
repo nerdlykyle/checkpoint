@@ -7,6 +7,7 @@ import CollectionFilters from './CollectionFilters'
 import { useLiveReorder } from './useLiveReorder'
 import { movePersonalBook, normalizeBookText, personalQueue, sameSeries, shelfNames } from './lib/bookOrganization'
 import './BookOrganizer.css'
+import './CleanSplitCards.css'
 
 type Props = {
   books: Book[]; currentUser: string; crew: Member[]; readers?: boolean; shelf: BookShelf | 'all'; search: string
@@ -55,9 +56,10 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
     onMove: (id, target) => move(id, queue.findIndex(book => book.id === target) + 1) })
   const card = (book: Book) => {
     const rank = queue.findIndex((item) => item.id === book.id) + 1
-    return <article key={book.id} data-shelf-book={book.id} data-reorder-id={book.id} className="organized-book">
+    return <article key={book.id} data-shelf-book={book.id} data-reorder-id={book.id} className="organized-book clean-split">
       {canReorder && <button type="button" className="book-drag-handle" aria-label={`Drag ${book.title} to reorder; use arrow buttons or Move for keyboard control`} {...drag.handleProps(book.id)}><GripVertical size={20} /></button>}
       <button className="organized-cover" type="button" onClick={() => onOpen(book.id)} aria-label={`Open ${book.title}`}><BookCoverImage book={book} /></button>
+      <div className="organized-content">
       <div className="organized-copy"><span className="eyebrow">{sort === 'order' && shelf !== 'all' && !groupSeries ? `#${rank} · ` : ''}{shelfNames[book.shelves[owner]]}</span><button className="organized-title" type="button" onClick={() => onOpen(book.id)}>{book.title}</button><p>{book.authors.join(', ')}</p><SeriesLabel book={book} />
         <div className="book-tag-list">{book.genres?.map((value) => <button type="button" key={value} onClick={() => setGenre(value)}>{value}</button>)}{book.readerOrganization?.[owner]?.tags?.map((value) => <button type="button" className="personal-tag" key={value} onClick={() => setTag(value)}>#{value}</button>)}</div>
         {!mine && <p>{ownerName} · Chapter {book.progress[owner]?.lastChapter ?? 0}{book.ratings[owner]?.stars ? ` · ${book.ratings[owner].stars}/5 stars` : ''}</p>}
@@ -68,6 +70,7 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
         {canReorder && <div className="organized-action-row"><button type="button" disabled={rank === 1} aria-label={`Move ${book.title} up`} onClick={() => move(book.id, rank - 1)}><ArrowUp size={15} /></button><button type="button" disabled={rank === queue.length} aria-label={`Move ${book.title} down`} onClick={() => move(book.id, rank + 1)}><ArrowDown size={15} /></button><button type="button" onClick={() => { setMoving(book.id); setPosition(String(rank)) }}>Move…</button></div>}
         {book.shelves[currentUser] === 'to-read' && <button type="button" onClick={() => { move(book.id, 1); setSort('order'); setGroupSeries(false); onShelfFilter('to-read') }}>Read next</button>}
       </> : <button type="button" disabled={Boolean(book.shelves[currentUser])} onClick={() => onShelf(book, 'to-read')}><Plus size={15} />{book.shelves[currentUser] ? 'On my shelf' : 'Save to my books'}</button>}</div>
+      </div>
     </article>
   }
   const groups: Book[][] = []

@@ -10,6 +10,7 @@ import {
 } from 'react'
 import type { User } from 'firebase/auth'
 import './App.css'
+import './CleanSplitCards.css'
 import BookClub, { type BookSection, type BookShelfFilter } from './BookClub'
 import MusicMode, { MusicNavigation } from './MusicMode'
 import ManualSessionModal from './ManualSessionModal'
@@ -1335,9 +1336,9 @@ function QueueItem({ game, rank, onVote, onOpen, dragHandle }: { game: Game; ran
   )
 }
 
-function LibraryCard({ game, onOpen, onVote, onArchive, onRestore }: { game: Game; onOpen: () => void; onVote: () => void; onArchive?: () => void; onRestore?: () => void }) {
+export function LibraryCard({ game, onOpen, onVote, onArchive, onRestore }: { game: Game; onOpen: () => void; onVote: () => void; onArchive?: () => void; onRestore?: () => void }) {
   return (
-    <article className={`library-card${game.status === 'archived' ? ' is-archived' : ''}`} onClick={onOpen}><Cover game={game} size="medium" /><div className="library-card-copy">
+    <article className={`library-card clean-split${game.status === 'archived' ? ' is-archived' : ''}`} onClick={onOpen}><Cover game={game} size="medium" /><div className="library-card-copy">
       <div className="library-card-topline"><span className={`status-dot status-${game.status}`} /><span>{statusLabels[game.status]}</span>{game.contentType === 'dlc' && <span className="dlc-card-label"><Puzzle size={9} /> DLC</span>}{isFreeGame(game) && <span className="free-game-label">Free</span>}<button className="more-button" type="button" aria-label="More options"><MoreHorizontal size={17} /></button></div>
       <h3>{game.title}</h3><p>{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle}` : game.genre} · {game.platform}</p>
       <div className="card-integrations"><OwnershipBadge game={game} compact /><DealBadge game={game} compact /></div>
