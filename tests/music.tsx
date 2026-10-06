@@ -13,7 +13,7 @@ const initial: MusicItem[] = [
   makeMusicItem({id:'qa-second',title:'Echoes of a Very Long Album Title to Test Responsive Music Cards',artists:['The Test Signals'],kind:'ep',genres:['Rock'],links:{spotify:'https://open.spotify.com/album/0123456789012345678901',youtube:'https://music.youtube.com/playlist?list=OLAK5uy_abcdefghijklmnop'}},'nern'),
   makeMusicItem({id:'qa-third',title:'Quiet Hours',artists:['Example Trio'],kind:'album',genres:['Jazz']},'jern'),
   makeMusicItem({id:'qa-song',title:'Late Train',artists:['Example Trio'],kind:'song'},'vern'),
-].map((item,index)=>({...item,...(index===0?{coverUrl:`${location.origin}/tests/music-cover.svg`}:{}),shelves:index<2?{nern:'to-listen',jern:'listening'}:index===2?{jern:'to-listen'}:{},organization:{nern:{order:index+1}},...(index===1?{nominated:true,downvotes:['jern','vern']}:{}),...(index===3?{sharedBy:'vern'}:{})})) as MusicItem[]
+].map((item,index)=>({...item,...(index===0?{coverUrl:`${location.origin}/tests/music-cover.svg`}:{}),shelves:index<2?{nern:'to-listen',jern:'listening'}:index===2?{jern:'to-listen'}:{},organization:{nern:{order:index+1,...(index===1?{savedFrom:'jern'}:{})}},...(index===1?{nominated:true,downvotes:['jern','vern']}:{}),...(index===3?{sharedBy:'vern'}:{})})) as MusicItem[]
 const crew=[{id:'nern',name:'Nern'},{id:'jern',name:'Jern'},{id:'vern',name:'Vern'}] as Member[]
 function Fixture() {
   const [items,setItems]=useState(initial), [section,setSection]=useState<MusicSection>('library'), [showAdd,setAdd]=useState(false), [service,setService]=useState<MusicService>('spotify'),[message,setMessage]=useState('Isolated music QA — no cloud writes')

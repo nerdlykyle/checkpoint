@@ -1,8 +1,38 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {parseMusicLink,catalogItem} from '../worker/src/music.js'
-import {listeningLink,makeMusicItem,musicQueue,recordListen,safeHttpUrl,saveMusicShelf,serviceLink,voteMusic} from '../src/lib/music.ts'
+import {inMusicLibrary,listeningLink,makeMusicItem,musicFromFriends,musicQueue,recordListen,removeMusicFromLibrary,safeHttpUrl,saveMusicShelf,saveMusicToLibrary,serviceLink,voteMusic} from '../src/lib/music.ts'
 const album=()=>makeMusicItem({id:'sample',title:'Some Album',artists:['An Artist'],kind:'album'},'nern')
+test('every legacy music status and favorite-only entry stays in the simplified library',()=>{
+  for(const shelf of ['to-listen','listening','listened','not-for-me'])assert.equal(inMusicLibrary({...album(),shelves:{nern:shelf}},'nern'),true)
+  assert.equal(inMusicLibrary({...album(),favorites:['nern']},'nern'),true)
+  assert.equal(inMusicLibrary(album(),'nern'),false)
+})
+test('friend saves keep attribution per user, survive duplicate adds, and never change the source collection',()=>{
+  const original={...album(),shelves:{jern:'to-listen',vern:'listening'},organization:{jern:{tags:['Road trip'],order:1}}}
+  const saved=saveMusicToLibrary(original,'nern',2,'jern')
+  assert.equal(saved.organization.nern.savedFrom,'jern')
+  assert.deepEqual(saved.organization.jern,original.organization.jern)
+  assert.equal(saved.shelves.jern,'to-listen')
+  assert.equal(saveMusicToLibrary(saved,'nern',9,'vern'),saved)
+  assert.deepEqual(musicFromFriends([saved],'nern'),[saved])
+  assert.deepEqual(musicFromFriends([saved],'vern'),[])
+  assert.equal(saveMusicToLibrary(album(),'nern',1,'nern').organization.nern.savedFrom,undefined)
+  assert.equal(saveMusicToLibrary(album(),'nern',1,'missing').organization.nern.savedFrom,undefined)
+})
+test('removal hides favorites too without deleting shared records, reviews, history or friends; re-add sets fresh provenance',()=>{
+  let item=saveMusicToLibrary({...album(),shelves:{jern:'listened',vern:'listened'},ratings:{nern:{stars:5,review:'Love it',updatedAt:''}},comments:[{id:'c',text:'Great',userId:'jern',createdAt:''}],listens:[{id:'l',userId:'nern',date:'2026-10-01',note:'First listen'}]},'nern',1,'jern')
+  item={...item,favorites:['nern','jern'],organization:{...item.organization,nern:{...item.organization.nern,tags:['Workout']}}}
+  const removed=removeMusicFromLibrary(item,'nern')
+  assert.equal(inMusicLibrary(removed,'nern'),false)
+  assert.equal(inMusicLibrary(removed,'jern'),true)
+  assert.deepEqual(musicFromFriends([removed],'nern'),[])
+  for(const key of ['comments','ratings','listens'])assert.deepEqual(removed[key],item[key])
+  assert.deepEqual(removed.organization.nern.tags,['Workout'])
+  assert.equal(saveMusicToLibrary(removed,'nern',2).organization.nern.savedFrom,undefined)
+  assert.equal(saveMusicToLibrary(removed,'nern',2,'vern').organization.nern.savedFrom,'vern')
+  assert.equal(item.organization.nern.savedFrom,'jern')
+})
 test('both services use clearly labeled searches until a safe direct link is supplied',()=>{
   const item=album()
   assert.equal(listeningLink(item,'spotify').label,'Search Spotify')

@@ -2,18 +2,20 @@
 
 Music is a third mode alongside Games and Books. The preferred mode follows the existing account preference; both desktop and mobile navigation expose the same sections.
 
-## First release
+## Music library
 
-- Personal albums/EPs: To listen, Listening, Listened, Not for me, and independent Favorites.
-- Personal ordering: drag, arrows, or numbered Move; genre/tag filtering, artist grouping, and random next-listen choice.
-- Listeners’ collections: browse another member’s shelves without changing their order; save a title to your own shelf.
+- Personal albums/EPs: one shared library, From friends, and Favorites. Legacy listening statuses remain in storage for compatibility, but all are included in Library; no destructive migration is needed.
+- Three-column artwork grid with glass captions, artist above album title, and hover/focus streaming controls that animate in and out. Touch users tap a tile for the full album controls.
+- Personal ordering: numbered Move in album details → more actions; genre/tag filtering, artist grouping, and random album choice.
+- Listeners’ collections: browse with member avatars and save a title using +. `organization[uid].savedFrom` records the source member for the From friends tab and corner avatar. Existing saves are not assigned an invented source.
+- Album details expose a trash button with confirmation. Removal clears only the current user's membership, favorite, and source attribution; shared discussions, ratings, logs, and other members' libraries remain unchanged. Re-adding is supported.
 - Club listens: separate group queue, one current group listen, explicit join/leave, and completed listens. These never change personal shelves.
 - Album poll: one vote per member; three thumbs down closes a nomination, retaining personal shelves and ratings.
 - Songs to share: a separate shared feed for individual songs.
 - Album/song details: cover, editable metadata, available tracklist, favorite tracks, shared ratings/reviews and discussion, useful links, and owner-only private notes.
 - Manual dated listen logs, including repeat listens. There is no playback tracking, streaming history import, or Spotify/YouTube account connection.
 
-Both Spotify and YouTube Music links are always shown. Verified catalog URLs or links supplied by the user open directly; otherwise the button explicitly says Search. Device settings decide whether HTTPS links open the installed streaming app. The user’s preferred service is displayed first.
+Both Spotify and YouTube Music are available in album details and on desktop tile hover/keyboard focus. Verified catalog URLs or links supplied by the user open directly; otherwise they search. Accessible names and tooltips distinguish Open from Search. Device settings decide whether HTTPS links open the installed streaming app. The user’s preferred service is displayed first.
 
 ## Catalog
 
@@ -33,7 +35,7 @@ Frontend uses `VITE_CHECKPOINT_API_URL` (same as Steam), optionally overridden b
 - `musicPreferences/{uid}`: owner-only preferred listening service.
 - `readerNotes/{uid}/music/{musicId}`: owner-only notes; never embedded in shared music records.
 
-Music is separate from the legacy board document, so older game/book clients cannot overwrite it. Removing a personal shelf entry preserves shared discussions and others' collections. Favorites are independent and can be unhearted separately. Without Firebase configuration, the explicitly labeled local demo uses isolated device storage.
+Music is separate from the legacy board document, so older game/book clients cannot overwrite it. Removing a personal library entry preserves shared discussions and others' collections. Favorite-only legacy entries count as membership, so removal also clears the current user's favorite to prevent the album reappearing. Without Firebase configuration, the explicitly labeled local demo uses isolated device storage.
 
 ## Verification and release
 

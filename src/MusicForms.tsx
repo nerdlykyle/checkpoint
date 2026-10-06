@@ -21,7 +21,7 @@ export function MusicEditor({initial,onSave,onClose,adding=false}:{initial:Music
     if(cover&&!safeHttpUrl(cover)){setError('Artwork must use an http or https image link.');return}
     setSaving(true);try{await onSave({...initial,title:title.trim(),artists:csv(artists),kind,genres:csv(genres),year,description,coverUrl:cover? safeHttpUrl(cover):'',links:{...initial.links,spotify:serviceLink(spotify,'spotify')||'',youtube:serviceLink(youtube,'youtube')||''}})}catch(reason){setError(reason instanceof Error?reason.message:'Could not save music.')}finally{setSaving(false)}
   }}>
-    <p className="music-muted">{adding?'Confirm the title and artist. Albums/EPs go to your To listen shelf; songs are shared with the crew.':'Metadata and links describe this music for everyone. Personal shelves and reviews stay separate.'}</p>
+    <p className="music-muted">{adding?'Confirm the title and artist. Albums/EPs go to your library; songs are shared with the crew.':'Metadata and links describe this music for everyone. Personal libraries and reviews stay separate.'}</p>
     <label>Title<input required maxLength={250} value={title} onChange={event=>setTitle(event.target.value)}/></label>
     <label>Artist(s)<input required maxLength={400} value={artists} onChange={event=>setArtists(event.target.value)} placeholder="Separate artists with commas"/></label>
     <div className="music-form-row"><label>Type<StyledSelect value={kind} disabled={!adding} onValueChange={value=>setKind(value as MusicItem['kind'])}><option value="album">Album</option><option value="ep">EP</option><option value="song">Song</option></StyledSelect></label><label>Release year<input maxLength={4} pattern="[0-9]{4}|^$" value={year} onChange={event=>setYear(event.target.value)}/></label></div>

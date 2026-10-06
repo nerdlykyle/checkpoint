@@ -8,7 +8,7 @@ export type MusicItem = {
   links: { spotify?: string; youtube?: string; custom?: { title: string; url: string }[] }
   addedBy: string; createdAt: string; sharedBy?: string
   shelves: Record<string, MusicShelf>; favorites: string[]
-  organization: Record<string, { order?: number; tags?: string[] }>
+  organization: Record<string, { order?: number; tags?: string[]; savedFrom?: string }>
   ratings: Record<string, { stars: number; review: string; updatedAt: string }>
   favoriteTracks: Record<string, string[]>
   comments: { id: string; userId: string; text: string; createdAt: string }[]
@@ -60,4 +60,26 @@ export function saveMusicShelf(item:MusicItem,user:string,shelf:MusicShelf,order
 }
 export function recordListen(item:MusicItem,user:string,date:string,note:string,id:string):MusicItem {
   return {...item,shelves:{...item.shelves,[user]:'listened'},listens:[...item.listens,{id,userId:user,date,note}].slice(-500)}
+}
+
+// Legacy shelf values remain readable so no saved music is lost when retiring
+// personal listening statuses. Membership, not status, now drives the library.
+export function inMusicLibrary(item: MusicItem, user: string) {
+  return Boolean(item.shelves[user]) || item.favorites.includes(user)
+}
+export function saveMusicToLibrary(item: MusicItem, user: string, order: number, source?: string): MusicItem {
+  if (inMusicLibrary(item, user)) return item
+  const personal = { ...item.organization[user] }
+  delete personal.savedFrom
+  if (source && source !== user && inMusicLibrary(item, source)) personal.savedFrom = source
+  return { ...item, shelves: { ...item.shelves, [user]: 'listened' }, organization: { ...item.organization, [user]: { ...personal, order } } }
+}
+export function removeMusicFromLibrary(item: MusicItem, user: string): MusicItem {
+  const shelves = { ...item.shelves }, personal = { ...item.organization[user] }
+  delete shelves[user]
+  delete personal.savedFrom
+  return { ...item, shelves, favorites: item.favorites.filter(id => id !== user), organization: { ...item.organization, [user]: personal } }
+}
+export function musicFromFriends(items: MusicItem[], user: string) {
+  return items.filter(item => inMusicLibrary(item, user) && item.organization[user]?.savedFrom && item.organization[user].savedFrom !== user)
 }
