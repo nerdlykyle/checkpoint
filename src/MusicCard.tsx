@@ -1,12 +1,14 @@
 import { useState, type ReactNode } from 'react'
 import { safeHttpUrl, type MusicItem } from './lib/music'
+import ArtworkControls from './ArtworkControls'
+import type { Member } from './types'
 import './MusicCard.css'
 import './CardGlass.css'
 import './CleanSplitCards.css'
 
 // Glass filters the actual artwork behind the text, not a baked-in image.
-export default function MusicCard({ item, dropTarget, onOpen, tools, children }: {
-  item: MusicItem; dropTarget: boolean; onOpen: () => void; tools: ReactNode; children: ReactNode
+export default function MusicCard({ item, dropTarget, onOpen, source, children }: {
+  item: MusicItem; dropTarget: boolean; onOpen: () => void; source?: Member; children: ReactNode
 }) {
   const [failedUrl, setFailedUrl] = useState<string>()
   const url = item.coverUrl && safeHttpUrl(item.coverUrl)
@@ -18,8 +20,8 @@ export default function MusicCard({ item, dropTarget, onOpen, tools, children }:
         <img src={artwork} alt="" loading="lazy" decoding="async" onError={() => setFailedUrl(artwork)} />
       </>}
     </div>
-    <button type="button" className="music-artwork-open" aria-label={`Open ${item.title}`} onClick={onOpen} />
-    {tools}
+    <div className="music-artwork-open" aria-hidden="true" />
+    <ArtworkControls title={item.title} source={source} onOpen={onOpen}/>
     <div className="music-card-glass card-glass">{children}</div>
   </article>
 }

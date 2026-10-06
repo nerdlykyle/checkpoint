@@ -39,7 +39,7 @@ export type Book = {
   series?: BookSeries
   metadataEdited?: boolean
   metadataCheckedAt?: string
-  readerOrganization?: Record<string, { order?: number; tags?: string[] }>
+  readerOrganization?: Record<string, { order?: number; tags?: string[]; savedFrom?: string }>
   discoveryIds?: string[]
   title: string
   authors: string[]

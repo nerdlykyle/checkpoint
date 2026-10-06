@@ -41,12 +41,20 @@ export function movePersonalBook(books: Book[], reader: string, id: string, posi
   return books.map((item) => ranks.has(item.id) ? { ...item, readerOrganization: { ...item.readerOrganization, [reader]: { ...item.readerOrganization?.[reader], order: ranks.get(item.id)! } } } : item)
 }
 
-export function setPersonalShelf(books: Book[], reader: string, id: string, shelf: BookShelf) {
+export function setPersonalShelf(books: Book[], reader: string, id: string, shelf: BookShelf, source?: string) {
   const existing = books.find((book) => book.id === id)
   if (!existing || existing.shelves[reader] === shelf) return books
   const queue = personalQueue(books, reader, shelf)
   const ranks = new Map([...queue, existing].map((book, index) => [book.id, index + 1]))
-  return books.map((book) => ranks.has(book.id) ? { ...book, shelves: { ...book.shelves, [reader]: shelf }, readerOrganization: { ...book.readerOrganization, [reader]: { ...book.readerOrganization?.[reader], order: ranks.get(book.id)! } } } : book)
+  return books.map((book) => {
+    if (!ranks.has(book.id)) return book
+    const organization = { ...book.readerOrganization?.[reader], order: ranks.get(book.id)! }
+    if (book.id === id && !existing.shelves[reader]) {
+      delete organization.savedFrom
+      if (source && source !== reader && existing.shelves[source]) organization.savedFrom = source
+    }
+    return { ...book, shelves: { ...book.shelves, [reader]: shelf }, readerOrganization: { ...book.readerOrganization, [reader]: organization } }
+  })
 }
 
 export function sameSeries(a: Book, b: Book) {

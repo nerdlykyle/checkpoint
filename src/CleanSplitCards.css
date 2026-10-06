@@ -48,7 +48,7 @@ body .organized-book.clean-split > .organized-cover:focus-visible { outline-offs
 .organized-book.clean-split .organized-action-row { flex-wrap:wrap; }
 .organized-book.clean-split .organized-actions button { min-height:44px; overflow-wrap:anywhere; }
 .organized-book.clean-split .book-drag-handle {
-  position:absolute; z-index:2; left:8px; top:8px; width:44px; height:44px; min-height:44px;
+  position:absolute; z-index:2; left:8px; bottom:8px; top:auto; width:44px; height:44px; min-height:44px;
   color:#fff; border:1px solid #ffffff80; backdrop-filter:blur(12px) brightness(.5);
 }
 @media(max-width:650px) {

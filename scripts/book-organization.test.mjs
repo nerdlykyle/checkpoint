@@ -4,6 +4,21 @@ import { inferSeries, matchesCatalogBook, movePersonalBook, nextSeriesBook, norm
 
 const book = (id, extra = {}) => ({ id, title: id, authors: ['A. Writer'], createdAt: '2026-10-01', shelves: { nern: 'to-read', jern: 'reading' }, progress: { jern: { lastChapter: 12 } }, ratings: { jern: { stars: 5 } }, comments: [{ text: 'Shared' }], club: { status: 'up-next', order: 3 }, ...extra })
 
+test('friend attribution belongs to the first personal save and survives shelf changes', () => {
+  const initial = [book('friend', { shelves: { jern: 'reading', vern: 'read' } })]
+  const saved = setPersonalShelf(initial, 'nern', 'friend', 'to-read', 'jern')
+  assert.equal(saved[0].readerOrganization.nern.savedFrom, 'jern')
+  const moved = setPersonalShelf(saved, 'nern', 'friend', 'reading', 'vern')
+  assert.equal(moved[0].readerOrganization.nern.savedFrom, 'jern')
+  for (const field of ['progress', 'ratings', 'comments', 'club']) assert.deepEqual(saved[0][field], initial[0][field])
+  assert.equal(saved[0].shelves.jern, 'reading')
+  for (const source of [undefined, 'nern', 'missing']) {
+    assert.equal(setPersonalShelf(initial, 'nern', 'friend', 'to-read', source)[0].readerOrganization.nern.savedFrom, undefined)
+  }
+  const removed = [{ ...saved[0], shelves: { jern: 'reading' } }]
+  assert.equal(setPersonalShelf(removed, 'nern', 'friend', 'to-read')[0].readerOrganization.nern.savedFrom, undefined)
+})
+
 test('personal ordering preserves other readers, club state, progress, ratings and comments', () => {
   const initial = [book('a'), book('b'), book('c')]
   const moved = movePersonalBook(initial, 'nern', 'c', 1)

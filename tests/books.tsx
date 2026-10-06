@@ -12,7 +12,7 @@ const initial: Book[] = [
   { ...base, id:'qa-b', title:'The Second Signal', series:{name:'Signal Trilogy',position:2,total:3}, genres:['Sci-fi'], shelves:{nern:'to-read',vern:'reading'}, readerOrganization:{nern:{order:2}}, progress:{vern:{lastChapter:9,updatedAt:''}} },
   { ...base, id:'qa-c', title:'The Haunted Garden', genres:['Horror'], shelves:{nern:'to-read',jern:'reading'}, readerOrganization:{nern:{order:3}}, ratings:{jern:{stars:4,review:'Eerie!',updatedAt:''}} },
   { ...base, id:'qa-d', title:'The Final Signal', series:{name:'Signal Trilogy',position:3,total:3}, genres:['Sci-fi'], shelves:{jern:'to-read'} },
-  { ...base, id:'qa-reading', title:'A Shared Adventure', coverUrl:`${location.origin}/tests/music-cover.svg`, shelves:{nern:'reading',jern:'reading'}, progress:{nern:{lastChapter:26,updatedAt:''},jern:{lastChapter:12,updatedAt:''}}, club:{status:'reading',order:0,participantIds:['nern','jern']} },
+  { ...base, id:'qa-reading', title:'A Shared Adventure', readerOrganization:{nern:{savedFrom:'jern'}}, coverUrl:`${location.origin}/tests/music-cover.svg`, shelves:{nern:'reading',jern:'reading'}, progress:{nern:{lastChapter:26,updatedAt:''},jern:{lastChapter:12,updatedAt:''}}, club:{status:'reading',order:0,participantIds:['nern','jern']} },
 ]
 const crew = [{id:'nern',name:'Nern'},{id:'jern',name:'Jern'},{id:'vern',name:'Vern'}] as Member[]
 function Fixture() {

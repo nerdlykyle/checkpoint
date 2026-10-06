@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Check, Plus } from 'lucide-react'
 import type { Member } from './types'
 import { listeningLink, safeHttpUrl, type MusicItem, type MusicService } from './lib/music'
-import { MemberPortrait } from './MemberShelfPicker'
+import ArtworkControls from './ArtworkControls'
 import MusicServiceLink from './MusicServiceLink'
 import './MusicAlbumTile.css'
 
@@ -13,10 +13,10 @@ export default function MusicAlbumTile({ item, service, source, onOpen, onSave, 
   const art = item.coverUrl && safeHttpUrl(item.coverUrl)
   return <article className="music-album-tile" data-music-id={item.id}>
     <div className="music-album-art" aria-hidden="true"><span>{item.title.slice(0, 2).toUpperCase()}</span>{art && art !== failed && <img src={art} alt="" loading="lazy" decoding="async" onError={() => setFailed(art)} />}</div>
-    <button type="button" className="music-album-open" aria-label={`Open ${item.title} by ${item.artists.join(', ')}`} title={`${item.artists.join(', ')} — ${item.title}`} onClick={onOpen}>
+    <div className="music-album-caption-wrap" title={`${item.artists.join(', ')} — ${item.title}`}>
       <span className="music-album-caption"><span className="music-album-artist">{item.artists.join(', ')}</span><strong>{item.title}</strong></span>
-    </button>
-    {source && <span className="music-album-source" title={`Saved from ${source.name}`} aria-label={`Saved from ${source.name}`}><MemberPortrait member={source} /></span>}
+    </div>
+    <ArtworkControls title={item.title} source={source} onOpen={onOpen}/>
     <div className="music-album-hover">
       {([service, service === 'spotify' ? 'youtube' : 'spotify'] as MusicService[]).map(value => {
         const link = listeningLink(item, value)

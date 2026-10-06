@@ -5,7 +5,7 @@
    drawing, dragging, and resize surfaces keep their more useful cursors. */
 body :is(button,a[href],summary,select,[role="button"],[role="tab"],[role="link"],[role="option"],[role="checkbox"],[role="switch"],input[type="checkbox"],input[type="radio"],input[type="range"],input[type="color"],input[type="file"],input[type="submit"],input[type="button"],input[type="reset"],label:has(input[type="checkbox"]),label:has(input[type="radio"])):not(:disabled):not([aria-disabled="true"]):not(.puzzle-resizer):not([class*="drag-handle"]):not(.music-drag) { cursor:pointer; }
 body :is(button,input,select,[role="button"],[role="option"]):is(:disabled,[aria-disabled="true"]) { cursor:not-allowed; }
-body :is(.book-card,.book-poll-list>article,.queue-item,.library-card) { cursor:pointer; }
+body :is(.queue-item,.library-card) { cursor:pointer; }
 :is(button, a.button, a[role="button"], a.text-button, .book-link-row a) {
   border-radius:var(--button-radius) !important;
 }

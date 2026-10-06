@@ -66,12 +66,11 @@ export function MusicContent({boardId,user,crew,section,onSection,search,showAdd
   const tile=(item:MusicItem)=> <MusicAlbumTile key={item.id} item={item} service={service} source={crew.find(member=>member.id===item.organization[owner]?.savedFrom)} saved={inMusicLibrary(item,user)} onOpen={()=>setSelectedId(item.id)} onSave={!mine?()=>{void savePersonal(item,owner)}:undefined}/>
   const card=(item:MusicItem)=>{
     const ratings=Object.values(item.ratings),average=ratings.length?(ratings.reduce((sum,value)=>sum+value.stars,0)/ratings.length).toFixed(1):''
-    return <MusicCard key={item.id} item={item} dropTarget={false} onOpen={()=>setSelectedId(item.id)} tools={<>
-      <button className="music-heart" aria-label={`Favorite ${item.title}`} aria-pressed={item.favorites.includes(user)} onClick={()=>run(()=>update(item.id,old=>({...old,favorites:old.favorites.includes(user)?old.favorites.filter(id=>id!==user):[...old.favorites,user]})),'Favorite updated')}><Heart size={18} fill={item.favorites.includes(user)?'currentColor':'none'}/></button>
-    </>}>
-      <div className="music-card-copy"><span className="eyebrow">{item.kind} {item.year?`· ${item.year}`:''}</span><p>{item.artists.join(', ')}</p><button className="music-title-button" onClick={()=>setSelectedId(item.id)}>{item.title}</button><small>{item.genres.join(' · ')}{average?` · ★ ${average}`:''}</small>{item.kind==='song'&&item.sharedBy&&<p>Shared by {name(item.sharedBy)}</p>}</div>
+    return <MusicCard key={item.id} item={item} dropTarget={false} onOpen={()=>setSelectedId(item.id)} source={crew.find(member=>member.id===item.organization[user]?.savedFrom)}>
+      <div className="music-card-copy"><span className="eyebrow">{item.kind} {item.year?`· ${item.year}`:''}</span><p>{item.artists.join(', ')}</p><h3 className="music-title-button">{item.title}</h3><small>{item.genres.join(' · ')}{average?` · ★ ${average}`:''}</small>{item.kind==='song'&&item.sharedBy&&<p>Shared by {name(item.sharedBy)}</p>}</div>
       <div className="music-card-actions">
         <MusicLinks item={item} service={service}/>
+        <button className="icon-button" aria-label={`Favorite ${item.title}`} aria-pressed={item.favorites.includes(user)} onClick={()=>run(()=>update(item.id,old=>({...old,favorites:old.favorites.includes(user)?old.favorites.filter(id=>id!==user):[...old.favorites,user]})),'Favorite updated')}><Heart size={18} fill={item.favorites.includes(user)?'currentColor':'none'}/></button>
         {!inMusicLibrary(item,user)&&<button className="icon-button" aria-label={`Add ${item.title} to my library`} title="Add to my library" onClick={()=>savePersonal(item)}><Plus size={20}/></button>}
         {item.nominated&&!item.passedOn&&!item.club&&<MusicVotes item={item} user={user} onVote={value=>vote(item,value)}/>}</div>
     </MusicCard>
@@ -91,7 +90,7 @@ export function MusicContent({boardId,user,crew,section,onSection,search,showAdd
       <section className="music-home-section"><h2>Recently rated by the crew</h2>{recent.length?recent.slice(0,6).map(item=>card(item)):<p className="music-empty">Your ratings and reviews will appear here.</p>}</section>
     </>:section==='artists'?<FavoriteArtists boardId={boardId} user={user} enabled={ready}/>:section==='library'||section==='listeners'?<>
       <MemberShelfPicker key={user} crew={crew} currentUser={user} selected={reader} kind="music" onSelect={id=>{setReader(id);setShelf('all');setGenre('');setTag('');setQuery('')}}/>
-      {!mine&&<p className="music-notice">Browsing {name(owner)}’s collection. Tap an album or hover to save it to your library.</p>}
+      {!mine&&<p className="music-notice">Browsing {name(owner)}’s collection. Use ⋯ or the hover + to save it to your library.</p>}
       {section==='listeners'&&<FavoriteArtists key={owner} boardId={boardId} user={user} owner={owner} enabled={ready} title={mine?'My favorite artists':`${name(owner)}’s favorite artists`}/>}
       <div className="filter-tabs">{(['all','friends','favorites'] as const).map(value=><button key={value} className={shelf===value?'active':''} aria-pressed={shelf===value} onClick={()=>{setShelf(value);if(value==='friends')setReader(user)}}>{value==='all'?'Library':value==='favorites'?'Favorites':'From friends'}</button>)}</div>
       <CollectionFilters activeCount={[query || search, genre, tag, kind !== 'albums'].filter(Boolean).length} groupedBy={group ? 'artist' : undefined}>

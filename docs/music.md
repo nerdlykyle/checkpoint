@@ -5,7 +5,7 @@ Music is a third mode alongside Games and Books. The preferred mode follows the 
 ## Music library
 
 - Personal albums/EPs: one shared library, From friends, and Favorites. Legacy listening statuses remain in storage for compatibility, but all are included in Library; no destructive migration is needed.
-- Three-column artwork grid with glass captions, artist above album title, and hover/focus streaming controls that animate in and out. Touch users tap a tile for the full album controls.
+- Three-column artwork grid with glass captions, artist above album title, and hover/focus streaming controls that animate in and out. The top-right three-dot button opens full album controls; artwork and captions are not click targets. Albums saved from friends show their avatar at the top-left.
 - Personal ordering: numbered Move in album details → more actions; genre/tag filtering, artist grouping, and random album choice.
 - Listeners’ collections: browse with member avatars and save a title using +. `organization[uid].savedFrom` records the source member for the From friends tab and corner avatar. Existing saves are not assigned an invented source.
 - Album details expose a trash button with confirmation. Removal clears only the current user's membership, favorite, and source attribution; shared discussions, ratings, logs, and other members' libraries remain unchanged. Re-adding is supported.
