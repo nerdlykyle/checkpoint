@@ -5,9 +5,11 @@ import { ArrowDown, ArrowUp, BookMarked, GripVertical, Plus, Shuffle, SlidersHor
 import type { Book, BookShelf, Member } from './types'
 import BookCoverImage from './BookCoverImage'
 import ArtworkControls from './ArtworkControls'
+import CollectionStack from './CollectionStack'
+import { bookCollections } from './lib/mediaCollections'
 import CollectionFilters from './CollectionFilters'
 import { useLiveReorder } from './useLiveReorder'
-import { movePersonalBook, normalizeBookText, personalQueue, sameSeries, shelfNames } from './lib/bookOrganization'
+import { movePersonalBook, personalQueue, shelfNames } from './lib/bookOrganization'
 import './BookOrganizer.css'
 import './CleanSplitCards.css'
 
@@ -29,7 +31,7 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
   const [genre, setGenre] = useState('')
   const [tag, setTag] = useState('')
   const [query, setQuery] = useState('')
-  const [groupSeries, setGroupSeries] = useState(shelf === 'all')
+  const [groupSeries, setGroupSeries] = useState(true)
   const [sort, setSort] = useState('order')
   const [moving, setMoving] = useState<string | null>(null)
   const [position, setPosition] = useState('1')
@@ -75,15 +77,11 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
       </div>
     </article>
   }
-  const groups: Book[][] = []
-  for (const book of visible) {
-    const group = book.series ? groups.find((items) => sameSeries(items[0], book)) : undefined
-    if (group) group.push(book); else groups.push([book])
-  }
+  const groups = bookCollections(visible)
   return <section className="book-organizer" aria-label="Personal book shelves">
     {readers && <MemberShelfPicker key={currentUser} crew={crew} currentUser={currentUser} selected={reader} kind="books" onSelect={id => { setReader(id); setGenre(''); setTag(''); setQuery('') }} />}
     {!mine && <p className="reader-view-notice">Browsing {ownerName}’s library. Their shelves and reading order are read-only. Save a book to manage your own copy.</p>}
-    <div className="filter-tabs book-filter-tabs">{(['all', ...Object.keys(shelfNames)] as (BookShelf | 'all')[]).map((value) => <button key={value} className={shelf === value ? 'active' : ''} type="button" onClick={() => { onShelfFilter(value); setGroupSeries(value === 'all') }}>{value === 'all' ? 'Library' : shelfNames[value]}<span>{value === 'all' ? owned.length : owned.filter((book) => book.shelves[owner] === value).length}</span></button>)}</div>
+    <div className="filter-tabs book-filter-tabs">{(['all', ...Object.keys(shelfNames)] as (BookShelf | 'all')[]).map((value) => <button key={value} className={shelf === value ? 'active' : ''} type="button" onClick={() => { onShelfFilter(value); setGroupSeries(true) }}>{value === 'all' ? 'Library' : shelfNames[value]}<span>{value === 'all' ? owned.length : owned.filter((book) => book.shelves[owner] === value).length}</span></button>)}</div>
     <CollectionFilters activeCount={[query || search, genre, tag, sort !== 'order'].filter(Boolean).length} groupedBy={groupSeries ? 'series' : undefined}>
     <div className="book-organizer-toolbar">
       <label>Search<input type="search" placeholder="Title, author, or series" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
@@ -91,17 +89,17 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
       <label>Tag<StyledSelect value={tag} onValueChange={(value) => setTag(value)}><option value="">All tags</option>{tags.map((value) => <option key={value}>{value}</option>)}</StyledSelect></label>
       <label>Sort<StyledSelect value={sort} onValueChange={(value) => setSort(value)}><option value="order">Reading order</option><option value="title">Title</option><option value="author">Author</option><option value="newest">Recently added</option></StyledSelect></label>
     </div>
-    <div className="book-organizer-options"><label><input type="checkbox" checked={groupSeries} onChange={(event) => setGroupSeries(event.target.checked)} /> Group by series</label>{mine && <button type="button" disabled={refreshing || !owned.length} onClick={onRefresh}>{refreshing ? 'Checking catalogs…' : 'Refresh series & genres'}</button>}<button type="button" disabled={!visible.some((book) => book.shelves[owner] === 'to-read')} onClick={() => { const choices = visible.filter((book) => book.shelves[owner] === 'to-read'); onOpen(choices[Math.floor(Math.random() * choices.length)].id) }}><Shuffle size={15} />Pick {mine ? 'my' : 'a'} next read</button>{(genre || tag || query) && <button type="button" onClick={() => { setGenre(''); setTag(''); setQuery('') }}>Clear filters</button>}</div>
+    <div className="book-organizer-options"><label><input type="checkbox" checked={groupSeries} onChange={(event) => setGroupSeries(event.target.checked)} /> Group by series</label>{mine && <button type="button" disabled={refreshing || !owned.length} onClick={onRefresh}>{refreshing ? 'Checking catalogs…' : 'Refresh series & genres'}</button>}<button type="button" disabled={!visible.some((book) => book.shelves[owner] === 'to-read')} onClick={() => { const choices = visible.filter((book) => book.shelves[owner] === 'to-read'); onOpen(choices[Math.floor(Math.random() * choices.length)].id, mine ? undefined : owner) }}><Shuffle size={15} />Pick {mine ? 'my' : 'a'} next read</button>{(genre || tag || query) && <button type="button" onClick={() => { setGenre(''); setTag(''); setQuery('') }}>Clear filters</button>}</div>
     </CollectionFilters>
-    <p className="book-organizer-hint">{groupSeries ? 'Series order is separate from your personal reading queue. Missing books aren’t added automatically.' : canReorder ? 'Drag the grip, use arrows, or choose Move to set a position. Positions refer to the full shelf, even when filtered.' : mine ? 'Choose a shelf and Reading order to arrange books. Turn off series grouping to mix books from different series.' : 'Ratings and discussion remain shared. Private notes are never shown here.'}</p>
+    <p className="book-organizer-hint">{groupSeries ? 'Newest books appear at the front of each series. Expand a collection to see matching books on this shelf.' : canReorder ? 'Drag the grip, use arrows, or choose Move to set a position. Positions refer to the full shelf, even when filtered.' : mine ? 'Turn off Group by series and choose Reading order to arrange individual books.' : 'Ratings and discussion remain shared. Private notes are never shown here.'}</p>
     <p className="sr-only" role="status">{announcement}</p>
     <p className="sr-only" role="status">{drag.announcement}</p>
-    <div className="organized-books" ref={drag.containerRef} onClickCapture={drag.onClickCapture}>{groupSeries ? groups.map((items) => {
+    <div className={`organized-books${canReorder ? " is-arranging" : ""}`} ref={drag.containerRef} onClickCapture={drag.onClickCapture}>{groupSeries ? groups.map((items) => {
       const first = items[0]
-      if (!first.series) return card(first)
-      const allSeries = owned.filter((book) => sameSeries(first, book))
-      const ordered = [...items].sort((a, b) => (a.series?.position ?? Infinity) - (b.series?.position ?? Infinity))
-      return <details className="book-series-collection" key={`${normalizeBookText(first.series.name)}-${first.id}`} open><summary><strong>{first.series.name}</strong><span>{allSeries.length} on shelf · {allSeries.filter((book) => book.shelves[owner] === 'read').length} finished · {items.length} shown</span></summary><div className="series-books">{ordered.map(card)}</div><button className="button button-secondary" type="button" onClick={() => onFindSeries(first)}>Find other books in this series</button></details>
+      if (!first.series || items.length < 2) return card(first)
+      return <CollectionStack key={items.map(item=>item.id).sort().join('|')} title={first.series.name} count={items.length} kind="books" front={card(first)} behind={items.slice(1,3).map(book=><BookCoverImage key={book.id} book={book} />)}>
+        {items.map(card)}<button className="button button-secondary" type="button" onClick={() => onFindSeries(first)}>Find other books in this series</button>
+      </CollectionStack>
     }) : visible.map(card)}</div>
     {!visible.length && <div className="book-empty-panel"><h2>No books on this shelf</h2><p>Try another shelf or clear your filters. New books can be added with the plus button.</p></div>}
     {moving && <div className="modal-backdrop"><form className="modal-card book-move-modal" role="dialog" aria-modal="true" aria-label="Move book" onSubmit={(event) => { event.preventDefault(); move(moving, Number(position)); setMoving(null) }}><h2>Move to position</h2><p>{books.find((book) => book.id === moving)?.title}</p><label>Position in this shelf<input autoFocus type="number" min="1" max={queue.length} required value={position} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setPosition(event.target.value)} /></label><div className="modal-actions"><button className="button button-secondary" type="button" onClick={() => setMoving(null)}>Cancel</button><button className="button button-primary" type="submit">Move book</button></div></form></div>}

@@ -1,0 +1,34 @@
+.collection-stack { min-width:0; padding-top:14px; }
+.collection-stack-preview { position:relative; isolation:isolate; min-width:0; height:100%; display:flex; flex-direction:column; }
+.collection-stack-front { position:relative; z-index:1; flex:1; min-width:0; }
+.collection-stack-front > article { height:auto; }
+.collection-stack-layers { position:absolute; inset:0 0 50px; z-index:0; pointer-events:none; }
+.collection-stack-layer { position:absolute; inset:0; border:1px solid #7f7793; border-radius:20px; overflow:hidden; background:linear-gradient(125deg,#635477,#193e40); transform:translate(5px,-7px) scale(.97); }
+.collection-stack-layer:first-child { transform:translate(9px,-14px) scale(.93); }
+.collection-stack-layer img { width:100%; height:100%; object-fit:cover; opacity:.7; }
+.collection-stack-layer > span { display:block; color:#c5bce0; padding:8px; }
+body .collection-stack-toggle { position:relative; z-index:1; display:flex; align-items:center; gap:8px; width:100%; min-height:54px; margin-top:8px; padding:9px 12px; border:1px solid #4d465c; border-radius:12px; color:#ece8f6; text-align:left; font:inherit; }
+.collection-stack-toggle > span { flex:1; min-width:0; }
+.collection-stack-toggle strong,.collection-stack-toggle small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.collection-stack-toggle strong { font-size:13px; }
+.collection-stack-toggle small { margin-top:3px; font-size:11px; color:#aaa6b9; }
+.collection-stack-toggle > svg { flex-shrink:0; }
+.collection-stack-toggle > svg:last-child { transition:transform .18s; }
+.collection-stack-toggle[aria-expanded=true] > svg:last-child { transform:rotate(180deg); }
+.collection-stack.is-expanded { grid-column:1/-1; }
+.collection-stack.is-expanded > .collection-stack-preview { height:auto; max-width:none; }
+.collection-stack.is-expanded .collection-stack-front,.collection-stack.is-expanded .collection-stack-layers { display:none; }
+.collection-stack-items { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr)); gap:16px; margin-top:18px; padding:16px; border:1px solid #4d465c; border-radius:20px; background:#15191e; }
+.collection-stack-items > .button { grid-column:1/-1; justify-self:start; min-height:44px; }
+.music-album-grid > .collection-stack.is-expanded > .collection-stack-preview { max-width:none; }
+.collection-stack-releases .collection-stack-items { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.collection-stack-releases .collection-stack-front { flex:initial; }
+@media(max-width:700px) {
+ .collection-stack-releases .collection-stack-toggle { padding:8px 5px; gap:3px; }
+ .collection-stack-releases .collection-stack-toggle > svg:first-child { display:none; }
+ .collection-stack-toggle strong { font-size:11px; }
+ .collection-stack-toggle small { font-size:10px; }
+ .collection-stack-items { padding:8px; gap:9px; }
+ .collection-stack-releases.is-expanded > .collection-stack-preview { width:100%; }
+}
+@media(prefers-reduced-motion:reduce) { .collection-stack-toggle > svg:last-child { transition:none; } }
