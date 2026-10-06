@@ -1,5 +1,6 @@
-import { useId, useState, type ReactNode } from 'react'
-import { ChevronDown, Layers } from 'lucide-react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { Layers } from 'lucide-react'
+import { CollectionActionContext } from './CollectionActionContext'
 import './CollectionStack.css'
 
 export default function CollectionStack({ title, count, kind, front, behind, children }: {
@@ -7,14 +8,28 @@ export default function CollectionStack({ title, count, kind, front, behind, chi
 }) {
   const [open, setOpen] = useState(false)
   const id = useId()
+  const preview = useRef<HTMLDivElement>(null)
+  const closeButton = useRef<HTMLButtonElement>(null)
+  const wasOpen = useRef(false)
+  const label = `${title} · ${count} ${kind}`
+  useEffect(() => {
+    if (wasOpen.current === open) return
+    wasOpen.current = open
+    if (open) closeButton.current?.focus({ preventScroll: true })
+    else preview.current?.querySelector<HTMLButtonElement>('[data-collection-toggle]')?.focus({ preventScroll: true })
+  }, [open])
   return <section className={`collection-stack collection-stack-${kind}${open ? ' is-expanded' : ''}`} aria-label={`${title} collection`}>
-    <div className="collection-stack-preview">
+    <div className="collection-stack-preview" ref={preview} hidden={open}>
       <div className="collection-stack-layers" aria-hidden="true">{behind.slice(0, 2).reverse().map((art, index) => <div className="collection-stack-layer" key={index}>{art}</div>)}</div>
-      <div className="collection-stack-front">{front}</div>
-      <button className="collection-stack-toggle" type="button" title={`${title} · ${count} ${kind}`} aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>
-        <Layers size={18} aria-hidden="true" /><span><strong>{title}</strong><small>{count} {kind} · {open ? 'Collapse' : 'View collection'}</small></span><ChevronDown size={18} aria-hidden="true" />
-      </button>
+      <CollectionActionContext.Provider value={{label: `Open collection: ${label}`, controlsId: id, onOpen: () => setOpen(true)}}>
+        <div className="collection-stack-front">{front}</div>
+      </CollectionActionContext.Provider>
     </div>
-    {open && <div id={id} className="collection-stack-items">{children}</div>}
+    <div id={id} className="collection-stack-items" hidden={!open}>{open && <>
+      <header className="collection-stack-heading"><div><strong>{title}</strong><small>{count} {kind}</small></div>
+        <button ref={closeButton} className="collection-stack-close" type="button" aria-label={`Collapse collection: ${label}`} title={`Collapse collection: ${label}`} aria-expanded={true} aria-controls={id} onClick={() => setOpen(false)}><Layers size={21} aria-hidden="true" /></button>
+      </header>
+      {children}
+    </>}</div>
   </section>
 }

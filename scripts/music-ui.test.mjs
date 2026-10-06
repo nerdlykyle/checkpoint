@@ -2,6 +2,21 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
+test('collections use an in-art icon with a tooltip and fan rear cards around their lower edge', () => {
+  const controls = readFileSync(new URL('../src/ArtworkControls.tsx', import.meta.url), 'utf8')
+  const stack = readFileSync(new URL('../src/CollectionStack.tsx', import.meta.url), 'utf8')
+  const css = readFileSync(new URL('../src/CollectionStack.css', import.meta.url), 'utf8')
+  assert.match(controls, /title={collection.label}/)
+  assert.match(controls, /aria-controls={collection.controlsId}/)
+  assert.ok(controls.includes('<Layers size={21}'))
+  assert.match(stack, /CollectionActionContext.Provider/)
+  assert.match(stack, /focus\(\{ preventScroll: true \}\)/)
+  assert.doesNotMatch(stack, /View collection|ChevronDown/)
+  assert.match(css, /transform-origin:50% 95%/)
+  assert.match(css, /rotate\(4deg\)/)
+  assert.match(css, /rotate\(-4deg\)/)
+})
+
 test('book and music artwork use explicit menu buttons, not whole-art click targets', () => {
   for (const file of ['MusicAlbumTile', 'MusicCard', 'ReadingCard', 'BookOrganizer']) {
     const source = readFileSync(new URL('../src/' + file + '.tsx', import.meta.url), 'utf8')

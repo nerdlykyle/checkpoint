@@ -8,6 +8,7 @@ import '../src/App.css'
 
 const base = { authors: ['Example Author'], description: 'A fictional book for isolated UI testing.', addedBy: 'nern', createdAt: '2026-10-01', nominated: false, upvotes: [], downvotes: [], progress: {}, ratings: {}, comments: [], metadataEdited: true }
 const initial: Book[] = [
+  { ...base, id:'qa-e', title:'The Third Signal', series:{name:'Signal Trilogy',position:3,total:3}, genres:['Sci-fi'], shelves:{nern:'to-read'} },
   { ...base, id:'qa-a', title:'The First Signal', series:{name:'Signal Trilogy',position:1,total:3}, genres:['Sci-fi','Horror'], shelves:{nern:'to-read',jern:'read'}, readerOrganization:{nern:{order:1,tags:['Audiobook']}} },
   { ...base, id:'qa-b', title:'The Second Signal', series:{name:'Signal Trilogy',position:2,total:3}, genres:['Sci-fi'], shelves:{nern:'to-read',vern:'reading'}, readerOrganization:{nern:{order:2}}, progress:{vern:{lastChapter:9,updatedAt:''}} },
   { ...base, id:'qa-c', title:'The Haunted Garden', genres:['Horror'], shelves:{nern:'to-read',jern:'reading'}, readerOrganization:{nern:{order:3}}, ratings:{jern:{stars:4,review:'Eerie!',updatedAt:''}} },
