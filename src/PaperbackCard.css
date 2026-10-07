@@ -1,0 +1,47 @@
+.paperback-reading-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,200px)); gap:52px 64px; padding:36px 12px 24px 64px; align-items:start; }
+.paperback-card { position:relative; min-width:0; width:100%; aspect-ratio:132/197; isolation:isolate; border-radius:3px 7px 7px 3px; background:#ded7c8; box-shadow:4px 5px 0 #aba99c,7px 8px 0 #d8d1c1,13px 18px 30px #0008; }
+.paperback-card:focus-within { z-index:2; }
+.paperback-open { position:absolute; inset:0; width:100%; height:100%; padding:0; border:0; color:#292a30; text-align:center; perspective:1000px; overflow:visible; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.paperback-sheet { position:absolute; inset:3px 0 3px 2px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:22px; border-radius:2px 6px 6px 2px; color:#292a30; background:linear-gradient(90deg,#afa893,#eee8d9 13%,#f3eddf 95%,#d9d2bf); }
+.paperback-sheet strong { font-size:22px; line-height:1.15; overflow-wrap:anywhere; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:4; overflow:hidden; }
+.paperback-author,.paperback-series { color:#595648; font-size:12px; line-height:1.4; overflow-wrap:anywhere; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; }
+.paperback-series { font-size:10px; text-transform:uppercase; letter-spacing:.8px; }
+.paperback-settings { flex-shrink:0; display:grid; place-items:center; width:44px; height:44px; margin-top:5px; border:1px solid #a69f90; border-radius:var(--button-radius,12px); color:#292a30; transition:background-color .18s,color .18s; }
+.paperback-open:focus-visible .paperback-settings { background:var(--button-accent,#6e60df); color:#fff; border-color:var(--button-accent,#6e60df); }
+.paperback-cover { position:absolute; inset:0; z-index:2; border-radius:3px 7px 7px 3px; transform-origin:left center; transform-style:preserve-3d; transition:transform .65s cubic-bezier(.2,.7,.2,1); box-shadow:2px 0 4px #0005; pointer-events:none; }
+.paperback-cover-front,.paperback-cover-back { position:absolute; inset:0; overflow:hidden; border-radius:inherit; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+.paperback-cover-front { background:linear-gradient(145deg,#6558ae,#243b40); }
+.paperback-cover-front::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,#0006,transparent 4%,#fff3 5%,transparent 8%); pointer-events:none; }
+.paperback-cover-front img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#142026; }
+.paperback-cover-front > span:not(.paperback-fallback) { display:none; }
+.paperback-fallback { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; padding:18px; color:#f5f1e8; overflow-wrap:anywhere; }
+.paperback-fallback strong { font-size:21px; line-height:1.2; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:5; overflow:hidden; }
+.paperback-fallback > span { font-size:12px; line-height:1.4; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden; }
+.paperback-cover-back { background:linear-gradient(90deg,#d4cbb7,#e9e1cf); transform:rotateY(180deg); }
+.paperback-open:focus-visible .paperback-cover { transform:rotateY(-108deg); }
+.paperback-ribbon { position:absolute; z-index:3; top:-7px; right:16px; display:grid; place-items:center; width:38px; height:58px; padding:0 3px 10px; border-radius:2px 2px 0 0; background:#8473ed; color:#fff; clip-path:polygon(0 0,100% 0,100% 100%,50% 84%,0 100%); font-size:15px; font-weight:700; line-height:1; pointer-events:none; }
+.paperback-ribbon-long { width:auto; min-width:38px; max-width:calc(100% - 28px); padding-inline:5px; font-size:11px; overflow-wrap:anywhere; }
+@media(hover:hover) and (pointer:fine) {
+  .paperback-card:hover { z-index:2; }
+  .paperback-open:hover .paperback-cover { transform:rotateY(-108deg); }
+  .paperback-open:hover .paperback-settings { background:var(--button-accent,#6e60df); color:#fff; border-color:var(--button-accent,#6e60df); }
+}
+@media(max-width:600px) {
+  .paperback-reading-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:30px 24px; padding:28px 8px 24px; }
+  .paperback-card { max-width:200px; }
+  .paperback-sheet { padding:12px; gap:8px; }
+  .paperback-sheet strong { font-size:17px; -webkit-line-clamp:3; }
+  .paperback-series { font-size:9px; }
+  .paperback-author { font-size:11px; }
+  .paperback-fallback { padding:14px; gap:12px; }
+  .paperback-fallback strong { font-size:18px; }
+  .paperback-ribbon { right:12px; width:34px; height:50px; font-size:13px; }
+  .paperback-ribbon-long { width:auto; font-size:10px; }
+  /* A shallow turn keeps narrow-screen keyboard focus inside the viewport. */
+  .paperback-open:is(:hover,:focus-visible) .paperback-cover { transform:rotateY(-78deg); }
+}
+@media(hover:none) {
+  /* Touch opens the real dialog immediately; no sticky simulated hover. */
+  .paperback-open:hover:not(:focus-visible) .paperback-cover { transform:none; }
+}
+@media(prefers-reduced-motion:reduce) { .paperback-cover,.paperback-settings { transition:none; } }

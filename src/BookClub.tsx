@@ -11,6 +11,7 @@ import BookDiscovery from './BookDiscovery'
 import BookCoverImage from './BookCoverImage'
 import { refreshBookArtwork } from './lib/bookArtwork'
 import ReadingCard from './ReadingCard'
+import PaperbackCard from './PaperbackCard'
 import ArtworkControls from './ArtworkControls'
 import MoreActions from './MoreActions'
 import { addDiscoveryBook, type DiscoveryPick } from './lib/bookDiscovery'
@@ -151,6 +152,12 @@ function AddBookModal({ existing, onClose, onAdd, replacing, initialQuery = '' }
 }
 
 function BookDetails({ book, currentUser, crew, onClose, onUpdate, onChapter, onChangeBook, onRemove, clubControls, onShelf, onEdit, onFindSeries, onUnqueue }: { book: Book; currentUser: string; crew: Member[]; onClose: () => void; onUpdate: (book: Book) => void; onChapter: () => void; onChangeBook: () => void; onRemove: () => void; clubControls: ReactNode; onShelf: (shelf: BookShelf) => void; onEdit: () => void; onFindSeries: () => void; onUnqueue: () => void }) {
+  const dialogRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    dialogRef.current?.querySelector<HTMLButtonElement>('.book-detail-close')?.focus({ preventScroll: true })
+    return () => { if (trigger?.isConnected) trigger.focus({ preventScroll: true }) }
+  }, [])
   const [comment, setComment] = useState('')
   const [spoiler, setSpoiler] = useState(false)
   const [openSpoilers, setOpenSpoilers] = useState<string[]>([])
@@ -170,7 +177,16 @@ function BookDetails({ book, currentUser, crew, onClose, onUpdate, onChapter, on
     setComment(''); setSpoiler(false)
   }
   return <div className="modal-backdrop book-detail-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
-    <section className="modal-card book-detail-modal" role="dialog" aria-modal="true" aria-label={book.title}>
+    <section ref={dialogRef} className="modal-card book-detail-modal" role="dialog" aria-modal="true" aria-label={book.title} onKeyDown={(event) => {
+      if (event.defaultPrevented || (event.target as HTMLElement).closest('[role="dialog"]') !== event.currentTarget) return
+      if (event.key === 'Escape') { event.preventDefault(); onClose() }
+      if (event.key === 'Tab') {
+        const controls = [...event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]')].filter(element => element.getClientRects().length > 0 && element.getAttribute('aria-disabled') !== 'true')
+        const first = controls[0], last = controls.at(-1)
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+      }
+    }}>
       <div className="detail-menu-tools"><MoreActions label="More book actions" actions={[
         { id: 'artwork', label: 'Refresh artwork', icon: <RefreshCw size={18} />, onSelect: () => refreshBookArtwork(book), section: 'Manage book' },
         ...(book.shelves[currentUser] ? [{ id: 'edition', label: 'Change book / edition', icon: <RefreshCw size={18} />, onSelect: onChangeBook, opensDialog: true, section: 'Manage book' }] : []),
@@ -371,7 +387,7 @@ export default function BookClub({ books, currentUser, crew, section, shelfFilte
     {finished?.series && <section className="continue-series-panel"><strong>Finished {finished.title} — continue the series?</strong><p>{nextBook ? `${nextBook.title}${nextBook.shelves[currentUser] ? ` is already on your ${shelfLabels[nextBook.shelves[currentUser]]} shelf.` : ' is available to add to your To read shelf.'}` : `Find the next installment of ${finished.series.name}. Nothing is added automatically.`}</p><div className="current-book-actions">{nextBook && !nextBook.shelves[currentUser] ? <button className="button button-primary" onClick={() => { setShelf(nextBook, 'to-read'); setFinishedId(null) }}>Add next book to my shelf</button> : nextBook ? <button className="button button-primary" onClick={() => setSelectedId(nextBook.id)}>Open next book</button> : null}<button className="button button-secondary" onClick={() => findSeries(finished)}>Find installments</button><button className="text-button" onClick={() => setFinishedId(null)}>Not now</button></div></section>}
     {section === 'discover' ? <BookDiscovery books={books} currentUser={currentUser} onAdd={addFromDiscovery} onOpenBook={setSelectedId} /> : section === 'home' ? <>
       {currentClubReadPanel}
-      <section className="book-reading-section"><div className="section-heading"><div><span className="eyebrow">Pick up where you left off</span><h2>What I’m reading</h2></div><span className="book-section-count">{reading.length}</span></div>{reading.length ? <div className="book-reading-grid">{reading.map((book) => <ReadingCard key={book.id} book={book} user={currentUser} crew={crew} onChapter={() => setChapterBookId(book.id)} onShelf={(shelf) => setShelf(book, shelf)} onDiscuss={() => setSelectedId(book.id)} />)}</div> : <div className="book-empty-panel"><BookOpen size={28} /><h2>Nothing in progress</h2><p>Add a book or move one from To read when you begin.</p></div>}</section>
+      <section className="book-reading-section"><div className="section-heading"><div><span className="eyebrow">Pick up where you left off</span><h2>What I’m reading</h2></div><span className="book-section-count">{reading.length}</span></div>{reading.length ? <div className="paperback-reading-grid">{reading.map((book) => <PaperbackCard key={book.id} book={book} user={currentUser} onOpen={() => setSelectedId(book.id)} />)}</div> : <div className="book-empty-panel"><BookOpen size={28} /><h2>Nothing in progress</h2><p>Add a book or move one from To read when you begin.</p></div>}</section>
       <section className="book-home-poll"><div className="section-heading"><div><span className="eyebrow">The club shelf</span><h2>Leading the next-book poll</h2></div><span className="book-section-count">{poll.length}</span></div><div className="book-grid">{poll.slice(0, 4).map((book) => <BookCard key={book.id} book={book} currentUser={currentUser} crew={crew} onOpen={() => setSelectedId(book.id)} onVote={(direction) => vote(book, direction)} onShelf={(shelf) => setShelf(book, shelf)} onChapter={() => setChapterBookId(book.id)} />)}</div></section>
       <section className="book-stats"><div><BookMarked size={19} /><strong>{myBooks.filter((book) => book.shelves[currentUser] === 'to-read').length}</strong><span>To read</span></div><div><BookOpen size={19} /><strong>{reading.length}</strong><span>Reading</span></div><div><BookCheck size={19} /><strong>{myBooks.filter((book) => book.shelves[currentUser] === 'read').length}</strong><span>Finished</span></div><div><MessageCircle size={19} /><strong>{books.reduce((sum, book) => sum + book.comments.length, 0)}</strong><span>Comments</span></div></section>
     </> : section === 'club' ? <>
