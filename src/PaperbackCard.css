@@ -21,6 +21,9 @@
 .paperback-open:focus-visible .paperback-cover { transform:rotateY(-108deg); }
 .paperback-ribbon { position:absolute; z-index:3; top:-7px; right:16px; display:grid; place-items:center; width:38px; height:58px; padding:0 3px 10px; border-radius:2px 2px 0 0; background:#8473ed; color:#fff; clip-path:polygon(0 0,100% 0,100% 100%,50% 84%,0 100%); font-size:15px; font-weight:700; line-height:1; pointer-events:none; }
 .paperback-ribbon-long { width:auto; min-width:38px; max-width:calc(100% - 28px); padding-inline:5px; font-size:11px; overflow-wrap:anywhere; }
+.paperback-source { position:absolute; top:8px; left:8px; z-index:3; pointer-events:none; }
+.paperback-source .member-portrait { width:28px; height:28px; font-size:12px; border:1px solid #ffffff90; }
+.paperback-collection.icon-button { position:absolute; z-index:3; right:8px; bottom:8px; width:44px; height:44px; color:#fff; border-color:#fff9; backdrop-filter:blur(14px) brightness(.5); -webkit-backdrop-filter:blur(14px) brightness(.5); }
 .club-paperback-shelf { width:250px; margin:36px 12px 24px 64px; }
 .club-paperback-shelf .paperback-card { max-width:none; }
 .club-paperback-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; }

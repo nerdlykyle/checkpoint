@@ -1,4 +1,6 @@
-import { SlidersHorizontal } from 'lucide-react'
+import { useContext } from 'react'
+import { Layers, SlidersHorizontal } from 'lucide-react'
+import { CollectionActionContext } from './CollectionActionContext'
 import BookCoverImage from './BookCoverImage'
 import { bookChapterBookmark } from './lib/bookChapterBookmark'
 import { MemberPortrait } from './MemberShelfPicker'
@@ -6,7 +8,8 @@ import { bookmarkColor, bookmarkInk } from './lib/bookmarkColors'
 import type { Book, Member } from './types'
 import './PaperbackCard.css'
 
-export default function PaperbackCard({ book, user, crew = [], club = false, onOpen, onChapter }: { book: Book; user: string; crew?: Member[]; club?: boolean; onOpen: () => void; onChapter?: () => void }) {
+export default function PaperbackCard({ book, user, crew = [], club = false, source, onOpen, onChapter }: { book: Book; user: string; crew?: Member[]; club?: boolean; source?: Member; onOpen: () => void; onChapter?: () => void }) {
+  const collection = useContext(CollectionActionContext)
   const chapter = bookChapterBookmark(book, user)
   const color = bookmarkColor(crew.find(member => member.id === user))
   const readers = club ? (book.club?.participantIds || []).flatMap(id => {
@@ -35,6 +38,8 @@ export default function PaperbackCard({ book, user, crew = [], club = false, onO
       </span>
       {!club && chapter !== null && <span className={`paperback-ribbon${String(chapter).length > 3 ? ' paperback-ribbon-long' : ''}`} style={{ backgroundColor: color, color: bookmarkInk(color) }} aria-hidden="true">{chapter}</span>}
     </button>
+    {source && <span className="paperback-source" title={`Saved from ${source.name}`} aria-label={`Saved from ${source.name}`}><MemberPortrait member={source} /></span>}
+    {collection && <button className="paperback-collection icon-button" type="button" data-collection-toggle aria-label={collection.label} title={collection.label} aria-expanded={false} aria-controls={collection.controlsId} onClick={collection.onOpen}><Layers size={21} aria-hidden="true" /></button>}
     {club && <div className="club-bookmarks" aria-label="Readers’ bookmarks">{readers.map(({ member, chapter: value }) => {
       const own = member.id === user && Boolean(onChapter)
       const label = `${member.name}: chapter ${value}${own ? '. Update your chapter' : ''}`
