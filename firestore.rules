@@ -49,7 +49,7 @@ service cloud.firestore {
         return profile.keys().hasOnly([
             'name', 'persona', 'email', 'photoUrl', 'googlePhotoUrl', 'customPhotoUrl',
             'joinedAt', 'steamId', 'steamName', 'steamProfileUrl', 'steamAvatarUrl',
-            'steamLinkPreference', 'preferredMode'
+            'steamLinkPreference', 'preferredMode', 'bookmarkColor'
           ])
           && profile.email == request.auth.token.email
           && profile.email is string
@@ -68,6 +68,7 @@ service cloud.firestore {
           && (!profile.keys().hasAny(['steamAvatarUrl']) || (profile.steamAvatarUrl is string && profile.steamAvatarUrl.size() <= 500))
           && (!profile.keys().hasAny(['steamLinkPreference']) || profile.steamLinkPreference in ['auto', 'app', 'browser'])
           && (!profile.keys().hasAny(['preferredMode']) || profile.preferredMode in ['games', 'books', 'music'])
+          && (!profile.keys().hasAny(['bookmarkColor']) || (profile.bookmarkColor is string && profile.bookmarkColor.matches('^#[0-9a-fA-F]{6}$')))
           && (profile.persona == 'Jern'
             || profile.persona == 'Vern'
             || (profile.persona == 'Nern' && request.auth.token.email == 'kjsparsons@gmail.com'));

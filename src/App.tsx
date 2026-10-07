@@ -12,6 +12,7 @@ import type { User } from 'firebase/auth'
 import './App.css'
 import './CleanSplitCards.css'
 import BookClub, { type BookSection, type BookShelfFilter } from './BookClub'
+import BookmarkColorSettings from './BookmarkColorSettings'
 import MusicMode, { MusicNavigation } from './MusicMode'
 import ManualSessionModal from './ManualSessionModal'
 import CampaignCard from './CampaignCard'
@@ -380,7 +381,7 @@ function OwnershipBadge({ game, compact = false }: { game: Game; compact?: boole
   return <span className={`ownership-badge ${ownership.everyoneOwns ? 'is-complete' : ''} ${compact ? 'is-compact' : ''}`}><span className="owner-avatars">{ownership.owners.slice(0, 3).map((member) => <Avatar id={member.id} small key={member.id} />)}</span><span>{label}</span></span>
 }
 
-function CrewModal({ members: crew, currentUserId, googlePhotoUrl, integrationError, onClose, onSavePhoto, onResolveSteam, onSaveSteam, onSaveSteamLinkPreference }: {
+function CrewModal({ members: crew, currentUserId, googlePhotoUrl, integrationError, onClose, onSavePhoto, onResolveSteam, onSaveSteam, onSaveSteamLinkPreference, onSaveBookmarkColor }: {
   members: Member[]
   currentUserId: string
   googlePhotoUrl?: string | null
@@ -390,6 +391,7 @@ function CrewModal({ members: crew, currentUserId, googlePhotoUrl, integrationEr
   onResolveSteam: (profile: string) => Promise<SteamProfile>
   onSaveSteam: (profile: SteamProfile | null) => Promise<void>
   onSaveSteamLinkPreference: (preference: SteamLinkPreference) => Promise<void>
+  onSaveBookmarkColor: (color: string) => Promise<void>
 }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -459,6 +461,7 @@ function CrewModal({ members: crew, currentUserId, googlePhotoUrl, integrationEr
         <div className="modal-heading"><div><span className="eyebrow">Checkpoint Crew</span><h2>{crew.length} {crew.length === 1 ? 'player' : 'players'} synced</h2></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
         <div className="crew-auto-note"><Users size={18} /><div><strong>Joining is automatic</strong><p>Nern, Jern, and Vern appear here as soon as they sign in and choose their crew name.</p></div></div>
         <div className="crew-list">{crew.map((member) => <div className="crew-member" key={member.id}><Avatar id={member.id} /><div><strong>{member.name}</strong><span>{member.id === currentUserId ? 'You · online' : 'Crew member'}</span></div></div>)}</div>
+        {currentMember && <BookmarkColorSettings key={currentUserId} member={currentMember} onSave={onSaveBookmarkColor} />}
         {currentMember && <div className="profile-image-panel"><div className="profile-image-preview"><Avatar id={currentUserId} /><div><strong>Your profile image</strong><span>{currentMember.customPhotoUrl ? 'Custom image' : googlePhotoUrl ? 'From Google' : 'Crew initials'}</span></div></div><div className="profile-image-actions">
           <label className={`button button-secondary ${saving ? 'is-disabled' : ''}`}><Camera size={16} /> {saving ? 'Saving…' : 'Upload custom'}<input type="file" accept="image/*" disabled={saving} onChange={(event) => { void saveFile(event.target.files?.[0]); event.currentTarget.value = '' }} /></label>
           {googlePhotoUrl && currentMember.customPhotoUrl && <button className="button button-secondary" type="button" onClick={useGooglePhoto} disabled={saving}>Use Google photo</button>}
@@ -2312,6 +2315,13 @@ function App() {
     flash(`Steam links set to ${preference === 'browser' ? 'web browser' : preference === 'app' ? 'Steam app' : 'automatic'}`)
   }
 
+  async function saveBookmarkColor(color: string) {
+    if (!connectionRef.current) throw new Error('The shared board is still connecting.')
+    await connectionRef.current.saveBookmarkColor(color)
+    setGroupMembers(current => current.map(member => member.id === currentUser ? { ...member, bookmarkColor: color } : member))
+    flash('Bookmark color saved')
+  }
+
   function switchMode(nextMode: AppMode) {
     setMode(nextMode)
     setSearch('')
@@ -2432,7 +2442,7 @@ function App() {
       {editingSession && <SessionGameModal session={editingSession} games={activeGames} onClose={() => setEditingSessionId(null)} onSave={(gameId) => changeSessionGame(editingSession.id, gameId)} />}
       {editingSessionNotes && <SessionNotesModal session={editingSessionNotes} onClose={() => setEditingSessionNotesId(null)} onSave={(note, nextObjective) => saveSessionNotes(editingSessionNotes.id, note, nextObjective)} />}
       {declineNightId && gameNights.find((night) => night.id === declineNightId) && <SuggestTimeModal gameNight={gameNights.find((night) => night.id === declineNightId)!} onClose={() => setDeclineNightId(null)} onSuggest={(startAt, endAt) => declineGameNight(declineNightId, startAt, endAt)} />}
-      {showCrew && <CrewModal members={groupMembers} currentUserId={currentUser} googlePhotoUrl={user?.photoURL} integrationError={integrationError} onClose={() => setShowCrew(false)} onSavePhoto={saveProfileImage} onResolveSteam={resolveSteamLink} onSaveSteam={saveSteamProfile} onSaveSteamLinkPreference={saveSteamLinkPreference} />}
+      {showCrew && <CrewModal members={groupMembers} currentUserId={currentUser} googlePhotoUrl={user?.photoURL} integrationError={integrationError} onClose={() => setShowCrew(false)} onSavePhoto={saveProfileImage} onResolveSteam={resolveSteamLink} onSaveSteam={saveSteamProfile} onSaveSteamLinkPreference={saveSteamLinkPreference} onSaveBookmarkColor={saveBookmarkColor} />}
       {selected && <GameDetailsModal game={selected} onClose={() => setSelectedId(null)} onVote={() => vote(selected.id)} onSave={(updates) => updateGame(selected.id, updates)} onRemove={() => removeGame(selected)} onChangeGame={() => { setChangeGameId(selected.id); setSelectedId(null) }} onRefreshArtwork={() => setArtworkGameId(selected.id)} onAddDlc={() => openAddGame(selected)} onOpenPuzzle={() => { setPuzzleGameId(selected.id); setSelectedId(null) }} onManualOwnershipChange={(memberId, owned) => updateManualOwnership(selected.id, memberId, owned)} />}
       {artworkGame && <ArtworkRefreshModal game={artworkGame} onClose={() => setArtworkGameId(null)} onRefresh={(match) => refreshGameArtwork(artworkGame.id, match)} />}
       {changeGame && <ChangeGameModal game={changeGame} onClose={() => setChangeGameId(null)} onChange={(updates) => replaceGame(changeGame.id, updates)} />}

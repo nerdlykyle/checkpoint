@@ -226,6 +226,7 @@ export type Member = {
   steamAvatarUrl?: string
   steamLinkPreference?: SteamLinkPreference
   preferredMode?: AppMode
+  bookmarkColor?: string
 }
 
 export type SteamOwnership = {

@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore'
 import type { ActivityEntry, AppMode, Book, Game, GameNight, GameSession, Member, Persona, RecommendationFeedback, SteamLinkPreference } from '../types'
 import { database } from './firebase'
+import { validBookmarkColor } from './bookmarkColors'
 
 export type BoardConnection = {
   saveState: (state: { games: Game[]; books: Book[]; gameNights: GameNight[]; sessions: GameSession[]; activity: ActivityEntry[] }) => Promise<void>
@@ -19,6 +20,7 @@ export type BoardConnection = {
   saveSteamProfile: (profile: SteamProfile | null) => Promise<void>
   saveSteamLinkPreference: (preference: SteamLinkPreference) => Promise<void>
   savePreferredMode: (mode: AppMode) => Promise<void>
+  saveBookmarkColor: (color: string) => Promise<void>
   toggleRecommendationDownvote: (steamAppId: string, title: string, memberId: string) => Promise<void>
   restoreRecommendation: (steamAppId: string) => Promise<void>
   close: Unsubscribe
@@ -44,6 +46,7 @@ type StoredMember = {
   steamAvatarUrl?: string
   steamLinkPreference?: SteamLinkPreference
   preferredMode?: AppMode
+  bookmarkColor?: string
   joinedAt: string
 }
 
@@ -158,6 +161,7 @@ function memberFromUser(user: User, persona: Persona, existing?: StoredMember, c
     steamAvatarUrl: existing?.steamAvatarUrl,
     steamLinkPreference: existing?.steamLinkPreference ?? 'auto',
     preferredMode: existing?.preferredMode ?? 'games',
+    bookmarkColor: existing?.bookmarkColor,
     joinedAt: existing?.joinedAt || new Date().toISOString(),
   }
 }
@@ -178,6 +182,7 @@ function membersFromData(data: BoardData): Member[] {
     steamAvatarUrl: member.steamAvatarUrl,
     steamLinkPreference: member.steamLinkPreference ?? 'auto',
     preferredMode: member.preferredMode ?? 'games',
+    bookmarkColor: member.bookmarkColor,
   }))
 }
 
@@ -359,6 +364,12 @@ export async function connectBoard(
         serverTimestamp(),
       )
       latestMember = nextMember
+    },
+    async saveBookmarkColor(color) {
+      if (!validBookmarkColor(color)) throw new Error('Choose a valid bookmark color.')
+      const normalized = color.toLowerCase()
+      await updateDoc(boardRef, new FieldPath('members', user.uid, 'bookmarkColor'), normalized, 'updatedAt', serverTimestamp())
+      if (latestMember) latestMember = { ...latestMember, bookmarkColor: normalized }
     },
     async savePreferredMode(mode) {
       const nextMember = memberFromUser(user, persona, latestMember)

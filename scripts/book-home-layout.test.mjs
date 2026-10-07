@@ -10,10 +10,12 @@ test('logo hover area has balanced padding and external navigation spacing', () 
   assert.match(css, /\.sidebar \.brand \{ padding: 6px; \}/)
 })
 
-test('home club read matches the campaign column and collapses on smaller screens', () => {
-  const columns = selector => css.match(new RegExp('\\.' + selector + ' \\{[^}]*grid-template-columns: ([^;]+)'))[1]
-  assert.equal(columns('book-home-current'), columns('dashboard-grid'))
-  assert.match(css, /@media \(max-width: 1180px\) \{ \.book-home-current \{ grid-template-columns: minmax\(0, 1fr\);/)
+test('club paperback is 25 percent larger with responsive mobile sizing', () => {
+  const paperback = readFileSync(new URL('../src/PaperbackCard.css', import.meta.url), 'utf8')
+  assert.match(paperback, /club-paperback-shelf \{ width:250px/)
+  assert.match(paperback, /minmax\(150px,200px\)/)
+  assert.match(paperback, /width:calc\(\(100% - 40px\) \* \.625\)/)
   const source = readFileSync(new URL('../src/BookClub.tsx', import.meta.url), 'utf8')
-  assert.ok(source.includes("section === 'home' ? ' book-home-current' : ''"))
+  assert.match(source, /book-club-paperback-section/)
+  assert.match(source, /<PaperbackCard book=\{currentClubBook\}/)
 })

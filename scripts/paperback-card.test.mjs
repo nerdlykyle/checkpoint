@@ -29,7 +29,7 @@ test('paperback opens the existing book dialog, without an extra settings screen
   assert.doesNotMatch(card, />Details & settings</)
   assert.match(card, /chapter !== null && <span/)
   assert.match(card, /<BookCoverImage book=\{book\} large/)
-  assert.match(home, /<ReadingCard book=\{currentClubBook\}[^>]+club/)
+  assert.match(home, /<PaperbackCard book=\{currentClubBook\}[^>]+club/)
 })
 
 test('paperback motion has touch, keyboard, reduced-motion, and uncropped-cover support', () => {

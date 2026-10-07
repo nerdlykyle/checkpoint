@@ -21,12 +21,32 @@
 .paperback-open:focus-visible .paperback-cover { transform:rotateY(-108deg); }
 .paperback-ribbon { position:absolute; z-index:3; top:-7px; right:16px; display:grid; place-items:center; width:38px; height:58px; padding:0 3px 10px; border-radius:2px 2px 0 0; background:#8473ed; color:#fff; clip-path:polygon(0 0,100% 0,100% 100%,50% 84%,0 100%); font-size:15px; font-weight:700; line-height:1; pointer-events:none; }
 .paperback-ribbon-long { width:auto; min-width:38px; max-width:calc(100% - 28px); padding-inline:5px; font-size:11px; overflow-wrap:anywhere; }
+.club-paperback-shelf { width:250px; margin:36px 12px 24px 64px; }
+.club-paperback-shelf .paperback-card { max-width:none; }
+.club-paperback-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; }
+.club-paperback-actions .icon-button,.bookmark-color-swatches .icon-button { width:44px; height:44px; }
+.club-bookmarks { position:absolute; z-index:4; top:-8px; right:10px; left:10px; display:flex; justify-content:flex-end; align-items:flex-start; gap:4px; flex-wrap:wrap; pointer-events:none; }
+.club-bookmark { position:relative; display:block; flex:0 0 44px; width:44px; height:83px; padding:0; border:0; pointer-events:auto; }
+.club-bookmark-ribbon,.bookmark-color-preview { display:flex; flex-direction:column; align-items:center; gap:7px; padding:7px 2px 17px; clip-path:polygon(0 0,100% 0,100% 100%,50% 88%,0 100%); font-size:13px; line-height:1; }
+.club-bookmark-ribbon { height:100%; transition:transform .18s; }
+.club-bookmark .member-portrait,.bookmark-color-preview .member-portrait { width:28px; height:28px; flex:0 0 28px; font-size:12px; border:1px solid #ffffff70; }
+button.club-bookmark:is(:hover,:focus-visible) .club-bookmark-ribbon { transform:translateY(4px); }
+.bookmark-color-settings { margin-top:24px; padding-top:24px; border-top:1px solid var(--border,#384047); }
+.bookmark-color-settings p { font-size:14px; line-height:1.5; color:var(--muted,#a5afad); }
+.bookmark-color-options { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin:16px 0; }
+.bookmark-color-preview { width:44px; height:83px; flex-shrink:0; }
+.bookmark-color-swatches { display:grid; grid-template-columns:repeat(3,44px); gap:6px; }
+.bookmark-color-swatches button > span { display:grid; place-items:center; width:26px; height:26px; border-radius:50%; }
+.bookmark-custom-color { display:flex; flex-direction:column; gap:8px; font-size:13px; }
+.bookmark-custom-color input { width:64px; height:44px; padding:4px; }
 @media(hover:hover) and (pointer:fine) {
   .paperback-card:hover { z-index:2; }
   .paperback-open:hover .paperback-cover { transform:rotateY(-108deg); }
   .paperback-open:hover .paperback-settings { background:var(--button-accent,#6e60df); color:#fff; border-color:var(--button-accent,#6e60df); }
 }
 @media(max-width:600px) {
+  .club-paperback-shelf { width:calc((100% - 40px) * .625); max-width:250px; margin:36px auto 24px; }
+  .club-bookmarks { left:0; right:0; gap:2px; }
   .paperback-reading-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:30px 24px; padding:28px 8px 24px; }
   .paperback-card { max-width:200px; }
   .paperback-sheet { padding:12px; gap:8px; }
@@ -44,4 +64,4 @@
   /* Touch opens the real dialog immediately; no sticky simulated hover. */
   .paperback-open:hover:not(:focus-visible) .paperback-cover { transform:none; }
 }
-@media(prefers-reduced-motion:reduce) { .paperback-cover,.paperback-settings { transition:none; } }
+@media(prefers-reduced-motion:reduce) { .paperback-cover,.paperback-settings,.club-bookmark-ribbon { transition:none; } }
