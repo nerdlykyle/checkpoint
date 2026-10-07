@@ -356,7 +356,7 @@ export default function BookClub({ books, currentUser, crew, section, shelfFilte
   const reading = myBooks.filter((book) => book.shelves[currentUser] === 'reading')
   const poll = books.filter(isBookPollCandidate).sort((a, b) => b.upvotes.length - a.upvotes.length || a.downvotes.length - b.downvotes.length)
   const averageRating = (book: Book) => { const values = Object.values(book.ratings); return values.length ? values.reduce((sum, item) => sum + item.stars, 0) / values.length : 0 }
-  const currentClubReadPanel = <section className="book-reading-section">
+  const currentClubReadPanel = <section className={`book-reading-section${section === 'home' ? ' book-home-current' : ''}`}>
     <div className="section-heading"><div><span className="eyebrow">Reading together</span><h2>Our current club read</h2></div><Users size={21} /></div>
     {currentClubBook ? <ReadingCard book={currentClubBook} user={currentUser} crew={crew} club onDiscuss={() => setSelectedId(currentClubBook.id)} onChapter={currentClubBook.club!.participantIds.includes(currentUser) ? () => setChapterBookId(currentClubBook.id) : undefined} onShelf={(shelf) => setShelf(currentClubBook, shelf)}>
         <ul className="club-reader-progress">{currentClubBook.club!.participantIds.map((id) => <li key={id}><strong>{memberName(crew, id)}</strong><span>Chapter {currentClubBook.progress[id]?.lastChapter ?? 0}</span></li>)}</ul>
