@@ -75,6 +75,8 @@ Save the key as the GitHub Actions repository secret **VITE_GOOGLE_BOOKS_API_KEY
 
 Book searches use Google Books with this key and fall back to Open Library. Missing-key, access, quota and timeout failures are shown in the add/change-book dialog, including when fallback results are available. Successful, nonempty searches are cached in memory for five minutes (at most 50 queries). Errors, partial results and empty results are not cached. Each provider has its own seven-second timeout, and changing the query cancels the old search. This setup does not alter saved books or Firestore.
 
+Book artwork independently recovers from cover-host outages. Visible covers try stored images and smaller-size fallbacks, then Google Books and Open Library metadata. Google recovery uses the saved volume ID or exact ISBN when available; otherwise both title and author must match. This changes only displayed artwork, never the saved edition, shelf or reading history. **Refresh artwork** clears the in-memory cover cache for that book, retries provider images with a fresh URL, and updates all mounted copies (details, shelf and current-read cards). Custom signed image URLs are left intact. Image attempts are cancellable and time-bounded; a late failed request cannot skip a working fallback.
+
 ## Steam catalog
 
 The prebuild step refreshes a compact, letter-bucketed title index from the daily-updated [Steam AppID List](https://github.com/jsnli/SteamAppIDList). The deployed browser searches the local index, so no Steam API credential is exposed and only a small catalog slice loads for each search. Steam cover images are loaded from Steam's public asset CDN.

@@ -9,6 +9,7 @@ import type { Book, BookComment, BookShelf, Member } from './types'
 import { applyClubBookAction, clubBookQueue, isBookPollCandidate, moveClubBook, type ClubBookAction } from './lib/clubBooks'
 import BookDiscovery from './BookDiscovery'
 import BookCoverImage from './BookCoverImage'
+import { refreshBookArtwork } from './lib/bookArtwork'
 import ReadingCard from './ReadingCard'
 import ArtworkControls from './ArtworkControls'
 import MoreActions from './MoreActions'
@@ -152,7 +153,6 @@ function AddBookModal({ existing, onClose, onAdd, replacing, initialQuery = '' }
 function BookDetails({ book, currentUser, crew, onClose, onUpdate, onChapter, onChangeBook, onRemove, clubControls, onShelf, onEdit, onFindSeries, onUnqueue }: { book: Book; currentUser: string; crew: Member[]; onClose: () => void; onUpdate: (book: Book) => void; onChapter: () => void; onChangeBook: () => void; onRemove: () => void; clubControls: ReactNode; onShelf: (shelf: BookShelf) => void; onEdit: () => void; onFindSeries: () => void; onUnqueue: () => void }) {
   const [comment, setComment] = useState('')
   const [spoiler, setSpoiler] = useState(false)
-  const [artworkRetry, setArtworkRetry] = useState(0)
   const [openSpoilers, setOpenSpoilers] = useState<string[]>([])
   const [review, setReview] = useState(book.ratings[currentUser]?.review ?? '')
   const ownRating = book.ratings[currentUser]?.stars ?? 0
@@ -172,13 +172,13 @@ function BookDetails({ book, currentUser, crew, onClose, onUpdate, onChapter, on
   return <div className="modal-backdrop book-detail-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
     <section className="modal-card book-detail-modal" role="dialog" aria-modal="true" aria-label={book.title}>
       <div className="detail-menu-tools"><MoreActions label="More book actions" actions={[
-        { id: 'artwork', label: 'Refresh artwork', icon: <RefreshCw size={18} />, onSelect: () => setArtworkRetry(value => value + 1), section: 'Manage book' },
+        { id: 'artwork', label: 'Refresh artwork', icon: <RefreshCw size={18} />, onSelect: () => refreshBookArtwork(book), section: 'Manage book' },
         ...(book.shelves[currentUser] ? [{ id: 'edition', label: 'Change book / edition', icon: <RefreshCw size={18} />, onSelect: onChangeBook, opensDialog: true, section: 'Manage book' }] : []),
         { id: 'organize', label: 'Edit series, genres & tags', icon: <Tags size={18} />, onSelect: onEdit, opensDialog: true, section: 'Manage book' },
         ...(book.club?.status === 'up-next' ? [{ id: 'unqueue', label: 'Remove from club queue', icon: <ListMinus size={18} />, onSelect: onUnqueue, section: 'Club queue' }] : []),
         ...(book.shelves[currentUser] ? [{ id: 'remove', label: 'Remove from my books', icon: <Trash2 size={18} />, onSelect: onRemove, danger: true, section: 'My shelf' }] : []),
       ]} /><button className="icon-button book-detail-close" onClick={onClose} aria-label="Close"><X size={18} /></button></div>
-      <div className="book-detail-hero"><BookCover book={book} large retry={artworkRetry} /><div><span className="eyebrow">{book.passedOnAt ? 'Passed on by the club' : 'Checkpoint Book Club'}</span><h2>{book.title}</h2><p className="book-authors">{book.authors.join(', ')}{book.publishedYear ? ` · ${book.publishedYear}` : ''}</p><div className="book-detail-rating"><Star size={15} fill={average ? 'currentColor' : 'none'} /><strong>{average ? average.toFixed(1) : 'No ratings'}</strong><span>{Object.keys(book.ratings).length ? `from ${Object.keys(book.ratings).length} reader${Object.keys(book.ratings).length === 1 ? '' : 's'}` : ''}</span></div><div className="book-link-row">{bookLinks(book).map((link) => <a key={link.label} href={link.href} target="_blank" rel="noreferrer">{link.icon}{link.label}</a>)}</div></div></div>
+      <div className="book-detail-hero"><BookCover book={book} large /><div><span className="eyebrow">{book.passedOnAt ? 'Passed on by the club' : 'Checkpoint Book Club'}</span><h2>{book.title}</h2><p className="book-authors">{book.authors.join(', ')}{book.publishedYear ? ` · ${book.publishedYear}` : ''}</p><div className="book-detail-rating"><Star size={15} fill={average ? 'currentColor' : 'none'} /><strong>{average ? average.toFixed(1) : 'No ratings'}</strong><span>{Object.keys(book.ratings).length ? `from ${Object.keys(book.ratings).length} reader${Object.keys(book.ratings).length === 1 ? '' : 's'}` : ''}</span></div><div className="book-link-row">{bookLinks(book).map((link) => <a key={link.label} href={link.href} target="_blank" rel="noreferrer">{link.icon}{link.label}</a>)}</div></div></div>
       <div className="book-detail-columns">
         <div className="book-detail-main">
           <section><span className="eyebrow">Synopsis</span><p className="book-description">{book.description || 'No synopsis was provided by the book catalog.'}</p></section>

@@ -1,5 +1,5 @@
 import type { Book, BookSeries } from '../types'
-import { inferSeries, matchesCatalogBook, normalizeGenres } from './bookOrganization.ts'
+import { inferSeries, matchesCatalogBook, normalizeBookText, normalizeGenres } from './bookOrganization.ts'
 
 export type BookSearchResult = {
   genres?: string[]
@@ -156,6 +156,26 @@ export const searchBookCatalog = createBookSearch(import.meta.env?.VITE_GOOGLE_B
 
 export async function searchBooks(input: string, signal?: AbortSignal) {
   return (await searchBookCatalog(input, signal)).results
+}
+
+// Refresh the selected volume, never a similarly named edition from a search.
+export async function lookupGoogleBookCover(id: string, signal?: AbortSignal, apiKey = import.meta.env?.VITE_GOOGLE_BOOKS_API_KEY ?? '') {
+  if (!apiKey.trim() || !/^[\w-]+$/.test(id)) return undefined
+  const response = await fetch(`https://www.googleapis.com/books/v1/volumes/${encodeURIComponent(id)}?key=${encodeURIComponent(apiKey.trim())}`, { signal, cache: 'no-cache' })
+  if (!response.ok) return undefined
+  const data = await response.json() as { id?: string; volumeInfo?: { imageLinks?: { thumbnail?: string; smallThumbnail?: string } } }
+  if (data.id !== id) return undefined
+  return secureCover(data.volumeInfo?.imageLinks?.thumbnail ?? data.volumeInfo?.imageLinks?.smallThumbnail)
+}
+
+export async function lookupGoogleCoverForBook(book: Pick<Book, 'title' | 'authors' | 'isbn13' | 'isbn10'>, signal?: AbortSignal, apiKey = import.meta.env?.VITE_GOOGLE_BOOKS_API_KEY ?? '') {
+  if (!apiKey.trim()) return undefined
+  const isbn = (book.isbn13 ?? book.isbn10)?.replace(/[\s-]/g, '')
+  const query = isbn ? `isbn:${isbn}` : `${book.title} ${book.authors[0] ?? ''}`
+  const results = await googleBooks(query, apiKey.trim(), signal)
+  return results.find(result => result.coverUrl && (isbn
+    ? result.isbn13 === isbn || result.isbn10 === isbn
+    : normalizeBookText(result.title) === normalizeBookText(book.title) && book.authors.some(author => normalizeBookText(author) !== 'unknownauthor' && result.authors.some(other => normalizeBookText(other) === normalizeBookText(author)))))?.coverUrl
 }
 
 // Enrich only a verified matching book. User corrections always take precedence.

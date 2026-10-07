@@ -1,27 +1,25 @@
-import { useEffect, useRef, useState } from 'react'
-import { artworkKey, bookCoverCandidates, lookupBookArtwork, normalizeBookCover, type ArtworkBook } from './lib/bookArtwork'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { artworkKey, bookArtworkVersion, resolveBookArtwork, subscribeBookArtwork, type ArtworkBook } from './lib/bookArtwork'
+import { probeBookCover } from './lib/bookImageProbe'
 import './BookCoverImage.css'
 
 export default function BookCoverImage({ book, large = false, retry = 0, cinematic = false }: { book: ArtworkBook; large?: boolean; retry?: number; cinematic?: boolean }) {
-  // Remount the loader when the book or URL changes: failed inline styles must
-  // never carry over when a reader replaces a book or retries its artwork.
-  return <CoverLoader key={`${artworkKey(book)}:${large}:${retry}`} book={book} large={large} refresh={retry > 0} cinematic={cinematic} />
+  const key = artworkKey(book)
+  const version = useSyncExternalStore(
+    useCallback(listener => subscribeBookArtwork(key, listener), [key]),
+    useCallback(() => bookArtworkVersion(key), [key]),
+  )
+  const refreshToken = Math.max(version, retry)
+  return <CoverLoader key={`${key}:${large}:${refreshToken}`} book={book} large={large} refreshToken={refreshToken} cinematic={cinematic} />
 }
 
-function CoverLoader({ book, large, refresh, cinematic }: { book: ArtworkBook; large: boolean; refresh: boolean; cinematic: boolean }) {
-  const [candidates, setCandidates] = useState(() => bookCoverCandidates(book, large))
-  const [index, setIndex] = useState(0)
+function CoverLoader({ book, large, refreshToken, cinematic }: { book: ArtworkBook; large: boolean; refreshToken: number; cinematic: boolean }) {
+  const [url, setUrl] = useState<string>()
   const [visible, setVisible] = useState(large)
-  const [lookedUp, setLookedUp] = useState(false)
   const anchor = useRef<HTMLSpanElement>(null)
-  const timeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const loadedUrl = useRef<string | undefined>(undefined)
-  const url = candidates[index]
-  useEffect(() => {
-    if (!visible || !url || loadedUrl.current === url) return
-    timeout.current = setTimeout(() => setIndex(value => value + 1), 12000)
-    return () => clearTimeout(timeout.current)
-  }, [visible, url])
+  // The outer component remounts on any artwork identity change. Keep this
+  // request stable when unrelated shelf/progress/metadata updates arrive.
+  const source = useRef(book)
   useEffect(() => {
     if (visible || !anchor.current) return
     if (!('IntersectionObserver' in window)) { setVisible(true); return }
@@ -32,16 +30,12 @@ function CoverLoader({ book, large, refresh, cinematic }: { book: ArtworkBook; l
     return () => observer.disconnect()
   }, [visible])
   useEffect(() => {
-    if (!visible || url || lookedUp) return
-    let active = true
-    setLookedUp(true)
-    lookupBookArtwork(book, refresh).then(value => {
-      const next = normalizeBookCover(value, large)
-      if (active && next && !candidates.includes(next)) setCandidates(previous => [...previous, next])
-    })
-    return () => { active = false }
-    // One lookup per mounted book; setLookedUp must not cancel its own request.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, url])
-  return <><span ref={anchor} aria-hidden="true">{book.title.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase()}</span>{visible && url && <><img key={url} src={url} alt={`Cover of ${book.title}`} loading={large ? 'eager' : 'lazy'} decoding="async" referrerPolicy="no-referrer" onError={() => setIndex(value => value + 1)} onLoad={event => { loadedUrl.current = url; clearTimeout(timeout.current); if (event.currentTarget.naturalWidth <= 1 || event.currentTarget.naturalHeight <= 1) setIndex(value => value + 1) }} />{cinematic && <div className="reading-art-blur" aria-hidden="true"><img src={url} alt="" referrerPolicy="no-referrer" /></div>}</>}</>
+    if (!visible) return
+    const controller = new AbortController()
+    void resolveBookArtwork(source.current, { large, refreshToken, signal: controller.signal, probe: probeBookCover })
+      .then(value => { if (!controller.signal.aborted) setUrl(value) })
+      .catch(() => { /* Keep the readable initials if every provider is unavailable. */ })
+    return () => controller.abort()
+  }, [visible, large, refreshToken])
+  return <><span ref={anchor} aria-hidden="true">{book.title.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase()}</span>{url && <><img src={url} alt={`Cover of ${book.title}`} decoding="async" referrerPolicy="no-referrer" />{cinematic && <div className="reading-art-blur" aria-hidden="true"><img src={url} alt="" referrerPolicy="no-referrer" /></div>}</>}</>
 }
