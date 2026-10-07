@@ -376,10 +376,7 @@ export default function BookClub({ books, currentUser, crew, section, shelfFilte
     <div className="section-heading"><div><span className="eyebrow">Reading together</span><h2>Our current club read</h2></div><Users size={21} /></div>
     {currentClubBook ? <div className="club-paperback-shelf">
       <PaperbackCard book={currentClubBook} user={currentUser} crew={crew} club onOpen={() => setSelectedId(currentClubBook.id)} onChapter={currentClubBook.club!.participantIds.includes(currentUser) ? () => setChapterBookId(currentClubBook.id) : undefined} />
-      <div className="club-paperback-actions">{currentClubBook.club!.participantIds.includes(currentUser)
-        ? <button className="icon-button" type="button" title="Update my chapter" aria-label="Update my chapter" onClick={() => setChapterBookId(currentClubBook.id)}><BookMarked size={20} /></button>
-        : clubControls(currentClubBook)}
-      </div>
+      {!currentClubBook.club!.participantIds.includes(currentUser) && <div className="club-paperback-actions">{clubControls(currentClubBook)}</div>}
     </div> : <div className="book-empty-panel"><Users size={28} /><h2>No club read yet</h2><p>Open a book in the poll or your shelves and choose Start club read.</p></div>}
   </section>
   const clubList = clubTab === 'up-next' ? clubQueue : clubTab === 'completed' ? completedClubBooks : books.filter((book) => book.passedOnAt && !book.club)

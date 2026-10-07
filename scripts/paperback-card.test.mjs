@@ -41,3 +41,11 @@ test('paperback motion has touch, keyboard, reduced-motion, and uncropped-cover 
   assert.match(css, /object-fit:contain/)
   assert.match(css, /repeat\(2,minmax\(0,1fr\)\)/)
 })
+
+test('club book has no redundant chapter icon below it, while details and bookmarks remain editable', () => {
+  const home = readFileSync(new URL('../src/BookClub.tsx', import.meta.url), 'utf8')
+  assert.doesNotMatch(home, /aria-label="Update my chapter"/)
+  assert.match(home, /<PaperbackCard book=\{currentClubBook\}[^\n]+onOpen=\{\(\) => setSelectedId\(currentClubBook.id\)\}[^\n]+onChapter=/)
+  assert.match(home, /<BookDetails[^\n]+onChapter=\{\(\) => setChapterBookId\(selected.id\)\}/)
+  assert.match(home, /!currentClubBook.club!.participantIds.includes\(currentUser\) && <div className="club-paperback-actions"/)
+})
