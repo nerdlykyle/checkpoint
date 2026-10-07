@@ -67,6 +67,14 @@ The private `#board=...` portion of the Checkpoint URL identifies the board. A v
 
 Enable the **Google Calendar API** in the same Google Cloud project used by Firebase. Checkpoint scheduling and RSVPs work without personal-calendar access. A player can optionally click **Add to Google Calendar** on an accepted night; the first use asks that player for the `calendar.events` permission and creates a private event on the Google account used to sign into Checkpoint. Checkpoint keeps the temporary Google access token in memory only; the shared board stores only the returned event ID so it can update the same event without creating duplicates.
 
+## Book search configuration
+
+Enable **Books API** in the Google Cloud project and create a dedicated API key (do not change the existing Firebase key). Restrict it to **Books API** and the website `https://nerdlykyle.github.io/*`; template users should substitute their own deployment origin. Browser referrers can omit paths, so allow the origin rather than only `/checkpoint/`. Add local development origins only if needed.
+
+Save the key as the GitHub Actions repository secret **VITE_GOOGLE_BOOKS_API_KEY**, or the same variable in `.env.local` for local development. Run the Pages workflow after changing a secret: Vite embeds this browser key at build time, so it is visible in the deployed JavaScript despite being stored as an Actions secret. Website/API restrictions are essential; never use a server credential here.
+
+Book searches use Google Books with this key and fall back to Open Library. Missing-key, access, quota and timeout failures are shown in the add/change-book dialog, including when fallback results are available. Successful, nonempty searches are cached in memory for five minutes (at most 50 queries). Errors, partial results and empty results are not cached. Each provider has its own seven-second timeout, and changing the query cancels the old search. This setup does not alter saved books or Firestore.
+
 ## Steam catalog
 
 The prebuild step refreshes a compact, letter-bucketed title index from the daily-updated [Steam AppID List](https://github.com/jsnli/SteamAppIDList). The deployed browser searches the local index, so no Steam API credential is exposed and only a small catalog slice loads for each search. Steam cover images are loaded from Steam's public asset CDN.

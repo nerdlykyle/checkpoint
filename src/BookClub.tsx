@@ -4,7 +4,7 @@ import {
   Minus, Plus, Search, Star, ThumbsDown, ThumbsUp, X, RefreshCw, Trash2, ArrowUp, ArrowDown, Users, Tags, ListMinus,
 } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { lookupBookMetadata, searchBooks, type BookSearchResult } from './lib/bookSearch'
+import { lookupBookMetadata, searchBookCatalog, type BookSearchResult } from './lib/bookSearch'
 import type { Book, BookComment, BookShelf, Member } from './types'
 import { applyClubBookAction, clubBookQueue, isBookPollCandidate, moveClubBook, type ClubBookAction } from './lib/clubBooks'
 import BookDiscovery from './BookDiscovery'
@@ -115,13 +115,16 @@ function AddBookModal({ existing, onClose, onAdd, replacing, initialQuery = '' }
   const [error, setError] = useState<string | null>(null)
   useEffect(() => {
     const trimmed = query.trim()
-    if (trimmed.length < 2) { setResults([]); setError(null); return }
+    if (trimmed.length < 2) { setResults([]); setError(null); setLoading(false); return }
     const controller = new AbortController()
+    setLoading(true); setResults([]); setError(null)
     const timer = window.setTimeout(() => {
-      setLoading(true)
-      searchBooks(trimmed, controller.signal).then((next) => { setResults(next); setError(next.length ? null : 'No matching books found.') }).catch((reason: unknown) => {
-        if (!(reason instanceof DOMException && reason.name === 'AbortError')) setError(reason instanceof Error ? reason.message : 'Book search is unavailable.')
-      }).finally(() => setLoading(false))
+      searchBookCatalog(trimmed, controller.signal).then((next) => {
+        if (controller.signal.aborted) return
+        setResults(next.results); setError(next.warning ?? (next.results.length ? null : 'No matching books found. Try the title and author, or an ISBN.'))
+      }).catch((reason: unknown) => {
+        if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Book search is unavailable.')
+      }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
     }, 320)
     return () => { window.clearTimeout(timer); controller.abort() }
   }, [query])
@@ -136,7 +139,7 @@ function AddBookModal({ existing, onClose, onAdd, replacing, initialQuery = '' }
       {!replacing && <div className="book-add-destination"><span>Save to my shelf</span><ShelfSelect value={shelf} onChange={(value) => value && setShelf(value)} /><small>To read is your wishlist. Choose Read for books you’ve finished. You can nominate a book for the poll later.</small></div>}
       <div className="book-search-results">
         {loading && <div className="book-search-status">Searching book catalogs…</div>}
-        {!loading && error && <div className="book-search-status">{error}</div>}
+        {!loading && error && <div className="book-search-status" role="status">{error}</div>}
         {!loading && results.map((result) => {
           const duplicate = findBookEdition(existing, result)
           return <button type="button" key={result.catalogId} onClick={() => add(result)}><span className="search-result-cover"><BookCoverImage book={result} /></span><span><strong>{result.title}</strong><small>{result.authors.join(', ')}{result.publishedYear ? ` · ${result.publishedYear}` : ''}</small></span><em>{replacing ? 'Use this book' : duplicate ? 'Save to my books' : 'Add'}</em></button>

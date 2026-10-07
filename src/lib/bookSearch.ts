@@ -44,9 +44,12 @@ function normalizedQuery(input: string) {
   return isbn ? `isbn:${isbn}` : trimmed
 }
 
-async function googleBooks(query: string, signal?: AbortSignal): Promise<BookSearchResult[]> {
-  const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&printType=books`, { signal })
-  if (!response.ok) throw new Error('Google Books search is unavailable.')
+async function googleBooks(query: string, apiKey: string, signal?: AbortSignal): Promise<BookSearchResult[]> {
+  if (!apiKey) throw new Error('Google Books search is not configured yet.')
+  const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&printType=books&key=${encodeURIComponent(apiKey)}`, { signal })
+  if (response.status === 429) throw new Error('Google Books has reached its search limit. Please try again later.')
+  if (response.status === 400 || response.status === 401 || response.status === 403) throw new Error('Google Books access needs attention. Check the Books API key, website restrictions, and quota in Google Cloud.')
+  if (!response.ok) throw new Error('Google Books search is temporarily unavailable.')
   const data = await response.json() as {
     items?: Array<{ id: string; volumeInfo?: {
       title?: string; subtitle?: string; categories?: string[]; authors?: string[]; description?: string; publishedDate?: string
@@ -103,17 +106,56 @@ async function openLibrary(query: string, signal?: AbortSignal): Promise<BookSea
   })
 }
 
-export async function searchBooks(input: string, signal?: AbortSignal) {
-  signal = signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000)
-  const query = normalizedQuery(input)
-  if (query.length < 2) return []
-  try {
-    const primary = await googleBooks(query, signal)
-    if (primary.length) return primary
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') throw error
+export type BookSearchResponse = { results: BookSearchResult[]; warning?: string }
+
+// A bounded, in-memory cache avoids repeating successful searches without storing
+// API keys or search history on disk. Failed/partial searches are never cached.
+export function createBookSearch(apiKey: string) {
+  const cache = new Map<string, { results: BookSearchResult[]; expiresAt: number }>()
+  return async (input: string, signal?: AbortSignal): Promise<BookSearchResponse> => {
+    signal?.throwIfAborted()
+    const query = normalizedQuery(input)
+    if (query.length < 2) return { results: [] }
+    const cached = cache.get(query)
+    if (cached && cached.expiresAt > Date.now()) return { results: structuredClone(cached.results) }
+    cache.delete(query)
+    const remember = (results: BookSearchResult[]) => {
+      if (results.length) {
+        if (cache.size >= 50) cache.delete(cache.keys().next().value!)
+        cache.set(query, { results: structuredClone(results), expiresAt: Date.now() + 5 * 60_000 })
+      }
+      return { results }
+    }
+    // Each provider gets its own timeout so a slow primary cannot exhaust the
+    // fallback's time budget. Caller cancellation still stops both immediately.
+    const providerSignal = () => signal ? AbortSignal.any([signal, AbortSignal.timeout(7000)]) : AbortSignal.timeout(7000)
+    let warning: string | undefined
+    try {
+      const primary = await googleBooks(query, apiKey.trim(), providerSignal())
+      signal?.throwIfAborted()
+      if (primary.length) return remember(primary)
+    } catch (error) {
+      signal?.throwIfAborted()
+      warning = error instanceof DOMException && error.name === 'TimeoutError'
+        ? 'Google Books took too long to respond.'
+        : error instanceof TypeError ? 'Google Books could not be reached. Check your connection.'
+          : error instanceof Error ? error.message : 'Google Books search is unavailable.'
+    }
+    try {
+      const results = await openLibrary(query, providerSignal())
+      signal?.throwIfAborted()
+      return warning ? { results, warning: `${warning} ${results.length ? 'Showing Open Library results only.' : 'Open Library found no matches; Google Books could not be checked.'}` } : remember(results)
+    } catch {
+      signal?.throwIfAborted()
+      throw new Error(`${warning ? `${warning} ` : ''}Open Library could not be reached. Please try again.`)
+    }
   }
-  return openLibrary(query, signal)
+}
+
+export const searchBookCatalog = createBookSearch(import.meta.env?.VITE_GOOGLE_BOOKS_API_KEY ?? '')
+
+export async function searchBooks(input: string, signal?: AbortSignal) {
+  return (await searchBookCatalog(input, signal)).results
 }
 
 // Enrich only a verified matching book. User corrections always take precedence.
