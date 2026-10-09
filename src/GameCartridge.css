@@ -1,4 +1,4 @@
-/* A stable hit area surrounds the moving cartridge, so the hover never loops. */
+/* A stable hit area surrounds the moving cartridge during its one-time intro. */
 .game-cartridge { min-width:0; width:100%; max-width:500px; align-self:start; container-type:inline-size; }
 .cartridge-stage { position:relative; isolation:isolate; padding-top:22px; padding-bottom:22px; }
 .cartridge-body { position:relative; z-index:2; width:100%; aspect-ratio:1.48; min-height:300px; transform-origin:50% 100%; }
@@ -59,9 +59,9 @@
 .cartridge-summary button { display:grid; place-items:center; width:44px; height:44px; border:1px solid #687780; color:#e4e8ee; margin-left:auto; }
 .game-cartridge.is-archived .game-cover { filter:saturate(.5); }
 .details-added-by { display:flex; align-items:center; gap:7px; color:#a8b4b7; font-size:12px; margin-bottom:16px; }
-@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference) {
-  .game-cartridge:not(.motion-paused):hover .cartridge-body { animation:cartridge-insert 1.11s both; }
-  .game-cartridge:not(.motion-paused):hover .cartridge-puff { animation:cartridge-puff-rise 480ms ease-out both; animation-delay:calc(210ms + var(--puff-order) * 25ms); }
+@media(prefers-reduced-motion:no-preference) {
+  .game-cartridge.is-page-intro .cartridge-body { animation:cartridge-insert 1.11s both; }
+  .game-cartridge.is-page-intro .cartridge-puff { animation:cartridge-puff-rise 480ms ease-out both; animation-delay:calc(210ms + var(--puff-order) * 25ms); }
 }
 /* Remove 240ms from the lifted hold (about five frames in the 20fps preview),
    preserving the lift/snap timing and each puff's upward speed. */

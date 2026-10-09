@@ -1,8 +1,11 @@
-import { useId, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { ChevronDown, MoreHorizontal } from 'lucide-react'
 import type { Game } from './types'
 import { statusLabels } from './data'
 import './GameCartridge.css'
+
+// In-memory only: navigation and live updates don't replay it, but refresh does.
+let pageIntroPlayed = false
 
 type Props = {
   game: Game
@@ -19,13 +22,52 @@ type Props = {
 
 export default function GameCartridge({ game, artwork, vote, ownership, price, libraryAction, badges, onOpen, featured = false, controls }: Props) {
   const [expanded, setExpanded] = useState(false)
-  const [motionPaused, setMotionPaused] = useState(false)
+  const [introInterrupted, setIntroInterrupted] = useState(false)
+  const [pageIntro, setPageIntro] = useState(false)
+  const cartridgeRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (pageIntroPlayed || introInterrupted || !cartridgeRef.current) return
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    if (reducedMotion.matches) return
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const clearTimer = () => { clearTimeout(timer); timer = undefined }
+    const observer = new IntersectionObserver(entries => {
+      const visible = entries.some(entry => entry.isIntersecting && entry.intersectionRatio >= 0.4)
+      if (!visible) { clearTimer(); return }
+      if (timer !== undefined || pageIntroPlayed) return
+      timer = setTimeout(() => {
+        if (pageIntroPlayed || reducedMotion.matches) return
+        pageIntroPlayed = true
+        setPageIntro(true)
+        observer.disconnect()
+      }, 450)
+    }, { threshold: 0.4 })
+    observer.observe(cartridgeRef.current)
+    const stopForPreference = () => {
+      if (reducedMotion.matches) {
+        clearTimer()
+        observer.disconnect()
+        setPageIntro(false)
+      }
+    }
+    reducedMotion.addEventListener('change', stopForPreference)
+    return () => {
+      clearTimer()
+      observer.disconnect()
+      reducedMotion.removeEventListener('change', stopForPreference)
+    }
+  }, [introInterrupted])
+  const stopIntro = () => {
+    pageIntroPlayed = true
+    setIntroInterrupted(true)
+    setPageIntro(false)
+  }
   const summaryId = useId()
   const titleId = useId()
   const progress = game.status === 'completed' ? 100 : Math.min(100, Math.max(0, Number.isFinite(game.progress) ? game.progress : 0))
-  return <article className={`game-cartridge${featured ? ' is-featured' : ''}${motionPaused ? ' motion-paused' : ''}${game.status === 'archived' ? ' is-archived' : ''}`} aria-labelledby={titleId} onPointerDown={() => setMotionPaused(true)} onPointerLeave={() => setMotionPaused(false)}>
+  return <article ref={cartridgeRef} className={`game-cartridge${featured ? ' is-featured' : ''}${pageIntro ? ' is-page-intro' : ''}${game.status === 'archived' ? ' is-archived' : ''}`} aria-labelledby={titleId} onPointerDown={stopIntro} onFocusCapture={stopIntro}>
     <div className="cartridge-stage">
-      <div className="cartridge-body">
+      <div className="cartridge-body" onAnimationEnd={event => { if (event.target === event.currentTarget && event.animationName === 'cartridge-insert') setPageIntro(false) }}>
         <div className="cartridge-shell" aria-hidden="true"><div /><span className="cartridge-seams" /><i /><i /></div>
         <div className="cartridge-label">
           {artwork}
