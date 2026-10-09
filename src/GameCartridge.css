@@ -1,7 +1,7 @@
 /* A stable hit area surrounds the moving cartridge during its one-time intro. */
 .game-cartridge { min-width:0; width:100%; max-width:500px; align-self:start; container-type:inline-size; }
 .cartridge-stage { position:relative; isolation:isolate; padding-top:22px; padding-bottom:22px; }
-.cartridge-body { position:relative; z-index:2; width:100%; aspect-ratio:1.48; min-height:300px; transform-origin:50% 100%; }
+.cartridge-body { position:relative; z-index:2; width:100%; aspect-ratio:1.48; min-height:0; transform-origin:50% 100%; }
 .cartridge-shell,.cartridge-shell > div { position:absolute; inset:0; border-radius:46% 46% 3% 3% / 17% 17% 3% 3%; }
 .cartridge-shell { background:#596970; box-shadow:0 14px 22px #0003; }
 .cartridge-shell > div { inset:1px; background:linear-gradient(135deg,#1c282d,#141c20 65%); }
@@ -15,23 +15,25 @@
 .cartridge-label .cover-mark { top:14%; bottom:auto; }
 .cartridge-art-open { position:absolute; inset:0; z-index:3; width:100%; height:100%; border:0; padding:0; }
 .cartridge-art-open:focus-visible { outline:3px solid #bcb4ff; outline-offset:-4px; }
-.cartridge-glass { position:absolute; inset:auto 0 0; padding:12px 11px 10px; pointer-events:none; z-index:4; }
+.cartridge-glass { position:absolute; inset:auto 0 0; padding:6px 11px 8px; pointer-events:none; z-index:4; }
 /* Overscan all edges under ONE shared clip. No unblurred image hairline. */
-.cartridge-frost { position:absolute; z-index:-1; inset:-28px -3px -3px; pointer-events:none; background:#101a27f2; -webkit-mask-image:linear-gradient(to bottom,transparent,#000 28px); mask-image:linear-gradient(to bottom,transparent,#000 28px); }
+.cartridge-frost { position:absolute; z-index:-1; inset:-16px -3px -3px; pointer-events:none; background:linear-gradient(to bottom,transparent 0,rgba(12,18,28,.08) 6px,rgba(12,18,28,.45) 28px,rgba(12,18,28,.7)); }
+/* Graduated blur avoids the hard edge produced by masked backdrop filters in
+   some browsers. Only the compact 28px transition uses multiple thin bands. */
+.cartridge-frost > span { position:absolute; left:0; right:0; top:calc(var(--band) * 4px); height:4px; }
+.cartridge-frost > span:last-child { bottom:0; height:auto; }
 @supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
-  .cartridge-frost { background:rgb(12 18 28 / .55); -webkit-backdrop-filter:blur(18px); backdrop-filter:blur(18px); }
+  .cartridge-frost > span { -webkit-backdrop-filter:blur(var(--blur)); backdrop-filter:blur(var(--blur)); }
 }
 .cartridge-status { display:flex; align-items:center; flex-wrap:wrap; gap:5px; color:#e0e5ed; font-size:10px; line-height:1.3; }
-.cartridge-glass h3 { margin:7px 0 8px; color:#fff; font-size:clamp(16px,5cqi,23px); line-height:1.15; min-height:2.3em; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; }
-.cartridge-info-bottom { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:96px; }
-.cartridge-copy { min-width:0; flex:1; }
+.cartridge-info-bottom { display:flex; align-items:center; justify-content:flex-end; gap:8px; min-height:0; }
 .cartridge-price { min-width:0; max-width:110px; }
 .cartridge-ownership { display:flex; flex-direction:column; align-items:flex-end; gap:3px; color:#e3e8ec; font-size:10px; }
 .cartridge-price:empty { display:none; }
 .cartridge-price .deal-badge { pointer-events:auto; max-width:100%; flex-wrap:wrap; font-size:11px; gap:3px; padding:5px; min-height:32px; }
 .cartridge-price .deal-badge em { font-size:9px; }
-.cartridge-social { display:flex; flex:0 1 auto; flex-direction:column; align-items:flex-end; gap:7px; max-width:45%; }
-.cartridge-social .vote-button { pointer-events:auto; min-width:44px; height:44px; margin:0; border-color:#ffffff66; color:#f4ebf4; }
+.cartridge-social { display:flex; flex:0 1 auto; flex-direction:column; align-items:flex-end; gap:7px; max-width:100%; }
+.cartridge-social .vote-button { position:absolute; left:11px; bottom:10px; pointer-events:auto; min-width:44px; height:44px; margin:0; border-color:#ffffff66; color:#f4ebf4; }
 .cartridge-social .vote-button.is-voted { color:#ffa5c3; }
 .cartridge-social .ownership-badge { max-width:78px; flex-direction:column; align-items:flex-end; color:#e3e8ec; font-size:10px; gap:3px; }
 .cartridge-social .owner-avatars .avatar { width:20px; height:20px; }
@@ -39,6 +41,10 @@
 .cartridge-controls > button { display:grid; place-items:center; flex:none; width:44px; height:44px; padding:0; border:1px solid #68778088; color:#e4e8ee; }
 .cartridge-library-action { position:absolute; z-index:5; left:1%; bottom:15%; }
 .cartridge-library-action button { width:44px; height:44px; padding:0; border-color:#68778088; }
+.cartridge-replay { position:absolute; z-index:5; left:calc(8% - 22px); bottom:2%; display:grid; place-items:center; width:44px; height:44px; padding:0; border:0; border-radius:12px; background:transparent; color:#a0afb8; cursor:pointer; }
+.cartridge-replay:focus-visible { outline:2px solid #bcb4ff; outline-offset:1px; }
+.cartridge-replay svg { transform:rotate(-90deg); }
+.cartridge-shell i:not(:last-child) { display:none; }
 .cartridge-progress { position:absolute; left:18%; right:18%; bottom:7%; height:4px; border-radius:8px; overflow:hidden; background:#71808b30; }
 .cartridge-progress span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#8973f6,#67bcda,#88e5bb); transition:width .3s; }
 .cartridge-expand-hint { position:absolute; bottom:1%; left:calc(50% - 6px); color:#a0afb8; }
@@ -78,6 +84,24 @@
   55% { opacity:.7; transform:translateY(-23px) scale(1.15); }
   100% { opacity:0; transform:translateY(-62px) scale(1.35); }
 }
-@media(prefers-reduced-motion:reduce) { .cartridge-progress span { transition:none; } }
-@media(prefers-reduced-transparency:reduce) { .cartridge-frost { inset:0 -3px -3px; mask-image:none; -webkit-mask-image:none; background:#101a27fa; backdrop-filter:none; -webkit-backdrop-filter:none; } }
+@media(prefers-reduced-motion:reduce) { .cartridge-progress span { transition:none; } .cartridge-replay { display:none; } }
+@media(prefers-reduced-transparency:reduce) { .cartridge-frost { inset:0 -3px -3px; background:#101a27fa; } .cartridge-frost > span { display:none; } }
 @media(max-width:360px) { .cartridge-glass { padding-inline:8px; } .cartridge-info-bottom { gap:2px; } .cartridge-social .ownership-badge { max-width:83px; } .cartridge-price .deal-badge { font-size:10px; } }
+/* Fit the contents to the cartridge, never stretch the shell to fit the contents. */
+@container (max-width:560px) {
+  .cartridge-controls { top:8%; gap:0; }
+  .cartridge-controls > button { border-color:transparent; }
+  .cartridge-controls > button svg { width:18px; height:18px; }
+  .cartridge-glass { padding:4px 8px 6px; }
+  .cartridge-status { display:none; }
+  .cartridge-info-bottom { flex-direction:column; align-items:stretch; gap:0; min-height:0; }
+  .cartridge-social { display:flex; flex-direction:column; gap:2px; max-width:none; align-items:flex-end; }
+  .cartridge-social .vote-button { left:8px; bottom:8px; min-width:36px; height:32px; padding:0 6px; gap:3px; font-size:11px; }
+  .cartridge-social .vote-button svg { width:14px; height:14px; }
+  .cartridge-ownership { flex-direction:row; align-items:center; justify-content:flex-end; gap:4px; }
+  .cartridge-social .ownership-badge { flex-direction:row; align-items:center; max-width:none; gap:3px; white-space:nowrap; }
+  .cartridge-social .owner-avatars .avatar { width:16px; height:16px; }
+  .cartridge-price { max-width:100%; }
+  .cartridge-price .deal-badge { min-height:32px; font-size:11px; padding:4px; }
+  .cartridge-shell i { display:none; }
+}

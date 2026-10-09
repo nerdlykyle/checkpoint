@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { ChevronDown, MoreHorizontal } from 'lucide-react'
+import { ChevronDown, MoreHorizontal, Wind } from 'lucide-react'
 import type { Game } from './types'
 import { statusLabels } from './data'
 import './GameCartridge.css'
@@ -25,6 +25,8 @@ export default function GameCartridge({ game, artwork, vote, ownership, price, l
   const [introInterrupted, setIntroInterrupted] = useState(false)
   const [pageIntro, setPageIntro] = useState(false)
   const cartridgeRef = useRef<HTMLElement>(null)
+  const replayFrame = useRef<number | undefined>(undefined)
+  useEffect(() => () => { if (replayFrame.current !== undefined) cancelAnimationFrame(replayFrame.current) }, [])
   useEffect(() => {
     if (pageIntroPlayed || introInterrupted || !cartridgeRef.current) return
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -58,28 +60,40 @@ export default function GameCartridge({ game, artwork, vote, ownership, price, l
     }
   }, [introInterrupted])
   const stopIntro = () => {
+    if (replayFrame.current !== undefined) cancelAnimationFrame(replayFrame.current)
     pageIntroPlayed = true
     setIntroInterrupted(true)
     setPageIntro(false)
   }
+  const replayIntro = () => {
+    stopIntro()
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    // Leave one painted frame without the class so repeated taps/Enter restart it.
+    replayFrame.current = requestAnimationFrame(() => {
+      replayFrame.current = requestAnimationFrame(() => {
+        replayFrame.current = undefined
+        setPageIntro(true)
+      })
+    })
+  }
   const summaryId = useId()
-  const titleId = useId()
   const progress = game.status === 'completed' ? 100 : Math.min(100, Math.max(0, Number.isFinite(game.progress) ? game.progress : 0))
-  return <article ref={cartridgeRef} className={`game-cartridge${featured ? ' is-featured' : ''}${pageIntro ? ' is-page-intro' : ''}${game.status === 'archived' ? ' is-archived' : ''}`} aria-labelledby={titleId} onPointerDown={stopIntro} onFocusCapture={stopIntro}>
+  return <article ref={cartridgeRef} className={`game-cartridge${featured ? ' is-featured' : ''}${pageIntro ? ' is-page-intro' : ''}${game.status === 'archived' ? ' is-archived' : ''}`} aria-label={game.title} onPointerDown={stopIntro} onFocusCapture={stopIntro}>
     <div className="cartridge-stage">
       <div className="cartridge-body" onAnimationEnd={event => { if (event.target === event.currentTarget && event.animationName === 'cartridge-insert') setPageIntro(false) }}>
         <div className="cartridge-shell" aria-hidden="true"><div /><span className="cartridge-seams" /><i /><i /></div>
         <div className="cartridge-label">
           {artwork}
           <button type="button" className="cartridge-art-open" aria-label={`${expanded ? 'Collapse' : 'Expand'} ${game.title} summary`} aria-expanded={expanded} aria-controls={summaryId} onClick={() => setExpanded(value => !value)} />
-          <div className="cartridge-glass">
-            <span className="cartridge-frost" aria-hidden="true" />
+          {game.status !== 'playing' && <div className="cartridge-glass">
+            <span className="cartridge-frost" aria-hidden="true">{[0, .5, 1, 2, 3.5, 5, 8, 12].map((blur, index) => <span key={index} style={{ '--blur': `${blur}px`, '--band': index } as CSSProperties} />)}</span>
             <div className="cartridge-status"><span className={`status-dot status-${game.status}`} />{statusLabels[game.status]}{badges}</div>
-            <div className="cartridge-info-bottom"><div className="cartridge-copy"><h3 id={titleId} title={game.title}>{game.title}</h3></div><div className="cartridge-social">{vote}<div className="cartridge-ownership"><span>{game.platform}</span>{ownership}</div><div className="cartridge-price">{price}</div></div></div>
-          </div>
+            <div className="cartridge-info-bottom"><div className="cartridge-social">{vote}<div className="cartridge-ownership"><span>{game.platform}</span>{ownership}</div><div className="cartridge-price">{price}</div></div></div>
+          </div>}
         </div>
         <div className="cartridge-controls"><button className="cartridge-menu" type="button" onClick={onOpen} aria-label={`View details for ${game.title}`} aria-haspopup="dialog" title="Game details"><MoreHorizontal size={20} /></button>{controls}</div>
         <div className="cartridge-library-action">{libraryAction}</div>
+        <button className="cartridge-replay" type="button" onClick={replayIntro} aria-label="Replay cartridge air animation" title="Replay air animation"><Wind size={16} strokeWidth={1.5} aria-hidden="true" /></button>
         <div className="cartridge-progress" role="progressbar" aria-label={`${game.title} completion`} aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} title={`${progress}% completed`}><span style={{ width: `${progress}%` }} /></div>
         <ChevronDown className={`cartridge-expand-hint${expanded ? ' is-expanded' : ''}`} size={13} aria-hidden="true" />
       </div>
