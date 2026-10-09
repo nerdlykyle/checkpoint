@@ -1,7 +1,7 @@
 const { initializeApp } = require('firebase-admin/app')
 const { getFirestore, Timestamp } = require('firebase-admin/firestore')
 const { logger } = require('firebase-functions')
-const { onRequest } = require('firebase-functions/v2/https')
+const { onRequest, onCall, HttpsError } = require('firebase-functions/v2/https')
 const { onSchedule } = require('firebase-functions/v2/scheduler')
 const { defineSecret, defineString } = require('firebase-functions/params')
 const { DateTime } = require('luxon')
@@ -9,6 +9,18 @@ const nacl = require('tweetnacl')
 const { TIME_ZONES, parseReminderDate } = require('./time')
 
 initializeApp()
+
+const { createMembershipService, activeMember } = require('./membership')
+const membershipService = createMembershipService(getFirestore())
+exports.manageMembership = onCall({ region: 'us-central1', maxInstances: 5 }, async request => {
+  try { return await membershipService(request) }
+  catch (error) {
+    if (error instanceof HttpsError) throw error
+    // Do not log invitation tokens, emails, or request payloads.
+    logger.error('Membership request failed', { code: error.code || 'internal' })
+    throw new HttpsError('internal', 'Membership could not be updated. Please try again.')
+  }
+})
 
 const discordBotToken = defineSecret('DISCORD_BOT_TOKEN')
 const discordPublicKey = defineSecret('DISCORD_PUBLIC_KEY')
@@ -90,13 +102,18 @@ function boardGameNightMessage(data) {
 
 async function checkpointCommand(interaction) {
   const subcommand = interaction.data?.options?.[0]?.name
+  // Admin SDK bypasses rules: require an operator-verified Discord/Firebase link.
+  const discordId = interactionUser(interaction)?.id
+  if (!discordId || !/^\d+$/.test(discordId)) return interactionResponse('Sign in to Checkpoint to view the group.', true)
+  const link = (await getFirestore().doc(`discordMembership/${discordId}`).get()).data()
   const snapshot = await getFirestore().doc(`boards/${checkpointBoardId.value()}`).get()
   const data = snapshot.data() || {}
-  if (subcommand === 'tonight') return interactionResponse(boardGameNightMessage(data))
+  if (link?.boardId !== checkpointBoardId.value() || !activeMember(data, link?.uid)) return interactionResponse('Ask the group owner to link your Discord account, or open Checkpoint to view the group.', true)
+  if (subcommand === 'tonight') return interactionResponse(boardGameNightMessage(data), true)
   const games = Array.isArray(data.games) ? data.games : []
   const queue = games.filter((game) => game.status === 'up-next')
-  if (!queue.length) return interactionResponse(`📚 The Up next queue is empty.\n${checkpointUrl.value()}`)
-  return interactionResponse([`🏁 **Checkpoint — Up next**`, ...queue.slice(0, 10).map((game, index) => `${index + 1}. **${game.title}**${game.votes?.length ? ` · ${game.votes.length} vote${game.votes.length === 1 ? '' : 's'}` : ''}`), checkpointUrl.value()].join('\n'))
+  if (!queue.length) return interactionResponse(`📚 The Up next queue is empty.\n${checkpointUrl.value()}`, true)
+  return interactionResponse([`🏁 **Checkpoint — Up next**`, ...queue.slice(0, 10).map((game, index) => `${index + 1}. **${game.title}**${game.votes?.length ? ` · ${game.votes.length} vote${game.votes.length === 1 ? '' : 's'}` : ''}`), checkpointUrl.value()].join('\n'), true)
 }
 
 exports.discordInteractions = onRequest({ region: 'us-central1', secrets: [discordBotToken, discordPublicKey] }, async (req, res) => {

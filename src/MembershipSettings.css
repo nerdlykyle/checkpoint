@@ -1,0 +1,15 @@
+.membership-settings { border-top:1px solid var(--border,#384047); margin-top:24px; padding-top:24px; }
+.membership-settings p,.membership-note,.membership-gate p { color:var(--muted,#a5afad); font-size:14px; line-height:1.5; }
+.membership-invite-form,.membership-copy,.membership-actions,.membership-tabs { display:flex; align-items:end; gap:10px; flex-wrap:wrap; margin:16px 0; }
+.membership-settings label,.membership-gate label { display:grid; gap:8px; font-size:14px; flex:1 1 200px; min-width:0; }
+.membership-settings input,.membership-gate input { width:100%; min-width:0; padding:12px; border:1px solid #53615e; border-radius:12px; background:#10171a; color:#edf2ef; font:inherit; font-size:16px; }
+.membership-gate form { display:grid; gap:16px; text-align:left; }
+.membership-copy small { flex-basis:100%; }
+.membership-list { list-style:none; padding:0; margin:12px 0; }
+.membership-list li { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid #ffffff15; }
+.membership-list li>div { min-width:0; flex:1; overflow-wrap:anywhere; }
+.membership-list strong,.membership-list small { display:block; }
+.membership-list small { margin-top:4px; color:#a5afad; }
+.membership-error { color:#f3a7b7 !important; }
+.membership-settings .icon-button { flex:0 0 44px; width:44px; height:44px; }
+@media(max-width:600px) { .membership-invite-form>.button,.membership-copy>.button { width:100%; }.membership-tabs { gap:6px; }.membership-tabs .button { flex:1; padding:10px 8px; } }

@@ -2,6 +2,11 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function boardMember(boardId) {
+      let board = get(/databases/$(database)/documents/boards/$(boardId)).data;
+      return request.auth != null && board.members.get(request.auth.uid, null) != null
+        && !board.get('removedMembers', {}).get(request.auth.uid, false);
+    }
     // Private notes never live in the shared board document.
     match /readerNotes/{userId}/{kind}/{itemId} {
       allow read, delete: if kind in ['books', 'music'] && request.auth != null && request.auth.uid == userId;
@@ -25,7 +30,8 @@ service cloud.firestore {
       }
 
       function isMember() {
-        return signedIn() && resource.data.members[request.auth.uid] != null;
+        return signedIn() && resource.data.members.get(request.auth.uid, null) != null
+          && !resource.data.get('removedMembers', {}).get(request.auth.uid, false);
       }
 
       function validBoard() {
@@ -69,32 +75,28 @@ service cloud.firestore {
           && (!profile.keys().hasAny(['steamLinkPreference']) || profile.steamLinkPreference in ['auto', 'app', 'browser'])
           && (!profile.keys().hasAny(['preferredMode']) || profile.preferredMode in ['games', 'books', 'music'])
           && (!profile.keys().hasAny(['bookmarkColor']) || (profile.bookmarkColor is string && profile.bookmarkColor.matches('^#[0-9a-fA-F]{6}$')))
-          && (profile.persona == 'Jern'
-            || profile.persona == 'Vern'
-            || (profile.persona == 'Nern' && request.auth.token.email == 'kjsparsons@gmail.com'));
+          && (!profile.keys().hasAny(['persona']) || profile.persona in ['Nern', 'Jern', 'Vern'])
+          && profile.joinedAt == resource.data.members[request.auth.uid].joinedAt;
       }
 
-      function joiningOnlyAsSelf() {
-        return signedIn()
+      function editingOwnProfile() {
+        return isMember()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'updatedAt'])
           && request.resource.data.members.diff(resource.data.members).affectedKeys().hasOnly([request.auth.uid])
           && validSelfProfile();
       }
 
-      allow get: if validBoardId() && signedIn();
+      allow get: if validBoardId() && isMember();
       allow list, delete: if false;
-      allow create: if validBoardId()
-        && signedIn()
-        && validBoard()
-        && request.resource.data.ownerUid == request.auth.uid
-        && validSelfProfile();
+      // Group creation and membership are trusted-server operations only.
+      allow create: if false;
       allow update: if validBoardId()
         && ((isMember() && validBoard()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['games', 'books', 'gameNights', 'sessions', 'activity', 'recommendationFeedback', 'updatedAt']))
-          || joiningOnlyAsSelf());
+          || editingOwnProfile());
 
       match /music/{musicId} {
-        function musicMember() { return request.auth != null && get(/databases/$(database)/documents/boards/$(boardId)).data.members[request.auth.uid] != null; }
+        function musicMember() { return boardMember(boardId); }
         allow read: if musicMember();
         allow create, update: if musicMember()
           && request.resource.data.id == musicId
@@ -113,7 +115,7 @@ service cloud.firestore {
         allow delete: if false;
       }
       match /artistFavorites/{readerId}/artists/{artistId} {
-        function artistMember() { return request.auth != null && get(/databases/$(database)/documents/boards/$(boardId)).data.members[request.auth.uid] != null; }
+        function artistMember() { return boardMember(boardId); }
         function artistUrl(value) { return value is string && value.size() <= 2048 && (value == '' || value.matches('https://.*')); }
         allow read: if artistMember();
         allow create, update: if artistMember() && request.auth.uid == readerId
@@ -129,15 +131,14 @@ service cloud.firestore {
         allow delete: if false;
       }
       match /musicState/{stateId} {
-        function musicMember() { return request.auth != null && get(/databases/$(database)/documents/boards/$(boardId)).data.members[request.auth.uid] != null; }
+        function musicMember() { return boardMember(boardId); }
         allow read: if musicMember();
         allow create, update: if stateId == 'current' && musicMember() && request.resource.data.keys().hasOnly(['musicId']) && request.resource.data.musicId is string;
       }
 
       match /puzzles/{gameId} {
         function isBoardMember() {
-          return request.auth != null
-            && get(/databases/$(database)/documents/boards/$(boardId)).data.members[request.auth.uid] != null;
+          return boardMember(boardId);
         }
 
         function validLegacyPuzzle() {
@@ -180,8 +181,7 @@ service cloud.firestore {
 
         match /pages/{pageId} {
           function isBoardMemberForPage() {
-            return request.auth != null
-              && get(/databases/$(database)/documents/boards/$(boardId)).data.members[request.auth.uid] != null;
+            return boardMember(boardId);
           }
 
           function validPuzzlePage() {

@@ -1,7 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { initializeApp, deleteApp } from 'firebase/app'
-import { initializeFirestore, connectFirestoreEmulator, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore'
+import { initializeFirestore, connectFirestoreEmulator, doc, getDoc, updateDoc } from 'firebase/firestore'
+import { emulatorAdmin } from './emulator-admin.mjs'
 
 test('bookmark colors sync to crew but only the owner can change a valid color', { skip: !process.env.FIRESTORE_EMULATOR_HOST }, async () => {
   const [host, port] = process.env.FIRESTORE_EMULATOR_HOST.split(':'), apps = []
@@ -15,8 +16,7 @@ test('bookmark colors sync to crew but only the owner can change a valid color',
   const profile = uid => ({ name: uid, persona: 'Jern', email: `${uid}@example.test`, photoUrl: '', joinedAt: new Date().toISOString() })
   const denied = promise => assert.rejects(promise, error => error.code === 'permission-denied')
   try {
-    await setDoc(doc(owner, 'boards', board), { ownerUid: 'owner', games: [], books: [], members: { owner: profile('owner') } })
-    await updateDoc(doc(other, 'boards', board), { 'members.other': profile('other') })
+    await emulatorAdmin().doc(`boards/${board}`).set({ ownerUid: 'owner', games: [], books: [], members: { owner: profile('owner'), other: profile('other') } })
     await updateDoc(doc(owner, 'boards', board), { 'members.owner.bookmarkColor': '#8473ed' })
     assert.equal((await getDoc(doc(other, 'boards', board))).data().members.owner.bookmarkColor, '#8473ed')
     await denied(updateDoc(doc(other, 'boards', board), { 'members.owner.bookmarkColor': '#000000' }))

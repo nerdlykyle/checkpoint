@@ -2,10 +2,9 @@ import type { User } from 'firebase/auth'
 import {
   FieldPath,
   doc,
-  getDoc,
+  getDocFromServer,
   onSnapshot,
   serverTimestamp,
-  setDoc,
   updateDoc,
   runTransaction,
   type Unsubscribe,
@@ -57,6 +56,7 @@ type BoardData = {
   sessions?: unknown
   activity?: unknown
   members?: Record<string, StoredMember>
+  removedMembers?: Record<string, boolean>
   recommendationFeedback?: unknown
 }
 
@@ -127,11 +127,21 @@ function isActivityList(value: unknown): value is ActivityEntry[] {
   })
 }
 
+function readableMedia(data: BoardData): boolean {
+  return isGameList(data.games)
+    && (data.books === undefined || isBookList(data.books))
+    && (data.gameNights === undefined || isGameNightList(data.gameNights))
+    && (data.sessions === undefined || isSessionList(data.sessions))
+    && (data.activity === undefined || isActivityList(data.activity))
+}
+
 export const CHECKPOINT_CREW_BOARD_ID = '4b39bba9-4b6a-47ce-bc73-85d1985aad28'
 
 export function getBoardId() {
   localStorage.setItem('checkpoint-board-id', CHECKPOINT_CREW_BOARD_ID)
   const expectedHash = `#board=${CHECKPOINT_CREW_BOARD_ID}`
+  const invite = new URLSearchParams(window.location.hash.slice(1))
+  if (invite.get('board') === CHECKPOINT_CREW_BOARD_ID && /^[A-Za-z0-9_-]{43}$/.test(invite.get('invite') || '')) return CHECKPOINT_CREW_BOARD_ID
   if (window.location.hash !== expectedHash) {
     window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${expectedHash}`)
   }
@@ -146,11 +156,11 @@ function isGameList(value: unknown): value is Game[] {
   })
 }
 
-function memberFromUser(user: User, persona: Persona, existing?: StoredMember, customPhotoUrl = existing?.customPhotoUrl ?? ''): StoredMember {
+function memberFromUser(user: User, persona: string, existing?: StoredMember, customPhotoUrl = existing?.customPhotoUrl ?? ''): StoredMember {
   const googlePhotoUrl = user.photoURL || existing?.googlePhotoUrl || ''
   return {
-    name: persona,
-    persona,
+    ...existing,
+    name: existing?.name || persona,
     email: user.email || '',
     photoUrl: customPhotoUrl || googlePhotoUrl,
     googlePhotoUrl,
@@ -167,7 +177,7 @@ function memberFromUser(user: User, persona: Persona, existing?: StoredMember, c
 }
 
 function membersFromData(data: BoardData): Member[] {
-  return Object.entries(data.members ?? {}).map(([id, member], index) => ({
+  return Object.entries(data.members ?? {}).filter(([uid]) => !data.removedMembers?.[uid]).map(([id, member], index) => ({
     id,
     name: member.name,
     initials: member.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase(),
@@ -186,137 +196,45 @@ function membersFromData(data: BoardData): Member[] {
   }))
 }
 
-function isPersona(value: unknown): value is Persona {
-  return value === 'Nern' || value === 'Jern' || value === 'Vern'
-}
-
-export async function getExistingPersona(boardId: string, user: User): Promise<Persona | null> {
-  if (!database) return null
-  try {
-    const snapshot = await getDoc(doc(database, 'boards', boardId))
-    const persona = (snapshot.data() as BoardData | undefined)?.members?.[user.uid]?.persona
-    return isPersona(persona) ? persona : null
-  } catch {
-    return null
-  }
-}
-
 export async function connectBoard(
   boardId: string,
   user: User,
-  persona: Persona,
-  fallbackGames: Game[],
-  fallbackBooks: Book[],
-  fallbackGameNights: GameNight[],
-  fallbackSessions: GameSession[],
-  fallbackActivity: ActivityEntry[],
+  persona: string,
   onRemoteState: (games: Game[], books: Book[], members: Member[], gameNights: GameNight[], sessions: GameSession[], activity: ActivityEntry[], recommendationFeedback: RecommendationFeedback) => void,
-  onConnectionState?: (state: 'connecting' | 'live' | 'error') => void,
+  onConnectionState?: (state: 'connecting' | 'live' | 'error' | 'denied') => void,
 ): Promise<BoardConnection | null> {
   if (!database) return null
   const firestore = database
   const boardRef = doc(firestore, 'boards', boardId)
   let latestMember: StoredMember | undefined
-  let snapshot
-
-  try {
-    snapshot = await getDoc(boardRef)
-  } catch {
-    try {
-      // This succeeds only when the private board link has not been claimed yet.
-      await setDoc(boardRef, {
-        games: fallbackGames,
-        books: fallbackBooks,
-        gameNights: fallbackGameNights,
-        sessions: fallbackSessions,
-        activity: fallbackActivity,
-        ownerUid: user.uid,
-        members: { [user.uid]: memberFromUser(user, persona) },
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      })
-    } catch {
-      // Otherwise, the signed-in visitor may join the existing board only as themselves.
-      await updateDoc(
-        boardRef,
-        new FieldPath('members', user.uid),
-        memberFromUser(user, persona),
-        'updatedAt',
-        serverTimestamp(),
-      )
-    }
-    snapshot = await getDoc(boardRef)
+  const snapshot = await getDocFromServer(boardRef)
+  const initialData = snapshot.data() as BoardData | undefined
+  latestMember = initialData?.members?.[user.uid]
+  if (!snapshot.exists() || !latestMember || initialData?.removedMembers?.[user.uid]) {
+    throw new Error('An invitation is required to join this group.')
   }
-
-  if (!snapshot.exists()) {
-    await setDoc(boardRef, {
-      games: fallbackGames,
-      books: fallbackBooks,
-      gameNights: fallbackGameNights,
-      sessions: fallbackSessions,
-      activity: fallbackActivity,
-      ownerUid: user.uid,
-      members: { [user.uid]: memberFromUser(user, persona) },
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    })
-  } else {
-    const data = snapshot.data() as BoardData
-    latestMember = data.members?.[user.uid]
-    const refreshedMember = memberFromUser(user, persona, latestMember)
-    if (!latestMember
-      || latestMember.persona !== persona
-      || latestMember.email !== refreshedMember.email
-      || latestMember.googlePhotoUrl !== refreshedMember.googlePhotoUrl
-      || latestMember.photoUrl !== refreshedMember.photoUrl) {
-      await updateDoc(
-        boardRef,
-        new FieldPath('members', user.uid),
-        refreshedMember,
-        'updatedAt',
-        serverTimestamp(),
-      )
-    }
+  if (!initialData || !readableMedia(initialData) || !isGameList(initialData.games)) throw new Error('The shared library could not be read safely. No data was changed.')
+  // Never create/join a board or restore stale local media after a read failure.
+  // All existing profiles and media remain attached to their original UID.
+  const refreshedMember = memberFromUser(user, persona, latestMember)
+  if (latestMember.email !== refreshedMember.email
+    || latestMember.googlePhotoUrl !== refreshedMember.googlePhotoUrl
+    || latestMember.photoUrl !== refreshedMember.photoUrl) {
+    await updateDoc(boardRef, new FieldPath('members', user.uid), refreshedMember, 'updatedAt', serverTimestamp())
   }
-
-  // Hydrate from Firestore before reporting the connection as live. This keeps a
-  // blank cache on a new device from racing the first cloud snapshot and
-  // replacing the crew's library. If the original board was empty but the
-  // existing desktop still has games, migrate that local library once.
-  snapshot = await getDoc(boardRef)
-  if (snapshot.exists()) {
-    const initialData = snapshot.data() as BoardData
-    latestMember = initialData.members?.[user.uid]
-    if (isGameList(initialData.games)) {
-      const initialGames = initialData.games.length || !fallbackGames.length ? initialData.games : fallbackGames
-      const initialBooks = isBookList(initialData.books) ? initialData.books : fallbackBooks
-      const initialGameNights = isGameNightList(initialData.gameNights)
-        ? initialData.gameNights
-        : fallbackGameNights
-      const initialSessions = isSessionList(initialData.sessions) ? initialData.sessions : fallbackSessions
-      const initialActivity = isActivityList(initialData.activity) ? initialData.activity : fallbackActivity
-      if (initialGames === fallbackGames) {
-        await updateDoc(boardRef, { games: fallbackGames, updatedAt: serverTimestamp() })
-      }
-      if (!isBookList(initialData.books)) await updateDoc(boardRef, { books: fallbackBooks, updatedAt: serverTimestamp() }).catch(() => undefined)
-      if (!isGameNightList(initialData.gameNights)) {
-        // Older deployments do not have this field yet. Hydrate the rest of the
-        // board even if its matching rules update has not reached Firebase.
-        await updateDoc(boardRef, { gameNights: fallbackGameNights, updatedAt: serverTimestamp() }).catch(() => undefined)
-      }
-      if (!isSessionList(initialData.sessions)) await updateDoc(boardRef, { sessions: fallbackSessions, updatedAt: serverTimestamp() }).catch(() => undefined)
-      if (!isActivityList(initialData.activity)) await updateDoc(boardRef, { activity: fallbackActivity, updatedAt: serverTimestamp() }).catch(() => undefined)
-      onRemoteState(initialGames, initialBooks, membersFromData({ ...initialData, games: initialGames, books: initialBooks }), initialGameNights, initialSessions, initialActivity, recommendationFeedbackFromData(initialData.recommendationFeedback))
-    }
-  }
+  onRemoteState(initialData.games, isBookList(initialData.books) ? initialData.books : [], membersFromData(initialData),
+    isGameNightList(initialData.gameNights) ? initialData.gameNights : [], isSessionList(initialData.sessions) ? initialData.sessions : [],
+    isActivityList(initialData.activity) ? initialData.activity : [], recommendationFeedbackFromData(initialData.recommendationFeedback))
 
   const unsubscribe = onSnapshot(boardRef, { includeMetadataChanges: true }, (nextSnapshot) => {
     if (!nextSnapshot.exists()) { onConnectionState?.('error'); return }
     onConnectionState?.(nextSnapshot.metadata.fromCache ? 'connecting' : 'live')
     const data = nextSnapshot.data() as BoardData
     latestMember = data.members?.[user.uid]
+    if (!latestMember || data.removedMembers?.[user.uid]) { onConnectionState?.('denied'); return }
+    if (!readableMedia(data)) { onConnectionState?.('error'); return }
     if (isGameList(data.games)) onRemoteState(data.games, isBookList(data.books) ? data.books : [], membersFromData(data), isGameNightList(data.gameNights) ? data.gameNights : [], isSessionList(data.sessions) ? data.sessions : [], isActivityList(data.activity) ? data.activity : [], recommendationFeedbackFromData(data.recommendationFeedback))
-  }, () => onConnectionState?.('error'))
+  }, error => onConnectionState?.(error.code === 'permission-denied' ? 'denied' : 'error'))
 
   return {
     async saveState({ games, books, gameNights, sessions, activity }) {

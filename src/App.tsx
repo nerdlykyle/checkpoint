@@ -17,6 +17,8 @@ import GameShelf from './GameShelf'
 import NavigationSync, { type ConnectionState } from './NavigationSync'
 import BookClub, { type BookSection, type BookShelfFilter } from './BookClub'
 import BookmarkColorSettings from './BookmarkColorSettings'
+import MembershipSettings, { MembershipGate } from './MembershipSettings'
+import { clearInvitation, getMembership } from './lib/membership'
 import MusicMode, { MusicNavigation } from './MusicMode'
 import ManualSessionModal from './ManualSessionModal'
 import CampaignCard from './CampaignCard'
@@ -31,7 +33,7 @@ import { initialGames, members, statusLabels } from './data'
 import type { ActivityChange, ActivityEntry, ActivitySnapshot, AppMode, Book, ContentType, Game, GameDeal, GameLink, GameNight, GameSession, GameStatus, Member, Persona, PuzzleBoard, PuzzleImage, PuzzlePage, PuzzlePoint, PuzzleStroke, Recommendation, RecommendationFeedback, RecommendationFeed, SteamAchievementSnapshot, SteamCrewSnapshot, SteamLinkPreference } from './types'
 import { firebaseConfigured, signInWithGoogle, signOut, watchAuth } from './lib/firebase'
 import { parseSteamStoreLink, resolveSteamStoreLink, searchGames, type GameSearchResult } from './lib/gameSearch'
-import { connectBoard, getBoardId, getExistingPersona, type BoardConnection, type SteamProfile } from './lib/sharedBoard'
+import { connectBoard, getBoardId, type BoardConnection, type SteamProfile } from './lib/sharedBoard'
 import { connectPuzzle, createEmptyPuzzleBoard, createPuzzlePage, normalizePuzzleBoard, type PuzzleConnection } from './lib/sharedPuzzle'
 import { gameIntegrationsConfigured, loadGameAchievements, loadSteamArtwork, loadSteamCrew, resolveSteamProfile } from './lib/gameIntegrations'
 import { loadCheapSharkDeals } from './lib/cheapShark'
@@ -49,7 +51,6 @@ const SESSIONS_STORAGE_KEY = 'checkpoint-sessions-v1'
 const ACTIVITY_STORAGE_KEY = 'checkpoint-activity-v1'
 const RECOMMENDATION_FEEDBACK_STORAGE_KEY = 'checkpoint-recommendation-feedback-v1'
 const DEMO_USER = 'local-player'
-const NERN_EMAIL = 'kjsparsons@gmail.com'
 const REMNANT_CLEANUP_KEY = 'checkpoint-cleanup-remnant-v1'
 const LEGACY_PLACEHOLDER_IDS = new Set([
   'split-fiction', 'clair-obscur', 'monster-hunter', 'remnant-ii', 'sea-of-stars',
@@ -385,7 +386,9 @@ function OwnershipBadge({ game, compact = false }: { game: Game; compact?: boole
   return <span className={`ownership-badge ${ownership.everyoneOwns ? 'is-complete' : ''} ${compact ? 'is-compact' : ''}`}><span className="owner-avatars">{ownership.owners.slice(0, 3).map((member) => <Avatar id={member.id} small key={member.id} />)}</span><span>{label}</span></span>
 }
 
-function CrewModal({ members: crew, currentUserId, googlePhotoUrl, integrationError, onClose, onSavePhoto, onResolveSteam, onSaveSteam, onSaveSteamLinkPreference, onSaveBookmarkColor }: {
+function CrewModal({ boardId, isOwner, members: crew, currentUserId, googlePhotoUrl, integrationError, onClose, onSavePhoto, onResolveSteam, onSaveSteam, onSaveSteamLinkPreference, onSaveBookmarkColor }: {
+  boardId: string
+  isOwner: boolean
   members: Member[]
   currentUserId: string
   googlePhotoUrl?: string | null
@@ -463,8 +466,9 @@ function CrewModal({ members: crew, currentUserId, googlePhotoUrl, integrationEr
     <div className="modal-backdrop" onMouseDown={onClose}>
       <section className="modal crew-modal" onMouseDown={(event) => event.stopPropagation()} aria-modal="true" role="dialog">
         <div className="modal-heading"><div><span className="eyebrow">Checkpoint Crew</span><h2>{crew.length} {crew.length === 1 ? 'player' : 'players'} synced</h2></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
-        <div className="crew-auto-note"><Users size={18} /><div><strong>Joining is automatic</strong><p>Nern, Jern, and Vern appear here as soon as they sign in and choose their crew name.</p></div></div>
+        <div className="crew-auto-note"><Users size={18} /><div><strong>Private group</strong><p>Only existing members can access this group. Profiles and collections stay attached to their original accounts.</p></div></div>
         <div className="crew-list">{crew.map((member) => <div className="crew-member" key={member.id}><Avatar id={member.id} /><div><strong>{member.name}</strong><span>{member.id === currentUserId ? 'You · online' : 'Crew member'}</span></div></div>)}</div>
+        {firebaseConfigured && <MembershipSettings boardId={boardId} isOwner={isOwner} />}
         {currentMember && <BookmarkColorSettings key={currentUserId} member={currentMember} onSave={onSaveBookmarkColor} />}
         {currentMember && <div className="profile-image-panel"><div className="profile-image-preview"><Avatar id={currentUserId} /><div><strong>Your profile image</strong><span>{currentMember.customPhotoUrl ? 'Custom image' : googlePhotoUrl ? 'From Google' : 'Crew initials'}</span></div></div><div className="profile-image-actions">
           <label className={`button button-secondary ${saving ? 'is-disabled' : ''}`}><Camera size={16} /> {saving ? 'Saving…' : 'Upload custom'}<input type="file" accept="image/*" disabled={saving} onChange={(event) => { void saveFile(event.target.files?.[0]); event.currentTarget.value = '' }} /></label>
@@ -1496,25 +1500,7 @@ function SignInScreen({ loading, error, onSignIn }: { loading: boolean; error: s
           <span className="google-g">G</span>{loading ? 'Opening Google…' : 'Continue with Google'}
         </button>
         {error && <p className="sign-in-error">{error}</p>}
-        <small>Only people with this private Checkpoint link can join the board.</small>
-      </section>
-    </main>
-  )
-}
-
-function PersonaScreen({ user, onChoose }: { user: User; onChoose: (persona: Persona) => void }) {
-  return (
-    <main className="sign-in-screen identity-screen">
-      <div className="sign-in-glow" />
-      <section className="sign-in-card identity-card">
-        <div className="sign-in-brand"><CheckpointLogo className="brand-mark" /><strong>checkpoint</strong></div>
-        <span className="eyebrow">One last checkpoint</span>
-        <h1>Who are you?</h1>
-        <p>You’re signed in as {user.email}. Pick your crew name so votes and games stay attached to you.</p>
-        <div className="identity-options">
-          {(['Jern', 'Vern'] as Persona[]).map((name) => <button key={name} type="button" onClick={() => onChoose(name)}><span>{name[0]}</span><strong>{name}</strong><small>Play as {name}</small></button>)}
-        </div>
-        <button className="identity-sign-out" type="button" onClick={() => signOut()}>Use a different Google account</button>
+        <small>Access is limited to existing group members. New sign-ups are currently closed.</small>
       </section>
     </main>
   )
@@ -1649,8 +1635,12 @@ function App() {
   const [recommendationsError, setRecommendationsError] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [authReady, setAuthReady] = useState(!firebaseConfigured)
-  const [persona, setPersona] = useState<Persona | null>(firebaseConfigured ? null : 'Nern')
+  const [persona, setPersona] = useState<string | null>(firebaseConfigured ? null : 'Nern')
   const [personaReady, setPersonaReady] = useState(!firebaseConfigured)
+  const [accessUid, setAccessUid] = useState<string | null>(null)
+  const [accessError, setAccessError] = useState('')
+  const [isBoardOwner, setIsBoardOwner] = useState(false)
+  const [accessRevision, setAccessRevision] = useState(0)
   const [authBusy, setAuthBusy] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
   const [groupMembers, setGroupMembers] = useState<Member[]>(members)
@@ -1702,11 +1692,6 @@ function App() {
   const lastSyncedBoardStateRef = useRef('')
   const currentBoardStateRef = useRef({ games, books, gameNights, sessions, activity })
   const boardHydratedRef = useRef(false)
-  const initialGamesRef = useRef(games)
-  const initialBooksRef = useRef(books)
-  const initialGameNightsRef = useRef(gameNights)
-  const initialSessionsRef = useRef(sessions)
-  const initialActivityRef = useRef(activity)
   currentBoardStateRef.current = { games, books, gameNights, sessions, activity }
 
   useEffect(() => localStorage.setItem(STORAGE_KEY, JSON.stringify(games)), [games])
@@ -1742,41 +1727,35 @@ function App() {
   useEffect(() => watchAuth((nextUser) => { setUser(nextUser); setAuthReady(true) }), [])
   useEffect(() => {
     let active = true
-    if (!firebaseConfigured) {
-      setPersona('Nern')
-      setPersonaReady(true)
-      return
-    }
-    if (!user) {
-      setPersona(null)
-      setPersonaReady(true)
-      return
-    }
+    setAccessUid(null)
+    setAccessError('')
+    setIsBoardOwner(false)
+    if (!firebaseConfigured) { setPersona('Nern'); setPersonaReady(true); return }
+    setPersona(null)
     setPersonaReady(false)
-    if (user.email?.toLowerCase() === NERN_EMAIL) {
-      setPersona('Nern')
-      localStorage.setItem(`checkpoint-persona:${user.uid}`, 'Nern')
-      setPersonaReady(true)
-      return
-    }
-    const stored = localStorage.getItem(`checkpoint-persona:${user.uid}`)
-    getExistingPersona(boardId, user).then((existing) => {
+    boardHydratedRef.current = false
+    lastSyncedBoardStateRef.current = ''
+    if (!user) { setPersonaReady(true); return }
+    getMembership(boardId, user.uid).then(access => {
       if (!active) return
-      const resolved = existing ?? (stored === 'Jern' || stored === 'Vern' ? stored : null)
-      setPersona(resolved)
+      setPersona(access?.name || null)
+      setIsBoardOwner(Boolean(access?.owner))
+      setAccessUid(user.uid)
+      if (access) clearInvitation(boardId)
+      setPersonaReady(true)
+    }).catch(() => {
+      if (!active) return
+      setAccessUid(user.uid)
+      setAccessError('Could not verify group access. Check your connection and retry. Your data has not been changed.')
       setPersonaReady(true)
     })
     return () => { active = false }
-  }, [boardId, user])
+  }, [boardId, user, accessRevision])
   useEffect(() => {
-    if (!firebaseConfigured || !user || !persona) return
+    if (!firebaseConfigured || !user || !persona || !personaReady || accessUid !== user.uid) return
     let active = true
     setSyncStatus('connecting')
-    setGroupMembers((current) => {
-      const optimisticMember: Member = { id: user.uid, name: persona, persona, initials: persona[0], color: '#a990e8', photoUrl: user.photoURL || undefined, googlePhotoUrl: user.photoURL || undefined }
-      return current.some((member) => member.id === user.uid) ? current.map((member) => member.id === user.uid ? { ...member, ...optimisticMember } : member) : [...current, optimisticMember]
-    })
-    connectBoard(boardId, user, persona, initialGamesRef.current, initialBooksRef.current, initialGameNightsRef.current, initialSessionsRef.current, initialActivityRef.current, (remoteGames, remoteBooks, remoteMembers, remoteGameNights, remoteSessions, remoteActivity, remoteRecommendationFeedback) => {
+    connectBoard(boardId, user, persona, (remoteGames, remoteBooks, remoteMembers, remoteGameNights, remoteSessions, remoteActivity, remoteRecommendationFeedback) => {
       if (!active) return
       const cleanedGames = cleanRemoteGames(remoteGames)
       const recovery = recoverMissingGameAdds(cleanedGames, remoteActivity)
@@ -1798,20 +1777,34 @@ function App() {
       const remoteMember = remoteMembers.find((member) => member.id === user.uid)
       if (remoteMember?.preferredMode) setMode(remoteMember.preferredMode)
       setRecommendationFeedback(remoteRecommendationFeedback)
-    }, state => { if (active) setBoardConnection(state) }).then((connection) => {
+    }, state => {
+      if (!active) return
+      if (state === 'denied') {
+        setPersona(null)
+        setIsBoardOwner(false)
+        setSyncStatus('error')
+        setAccessError('Group access is no longer available. Contact the owner if you believe this is a mistake.')
+        boardHydratedRef.current = false
+      } else {
+        setBoardConnection(state)
+        if (state === 'error') { setSyncStatus('error'); boardHydratedRef.current = false }
+      }
+    }).then((connection) => {
       if (!active) { connection?.close(); return }
       connectionRef.current = connection
       setSyncStatus(connection ? 'live' : 'local')
     }).catch(() => { if (active) setSyncStatus('error') })
     return () => { active = false; connectionRef.current?.close(); connectionRef.current = null }
-  }, [boardId, persona, user])
+  }, [boardId, persona, user, personaReady, accessUid])
   useEffect(() => {
-    if (syncStatus !== 'live' || !connectionRef.current) return
+    if (syncStatus !== 'live' || !connectionRef.current || !boardHydratedRef.current) return
     const boardState = { games, books, gameNights, sessions, activity }
     const serialized = JSON.stringify(boardState)
     if (serialized === lastSyncedBoardStateRef.current) return
+    const connection = connectionRef.current
     const timer = window.setTimeout(() => {
-      connectionRef.current?.saveState(boardState).then(() => {
+      if (!boardHydratedRef.current || connectionRef.current !== connection) return
+      connection.saveState(boardState).then(() => {
         lastSyncedBoardStateRef.current = serialized
       }).catch(() => setSyncStatus('error'))
     }, 350)
@@ -2351,16 +2344,10 @@ function App() {
     return resolveSteamProfile(boardId, profile)
   }
 
-  function choosePersona(nextPersona: Persona) {
-    if (!user) return
-    localStorage.setItem(`checkpoint-persona:${user.uid}`, nextPersona)
-    setPersona(nextPersona)
-  }
-
   if (firebaseConfigured && !authReady) return <LoadingScreen />
   if (firebaseConfigured && !user) return <SignInScreen loading={authBusy} error={authError} onSignIn={handleSignIn} />
-  if (firebaseConfigured && user && !personaReady) return <LoadingScreen />
-  if (firebaseConfigured && user && !persona) return <PersonaScreen user={user} onChoose={choosePersona} />
+  if (firebaseConfigured && user && (!personaReady || accessUid !== user.uid)) return <LoadingScreen />
+  if (firebaseConfigured && user && !persona) return <MembershipGate user={user} boardId={boardId} error={accessError} onRetry={() => setAccessRevision(value => value + 1)} />
 
   const navigationState = syncStatus === 'error' || boardConnection === 'error' ? 'error' : mode === 'music' ? musicConnection : boardConnection
   const navigationSync = <NavigationSync state={navigationState} label={mode === 'music' ? 'Music' : mode === 'books' ? 'Books' : 'Games'} onShare={copyBoardLink} />
@@ -2454,7 +2441,7 @@ function App() {
       {editingSession && <SessionGameModal session={editingSession} games={activeGames} onClose={() => setEditingSessionId(null)} onSave={(gameId) => changeSessionGame(editingSession.id, gameId)} />}
       {editingSessionNotes && <SessionNotesModal session={editingSessionNotes} onClose={() => setEditingSessionNotesId(null)} onSave={(note, nextObjective) => saveSessionNotes(editingSessionNotes.id, note, nextObjective)} />}
       {declineNightId && gameNights.find((night) => night.id === declineNightId) && <SuggestTimeModal gameNight={gameNights.find((night) => night.id === declineNightId)!} onClose={() => setDeclineNightId(null)} onSuggest={(startAt, endAt) => declineGameNight(declineNightId, startAt, endAt)} />}
-      {showCrew && <CrewModal members={groupMembers} currentUserId={currentUser} googlePhotoUrl={user?.photoURL} integrationError={integrationError} onClose={() => setShowCrew(false)} onSavePhoto={saveProfileImage} onResolveSteam={resolveSteamLink} onSaveSteam={saveSteamProfile} onSaveSteamLinkPreference={saveSteamLinkPreference} onSaveBookmarkColor={saveBookmarkColor} />}
+      {showCrew && <CrewModal boardId={boardId} isOwner={isBoardOwner} members={groupMembers} currentUserId={currentUser} googlePhotoUrl={user?.photoURL} integrationError={integrationError} onClose={() => setShowCrew(false)} onSavePhoto={saveProfileImage} onResolveSteam={resolveSteamLink} onSaveSteam={saveSteamProfile} onSaveSteamLinkPreference={saveSteamLinkPreference} onSaveBookmarkColor={saveBookmarkColor} />}
       {selected && <GameDetailsModal game={selected} onClose={() => setSelectedId(null)} onVote={() => vote(selected.id)} onSave={(updates) => updateGame(selected.id, updates)} onRemove={() => removeGame(selected)} onArchive={() => { void archiveWishlistGame(selected); setSelectedId(null) }} onChangeGame={() => { setChangeGameId(selected.id); setSelectedId(null) }} onRefreshArtwork={() => setArtworkGameId(selected.id)} onAddDlc={() => openAddGame(selected)} onOpenPuzzle={() => { setPuzzleGameId(selected.id); setSelectedId(null) }} onManualOwnershipChange={(memberId, owned) => updateManualOwnership(selected.id, memberId, owned)} />}
       {artworkGame && <ArtworkRefreshModal game={artworkGame} onClose={() => setArtworkGameId(null)} onRefresh={(match) => refreshGameArtwork(artworkGame.id, match)} />}
       {changeGame && <ChangeGameModal game={changeGame} onClose={() => setChangeGameId(null)} onChange={(updates) => replaceGame(changeGame.id, updates)} />}

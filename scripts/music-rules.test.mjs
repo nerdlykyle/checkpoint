@@ -1,9 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {initializeApp,deleteApp} from 'firebase/app'
-import {initializeFirestore,connectFirestoreEmulator,doc,setDoc,getDoc,getDocs,collection,updateDoc,runTransaction} from 'firebase/firestore'
+import {initializeFirestore,connectFirestoreEmulator,doc,setDoc,getDoc,getDocs,collection,runTransaction} from 'firebase/firestore'
 import {makeMusicItem} from '../src/lib/music.ts'
 import {makeFavoriteArtist} from '../src/lib/musicArtists.ts'
+import {emulatorAdmin} from './emulator-admin.mjs'
 test('music records sync across crew, preserve concurrent edits, and isolate private data',{skip:!process.env.FIRESTORE_EMULATOR_HOST},async()=>{
   const [host,port]=process.env.FIRESTORE_EMULATOR_HOST.split(':'),apps=[]
   const create=(uid)=>{const app=initializeApp({projectId:'demo-checkpoint'},`music-${uid||'anon'}-${Date.now()}`);apps.push(app);const db=initializeFirestore(app,{});connectFirestoreEmulator(db,host,Number(port),uid?{mockUserToken:{sub:uid,user_id:uid,email:`${uid}@example.test`}}:undefined);return db}
@@ -12,8 +13,7 @@ test('music records sync across crew, preserve concurrent edits, and isolate pri
   const path=['boards',board,'music','test-album'],item=makeMusicItem({id:'test-album',title:'Test album',artists:['Test artist'],kind:'album'},'owner')
   const denied=(promise)=>assert.rejects(promise,error=>error.code==='permission-denied')
   try{
-    await setDoc(doc(owner,'boards',board),{games:[],books:[],ownerUid:'owner',members:{owner:profile('owner')}})
-    await updateDoc(doc(other,'boards',board),{'members.other':profile('other')})
+    await emulatorAdmin().doc(`boards/${board}`).set({games:[],books:[],ownerUid:'owner',members:{owner:profile('owner'),other:profile('other')}})
     await setDoc(doc(owner,...path),item)
     assert.equal((await getDoc(doc(other,...path))).data().title,'Test album')
     assert.equal((await getDocs(collection(other,'boards',board,'music'))).size,1)
