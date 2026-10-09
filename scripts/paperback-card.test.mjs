@@ -32,18 +32,20 @@ test('paperback opens the existing book dialog, without an extra settings screen
   assert.match(home, /<PaperbackCard book=\{currentClubBook\}[^>]+club/)
 })
 
-test('paperback motion has touch, keyboard, reduced-motion, and uncropped-cover support', () => {
+test('paperback motion has touch, keyboard, reduced-motion, and full-bleed-cover support', () => {
   const css = readFileSync(new URL('../src/PaperbackCard.css', import.meta.url), 'utf8')
   const card = readFileSync(new URL('../src/PaperbackCard.tsx', import.meta.url), 'utf8')
   assert.match(card, /event.pointerType === 'mouse'/)
   assert.match(card, /onFocus=\{riffle\}/)
   assert.match(card, /length: 20/)
-  assert.match(css, /animation-delay:calc\(var\(--page\) \* 14ms\)/)
+  assert.match(css, /animation-delay:calc\(\(19 - var\(--page\)\) \* 24ms\)/)
+  assert.match(css, /rotateY\(-58deg\)/)
+  assert.match(css, /paperback-curl-light/)
   assert.doesNotMatch(css, /rotateY\(-108deg\)|paperback-cover-back/)
   assert.match(css, /paperback-wear/)
   assert.match(card, /paperback-settings icon-button/)
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)/)
-  assert.match(css, /object-fit:contain/)
+  assert.match(css, /object-fit:cover; object-position:center/)
   assert.match(css, /repeat\(2,minmax\(0,1fr\)\)/)
 })
 

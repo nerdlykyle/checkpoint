@@ -4,7 +4,7 @@
 .paperback-cover { position:absolute; inset:0; z-index:2; border-radius:3px 7px 7px 3px; transform-origin:left center; transform-style:preserve-3d;  box-shadow:2px 0 4px #0005; pointer-events:none; }
 .paperback-cover-front { background:linear-gradient(145deg,#6558ae,#243b40); transform:translateZ(.5px); }
 .paperback-cover-front::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,#0006,transparent 4%,#fff3 5%,transparent 8%); pointer-events:none; }
-.paperback-cover-front img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#142026; }
+.paperback-cover-front img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center; background:#142026; }
 .paperback-cover-front > span:not(.paperback-fallback):not(.paperback-wear) { display:none; }
 .paperback-fallback { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; padding:18px; color:#f5f1e8; overflow-wrap:anywhere; }
 .paperback-fallback strong { font-size:21px; line-height:1.2; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:5; overflow:hidden; }
@@ -50,11 +50,25 @@ button.club-bookmark:is(:hover,:focus-visible) .club-bookmark-ribbon { transform
 .paperback-settings.icon-button { position:absolute; z-index:5; top:8px; left:8px; display:grid; place-items:center; width:44px; height:44px; border:1px solid #ffffff90; color:white; backdrop-filter:blur(12px) brightness(.45); }
 .paperback-cover-front { position:absolute; inset:0; overflow:hidden; border-radius:inherit; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
 .paperback-pages { position:absolute; inset:3px 0 3px 2px; pointer-events:none; transform-style:preserve-3d; }
-.paperback-page { position:absolute; inset:0; border:1px solid #a99c84; border-radius:2px 8px 7px 2px; background:linear-gradient(90deg,#b4a78e,#eee4d0 12%,#f4ebd8 85%,#c8b897); transform-origin:left center; transform:translateZ(calc(var(--page) * .12px)); }
-.paperback-card.is-riffling .paperback-page { animation:paperback-page-riffle 1100ms cubic-bezier(.25,.65,.3,1) both; animation-delay:calc(var(--page) * 14ms); }
-.paperback-card.is-riffling .paperback-cover { animation:paperback-cover-curl 1450ms cubic-bezier(.25,.65,.3,1) both; }
+.paperback-page { position:absolute; inset:0; border:1px solid #a99c84; border-radius:2px 8px 7px 2px; background:linear-gradient(90deg,#b4a78e,#eee4d0 12%,#f4ebd8 70%,#fff6e1 88%,#b7a786); transform-origin:left center; transform:translateZ(calc(var(--page) * .16px)); backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+/* The upper sheets turn first; the lower sheets follow like a thumbed paperback.
+   All 20 finish before the cover settles, without crossing the backface. */
+.paperback-card.is-riffling .paperback-page { animation:paperback-page-riffle 1150ms cubic-bezier(.25,.65,.3,1) both; animation-delay:calc((19 - var(--page)) * 24ms); }
+.paperback-card.is-riffling .paperback-cover { animation:paperback-cover-curl 1950ms cubic-bezier(.25,.65,.3,1) both; }
+.paperback-cover-front::before { content:''; position:absolute; z-index:1; inset:0; pointer-events:none; opacity:0; background:linear-gradient(90deg,transparent 42%,#0004 67%,#fff6 86%,#0005); }
+.paperback-card.is-riffling .paperback-cover-front::before { animation:paperback-curl-light 1950ms ease-in-out both; }
 .paperback-wear { display:block; position:absolute; inset:0; pointer-events:none; opacity:.38; background-image:url('./assets/vinyl-grain.svg'),linear-gradient(90deg,#d4c5a199,transparent 2%,#eee1c766 3%,transparent 5% 97%,#e6d7b599),linear-gradient(0deg,#dcc9a7bb,transparent 1.5% 98%,#e8dac1bb); background-size:140px 140px,100% 100%,100% 100%; mix-blend-mode:screen; box-shadow:inset 1px 0 2px #f3e6c8; }
 .paperback-wear::after { content:''; position:absolute; inset:0; background:linear-gradient(132deg,transparent 98%,#e6d8bd 98.5%),linear-gradient(90deg,transparent 7%,#201a1433 8%,transparent 8.5%); }
-@keyframes paperback-cover-curl { 0%,100% { transform:rotateY(0) rotateZ(0) translateZ(4px); border-radius:3px 7px 7px 3px; } 28%,45% { transform:rotateY(-22deg) rotateZ(-.6deg) translateZ(4px); border-radius:3px 18px 14px 3px; } }
-@keyframes paperback-page-riffle { 0%,100% { transform:rotateY(0) translateZ(calc(var(--page) * .12px)); } 28%,42% { transform:rotateY(calc(-4deg - var(--page) * .6deg)) translateZ(calc(var(--page) * .12px)); border-radius:2px 15px 12px 2px; } }
-@media(prefers-reduced-motion:reduce) { .paperback-card.is-riffling :is(.paperback-page,.paperback-cover) { animation:none; } }
+@keyframes paperback-cover-curl {
+  0%,100% { transform:translateZ(4px) rotateY(0) rotateZ(0) skewY(0); border-radius:3px 7px 7px 3px; box-shadow:2px 0 4px #0005; }
+  24%,42% { transform:translateZ(4px) rotateY(-58deg) rotateZ(-1.2deg) skewY(-2deg); border-radius:3px 42px 30px 3px; box-shadow:12px 7px 18px #0006; }
+  85% { transform:translateZ(4px) rotateY(-4deg) rotateZ(0) skewY(0); border-radius:3px 10px 9px 3px; }
+  94% { transform:translateZ(4px) rotateY(.6deg) rotateZ(0) skewY(0); border-radius:3px 7px 7px 3px; }
+}
+@keyframes paperback-page-riffle {
+  0%,100% { transform:translateZ(calc(var(--page) * .16px)) rotateY(0) skewY(0); border-radius:2px 8px 7px 2px; box-shadow:none; }
+  28%,40% { transform:translateZ(calc(var(--page) * .16px)) rotateY(calc(-16deg - var(--page) * 1.8deg)) skewY(-1.5deg); border-radius:2px 38px 28px 2px; box-shadow:3px 2px 4px #48371e45; }
+  70% { transform:translateZ(calc(var(--page) * .16px)) rotateY(-9deg) skewY(-.4deg); border-radius:2px 18px 12px 2px; box-shadow:1px 0 2px #48371e30; }
+}
+@keyframes paperback-curl-light { 0%,100% { opacity:0; } 24%,42% { opacity:.85; } 85% { opacity:.1; } }
+@media(prefers-reduced-motion:reduce) { .paperback-card.is-riffling :is(.paperback-page,.paperback-cover),.paperback-card.is-riffling .paperback-cover-front::before { animation:none; } }
