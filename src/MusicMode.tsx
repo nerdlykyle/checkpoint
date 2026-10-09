@@ -10,6 +10,7 @@ import { AddMusic, LogListen, MusicEditor, MusicModal } from './MusicForms'
 import type { MusicResult } from './lib/musicSearch'
 import MusicDetails, { MusicLinks, MusicVotes } from './MusicDetails'
 import MusicCard from './MusicCard'
+import MusicTurntable from './MusicTurntable'
 import MusicAlbumTile from './MusicAlbumTile'
 import CollectionFilters from './CollectionFilters'
 import CollectionStack from './CollectionStack'
@@ -68,6 +69,7 @@ export function MusicContent({boardId,user,crew,section,onSection,search,showAdd
   const fromFriends=musicFromFriends(items,user)
   const tile=(item:MusicItem)=> <MusicAlbumTile key={item.id} item={item} service={service} source={crew.find(member=>member.id===item.organization[owner]?.savedFrom)} saved={inMusicLibrary(item,user)} onOpen={()=>setSelectedId(item.id)} onSave={!mine?()=>{void savePersonal(item,owner)}:undefined}/>
   const card=(item:MusicItem)=>{
+    if(item.club?.status==='listening')return <MusicTurntable key={item.id} item={item} service={service} onOpen={()=>setSelectedId(item.id)}/>
     const ratings=Object.values(item.ratings),average=ratings.length?(ratings.reduce((sum,value)=>sum+value.stars,0)/ratings.length).toFixed(1):''
     return <MusicCard key={item.id} item={item} dropTarget={false} onOpen={()=>setSelectedId(item.id)} source={crew.find(member=>member.id===item.organization[user]?.savedFrom)}>
       <div className="music-card-copy"><span className="eyebrow">{item.kind} {item.year?`· ${item.year}`:''}</span><p>{item.artists.join(', ')}</p><h3 className="music-title-button">{item.title}</h3><small>{item.genres.join(' · ')}{average?` · ★ ${average}`:''}</small>{item.kind==='song'&&item.sharedBy&&<p>Shared by {name(item.sharedBy)}</p>}</div>

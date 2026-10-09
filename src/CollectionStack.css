@@ -18,5 +18,6 @@
 body .collection-stack-close { display:grid; place-items:center; flex:0 0 44px; width:44px; height:44px; min-height:44px; padding:0; border:1px solid #ffffff80; color:#fff; }
 .collection-stack-items > .button { grid-column:1/-1; justify-self:start; min-height:44px; }
 .collection-stack-releases .collection-stack-items { grid-template-columns:repeat(3,minmax(0,1fr)); }
-.collection-stack-releases .collection-stack-layers { inset:3px 5px 8px; }
+.collection-stack-releases .collection-stack-layers { inset:3px 5px auto; aspect-ratio:1; }
+.collection-stack-releases .collection-stack-layer { border-radius:3px; }
 @media(max-width:700px) { .collection-stack-items { padding:8px; gap:9px; } }

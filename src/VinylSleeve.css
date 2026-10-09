@@ -1,0 +1,16 @@
+.vinyl-sleeve-wrap { position:relative; aspect-ratio:1; min-width:0; isolation:isolate; }
+.vinyl-sleeve-record { position:absolute; inset:3%; border-radius:50%; background:repeating-radial-gradient(circle,#0a0e10 0 2px,#303438 2px 3px); transition:transform 350ms ease; box-shadow:1px 1px 5px #0008; }
+.vinyl-sleeve-record::after { content:''; position:absolute; inset:32%; border-radius:50%; background:#88737d; box-shadow:inset 0 0 0 3px #161a1e; }
+.vinyl-sleeve { position:absolute; inset:0; border-radius:2px 4px 3px 2px; background:linear-gradient(140deg,#534374,#234446); box-shadow:-3px 1px 0 #bbb19955,2px 6px 13px #0008; overflow:hidden; transform:rotate(-1deg); transition:transform 350ms ease; pointer-events:none; }
+.vinyl-sleeve-fallback { position:absolute; inset:0; display:grid; place-items:center; font-size:clamp(26px,5vw,64px); color:#fff9; }
+.vinyl-sleeve img { position:absolute; inset:1px 2px 2px 4px; width:calc(100% - 6px); height:calc(100% - 3px); object-fit:cover; }
+.vinyl-sleeve::before { content:''; position:absolute; z-index:1; inset:0; background:linear-gradient(90deg,#0d11168c,transparent 3%,#fceac633 4%,transparent 6%),linear-gradient(0deg,#decba372,transparent 2% 98%,#e6d7b480); box-shadow:inset 0 0 0 1px #dbc79c80,inset 0 0 8px #d6c09135; }
+.vinyl-sleeve-wear { position:absolute; z-index:2; inset:0; opacity:.4; mix-blend-mode:screen; background-image:url('./assets/vinyl-grain.svg'),radial-gradient(circle at 50% 52%,transparent 53%,#e9daba66 54%,transparent 55.5% 57%,#e9daba55 58%,transparent 59%),repeating-linear-gradient(13deg,transparent 0 24px,#e9dfc41a 25px,transparent 26px 53px); background-size:120px 120px,100% 100%,100% 100%; }
+.vinyl-sleeve-wear::after { content:''; position:absolute; inset:0; background:linear-gradient(137deg,#e2d0b1 0 2%,transparent 2.5% 97%,#dcc8a9 98%),linear-gradient(3deg,#eee0c680,transparent 3% 98%,#dbc9a8aa); opacity:.6; }
+.vinyl-sleeve-wrap:focus-within .vinyl-sleeve-record { transform:translateX(5%); }
+.vinyl-sleeve-wrap:focus-within .vinyl-sleeve { transform:translateX(-1%) rotate(-2deg); }
+@media(hover:hover) and (pointer:fine) {
+ .vinyl-sleeve-wrap:hover .vinyl-sleeve-record { transform:translateX(5%); }
+ .vinyl-sleeve-wrap:hover .vinyl-sleeve { transform:translateX(-1%) rotate(-2deg); }
+}
+@media(prefers-reduced-motion:reduce) { .vinyl-sleeve,.vinyl-sleeve-record { transition:none; transform:none !important; } }

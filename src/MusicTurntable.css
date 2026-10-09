@@ -1,0 +1,38 @@
+.music-turntable { width:100%; max-width:720px; margin:18px 0; }
+.music-turntable-deck { position:relative; aspect-ratio:1.38; isolation:isolate; border:1px solid #586267; border-radius:15px; background:linear-gradient(125deg,#384347,#222c30 45%,#141d21); box-shadow:inset 0 2px 1px #ffffff19,inset 0 -7px 0 #080c0eb0,0 16px 25px #0004; overflow:hidden; }
+.music-turntable-hardware { position:absolute; inset:0; pointer-events:none; }
+.music-turntable-deck::before { content:''; position:absolute; inset:8px; border:1px solid #ffffff0d; border-radius:9px; pointer-events:none; background:repeating-linear-gradient(90deg,#ffffff04 0 1px,transparent 1px 4px); }
+.music-turntable-screw { position:absolute; top:15px; left:16px; width:6px; height:6px; background:linear-gradient(90deg,#111 44%,#717b7b 45% 57%,#111 58%); border-radius:50%; box-shadow:0 0 0 1px #ffffff18; }
+.music-turntable-screw.is-right { left:auto; right:16px; }
+.music-turntable-platter { position:absolute; left:4.7%; top:5%; width:64%; aspect-ratio:1; border-radius:50%; background:repeating-conic-gradient(#555c5f 0deg 1deg,#14191c 1deg 3deg); padding:5px; box-shadow:0 7px 16px #0009,inset 0 0 0 2px #90959655; }
+.music-turntable-record { position:relative; width:100%; height:100%; border-radius:50%; background:repeating-radial-gradient(circle,#111315 0 3px,#292c30 3px 3.6px,#101214 3.6px 5px); box-shadow:inset 0 0 0 3px #090b0d; animation:music-vinyl-spin 18s linear infinite; overflow:hidden; }
+.music-turntable-platter::after { content:''; position:absolute; inset:5px; border-radius:50%; background:conic-gradient(from 25deg,transparent 0deg,#dceaf615 35deg,transparent 62deg 172deg,#c6d8e51a 212deg,transparent 242deg); pointer-events:none; }
+.music-turntable-label { position:absolute; width:43%; aspect-ratio:1; left:50%; top:50%; transform:translate(-50%,-50%); border-radius:50%; overflow:hidden; border:1px solid #ded3b070; box-shadow:0 0 0 4px #08090b,0 0 0 6px #303032; background:linear-gradient(140deg,#534374,#234446); display:grid; place-items:center; color:#eee; font-size:clamp(14px,4vw,36px); }
+.music-turntable-label img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.music-turntable-spindle { position:absolute; z-index:4; left:50%; top:50%; transform:translate(-50%,-50%); width:9px; height:9px; border-radius:50%; background:radial-gradient(circle at 30% 25%,#fff,#7e898f 50%,#202428 85%); box-shadow:0 0 0 3px #13171b,1px 3px 4px #0008; }
+.music-turntable-pivot { position:absolute; z-index:5; left:80%; top:15%; width:9%; aspect-ratio:1; border-radius:50%; background:radial-gradient(circle,#9aa3a6 0 14%,#252c30 15% 27%,#737d81 28% 33%,#151c20 34% 52%,#515d61 53% 66%,#111a1e 68%); box-shadow:3px 4px 7px #0007; }
+.music-turntable-arm { position:absolute; z-index:6; left:calc(84.5% - 5px); top:19%; width:10px; height:47%; transform-origin:50% 0; transform:rotate(41deg); filter:drop-shadow(4px 4px 3px #0007); }
+.music-turntable-arm::before { content:''; position:absolute; left:2px; top:0; bottom:13px; width:6px; border-radius:6px; background:linear-gradient(90deg,#4e585c,#d5dadd 45%,#869096 65%,#414c50); }
+.music-turntable-counterweight { position:absolute; width:26px; height:21px; left:-8px; top:-21px; border-radius:4px; background:repeating-linear-gradient(#788287 0 1px,#39454b 1px 4px); box-shadow:inset 0 1px 1px #ffffff55; }
+.music-turntable-headshell { position:absolute; bottom:0; left:-4px; width:18px; height:31px; border-radius:4px 4px 2px 2px; background:linear-gradient(90deg,#10171b,#46555e 40%,#161e22); border:1px solid #657176; transform:rotate(-12deg); }
+.music-turntable-headshell::after { content:''; position:absolute; bottom:-5px; left:5px; width:5px; height:7px; border-radius:1px; background:#bbabdf; }
+.music-turntable-brand { position:absolute; right:6%; top:7%; font:700 11px Arial,sans-serif; letter-spacing:.03em; color:#c8cece; }
+.music-turntable-indicator { position:absolute; bottom:15px; left:7%; font-size:11px; color:#a0acb1; display:flex; align-items:center; gap:7px; }
+.music-turntable-indicator>span { width:5px; height:5px; background:#9ee2bb; border-radius:50%; box-shadow:0 0 5px #9ee2bb; }
+body .music-turntable-menu { position:absolute; right:5%; bottom:5%; width:44px; height:44px; min-height:44px; padding:0; display:grid; place-items:center; border:1px solid #607078; color:#fff; z-index:7; }
+.music-turntable-caption { display:flex; justify-content:space-between; align-items:center; gap:15px; margin-top:17px; }
+.music-turntable-caption>div:first-child { min-width:0; flex:1; }
+.music-turntable-caption p { font-size:14px; color:#b3baba; margin:0 0 4px; overflow-wrap:anywhere; }
+.music-turntable-caption h3 { font-size:clamp(18px,3vw,25px); line-height:1.2; margin:0; overflow-wrap:anywhere; }
+.music-turntable-caption .music-listening-links { flex-direction:row; flex-wrap:wrap; margin:0; gap:6px; }
+@keyframes music-vinyl-spin { to { transform:rotate(360deg); } }
+@media(max-width:480px) {
+ .music-turntable-caption { align-items:flex-start; gap:8px; }
+ .music-turntable-caption .music-listening-links { gap:4px; }
+ .music-turntable-arm { width:8px; }
+ .music-turntable-counterweight { width:20px; height:15px; left:-6px; top:-15px; }
+ .music-turntable-headshell { width:14px; height:24px; left:-2px; }
+ .music-turntable-brand { font-size:10px; }
+ .music-turntable-indicator { bottom:10px; left:6%; }
+}
+@media(prefers-reduced-motion:reduce) { .music-turntable-record { animation:none; } }

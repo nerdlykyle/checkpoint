@@ -39,3 +39,29 @@ test('global accent fills exclude artwork hit areas on hover and press', () => {
   assert.ok(fills.some(([, selector]) => selector.includes(':hover')))
   assert.ok(fills.some(([, selector]) => selector.includes(':active')))
 })
+
+test('only current club listens render an always-spinning decorative turntable', () => {
+  const mode = readFileSync(new URL('../src/MusicMode.tsx', import.meta.url), 'utf8')
+  const component = readFileSync(new URL('../src/MusicTurntable.tsx', import.meta.url), 'utf8')
+  const css = readFileSync(new URL('../src/MusicTurntable.css', import.meta.url), 'utf8')
+  assert.match(mode, /if\(item.club\?\.status==='listening'\)return <MusicTurntable/)
+  assert.match(component, /aria-haspopup="dialog" onClick={onOpen}/)
+  assert.doesNotMatch(component, /setInterval|setTimeout|onMouseEnter|Pause|<audio|<video/)
+  assert.match(component, /safeHttpUrl\(item.coverUrl\)/)
+  assert.match(css, /animation:music-vinyl-spin 18s linear infinite/)
+  assert.match(css, /height:47%; transform-origin:50% 0; transform:rotate\(41deg\)/)
+  assert.match(css, /prefers-reduced-motion:reduce.*animation:none/s)
+})
+
+test('non-current cards and library tiles share a worn sleeve with explicit artwork controls', () => {
+  for (const file of ['MusicCard', 'MusicAlbumTile']) {
+    const source = readFileSync(new URL('../src/' + file + '.tsx', import.meta.url), 'utf8')
+    assert.match(source, /<VinylSleeve item={item}>/)
+    assert.match(source, /<ArtworkControls/)
+    assert.doesNotMatch(source, /card-glass|music-cinematic/)
+  }
+  const sleeve = readFileSync(new URL('../src/VinylSleeve.tsx', import.meta.url), 'utf8')
+  assert.match(sleeve, /url !== failedUrl/)
+  assert.match(sleeve, /vinyl-sleeve-fallback/)
+  assert.match(sleeve, /safeHttpUrl\(item.coverUrl\)/)
+})
