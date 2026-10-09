@@ -34,9 +34,14 @@ test('paperback opens the existing book dialog, without an extra settings screen
 
 test('paperback motion has touch, keyboard, reduced-motion, and uncropped-cover support', () => {
   const css = readFileSync(new URL('../src/PaperbackCard.css', import.meta.url), 'utf8')
-  assert.match(css, /hover:hover\) and \(pointer:fine/)
-  assert.match(css, /paperback-open:focus-visible \.paperback-cover/)
-  assert.match(css, /@media\(hover:none\)/)
+  const card = readFileSync(new URL('../src/PaperbackCard.tsx', import.meta.url), 'utf8')
+  assert.match(card, /event.pointerType === 'mouse'/)
+  assert.match(card, /onFocus=\{riffle\}/)
+  assert.match(card, /length: 20/)
+  assert.match(css, /animation-delay:calc\(var\(--page\) \* 14ms\)/)
+  assert.doesNotMatch(css, /rotateY\(-108deg\)|paperback-cover-back/)
+  assert.match(css, /paperback-wear/)
+  assert.match(card, /paperback-settings icon-button/)
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)/)
   assert.match(css, /object-fit:contain/)
   assert.match(css, /repeat\(2,minmax\(0,1fr\)\)/)

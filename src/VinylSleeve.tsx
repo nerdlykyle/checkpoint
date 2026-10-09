@@ -1,18 +1,18 @@
-import { useState, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
+import SharpArtwork from './SharpArtwork'
 import { safeHttpUrl, type MusicItem } from './lib/music'
 import './VinylSleeve.css'
 
-/** Physical sleeve styling is independent of the album artwork and its controls. */
+/** Artwork and its controls share one moving sleeve; the record stays behind. */
 export default function VinylSleeve({ item, children }: { item: MusicItem; children?: ReactNode }) {
-  const [failedUrl, setFailedUrl] = useState<string>()
   const url = item.coverUrl && safeHttpUrl(item.coverUrl)
   return <div className="vinyl-sleeve-wrap">
     <div className="vinyl-sleeve-record" aria-hidden="true" />
-    <div className="vinyl-sleeve" aria-hidden="true">
-      <span className="vinyl-sleeve-fallback">{item.title.slice(0, 2).toUpperCase()}</span>
-      {url && url !== failedUrl && <img src={url} alt="" loading="lazy" decoding="async" onError={() => setFailedUrl(url)} />}
-      <span className="vinyl-sleeve-wear" />
+    <div className="vinyl-sleeve">
+      <span className="vinyl-sleeve-fallback" aria-hidden="true">{item.title.slice(0, 2).toUpperCase()}</span>
+      {url && <SharpArtwork src={url} />}
+      <span className="vinyl-sleeve-wear" aria-hidden="true" />
+      {children}
     </div>
-    {children}
   </div>
 }

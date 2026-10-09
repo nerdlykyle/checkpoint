@@ -21,7 +21,9 @@ export function useMusicStore(boardId: string, user: string, enabled = true) {
       setReady(true); setStatus('Demo · saved on this device'); return
     }
     if (!database || !auth?.currentUser || auth.currentUser.uid !== user) { setStatus('Sign in to sync music.'); return }
-    const stop = onSnapshot(collection(database,'boards',boardId,'music'),(snapshot) => {
+    // A cached resubscription may contain exactly the same albums as the server.
+    // Metadata events are still needed to report that connection as live.
+    const stop = onSnapshot(collection(database,'boards',boardId,'music'),{includeMetadataChanges:true},(snapshot) => {
       setItems(snapshot.docs.map((entry) => entry.data() as MusicItem)); setReady(true); setError(''); setStatus(snapshot.metadata.fromCache ? 'Music cached · reconnecting…' : 'Music shared live')
     },() => {setReady(false);setStatus('Music sync needs attention');setError('Could not load music. Check your connection and retry; your saved collection has not been replaced.')})
     const stopPreference = onSnapshot(doc(database,'musicPreferences',user),(snapshot) => {setService(snapshot.data()?.service === 'youtube' ? 'youtube' : 'spotify')},() => {setError('Could not load your music preference. You can still use either listening link.')})

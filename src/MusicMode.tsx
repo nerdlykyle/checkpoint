@@ -1,7 +1,8 @@
 import StyledSelect from "./StyledSelect"
 import MemberShelfPicker from './MemberShelfPicker'
 import FavoriteArtists from './FavoriteArtists'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { musicConnectionState, type ConnectionState } from './NavigationSync'
 import { Music2, Headphones, Library, ListMusic, ThumbsUp, Users, Settings, Heart, Shuffle, Plus } from 'lucide-react'
 import type { Member } from './types'
 import { useMusicStore, type MusicMutation } from './lib/musicStore'
@@ -14,14 +15,22 @@ import MusicTurntable from './MusicTurntable'
 import MusicAlbumTile from './MusicAlbumTile'
 import CollectionFilters from './CollectionFilters'
 import CollectionStack from './CollectionStack'
+import SharpArtwork from './SharpArtwork'
 import { artistCollections } from './lib/mediaCollections'
 import { safeHttpUrl } from './lib/music'
 import './MusicMode.css'
 
 const navIcons={home:Headphones,library:Library,artists:Heart,club:ListMusic,poll:ThumbsUp,songs:Music2,listeners:Users,settings:Settings}
 export function MusicNavigation({section,onSelect,mobile=false}:{section:MusicSection;onSelect:(value:MusicSection)=>void;mobile?:boolean}) {return <nav className={mobile?'mobile-menu-nav':'main-nav'} aria-label="Music navigation">{Object.entries(musicSections).map(([value,label])=>{const Icon=navIcons[value as MusicSection];return <button key={value} className={section===value?'active':''} onClick={()=>onSelect(value as MusicSection)}>{mobile?<><span><Icon size={19}/></span><strong>{label}</strong></>:<><Icon size={19}/><span>{label}</span></>}</button>})}</nav>}
-type Props={boardId:string;user:string;crew:Member[];section:MusicSection;onSection:(section:MusicSection)=>void;search:string;showAdd:boolean;onCloseAdd:()=>void;onOpenAdd:()=>void;notify:(message:string)=>void;boardReady:boolean}
-export default function MusicMode(props:Props) {const store=useMusicStore(props.boardId,props.user,props.boardReady);return <MusicContent {...props} store={store}/>}
+type Props={boardId:string;user:string;crew:Member[];section:MusicSection;onSection:(section:MusicSection)=>void;search:string;showAdd:boolean;onCloseAdd:()=>void;onOpenAdd:()=>void;notify:(message:string)=>void;boardReady:boolean;onSyncChange?:(state:ConnectionState)=>void}
+export default function MusicMode(props:Props) {
+  const store=useMusicStore(props.boardId,props.user,props.boardReady)
+  const state=musicConnectionState(store.status,store.error)
+  const report=props.onSyncChange
+  useEffect(()=>{report?.(state)},[report,state])
+  useEffect(()=>()=>report?.('connecting'),[report])
+  return <MusicContent {...props} store={store}/>
+}
 export function MusicContent({boardId,user,crew,section,onSection,search,showAdd,onCloseAdd,onOpenAdd,notify,store}:Props&{store:ReturnType<typeof useMusicStore>}) {
   const {items,ready,service}=store
   const [selectedId,setSelectedId]=useState<string|null>(null),[editingId,setEditingId]=useState<string|null>(null),[logId,setLogId]=useState<string|null>(null)
@@ -81,7 +90,7 @@ export function MusicContent({boardId,user,crew,section,onSection,search,showAdd
     </MusicCard>
   }
   const recent=items.filter(item=>Object.keys(item.ratings).length).sort((a,b)=>Math.max(...Object.values(b.ratings).map(value=>Date.parse(value.updatedAt)))-Math.max(...Object.values(a.ratings).map(value=>Date.parse(value.updatedAt))))
-  return <div className="page music-page"><div className="page-title-row"><div><span className="eyebrow">Checkpoint Music</span><h1>{section==='home'?"What’re we listenin’ to?":musicSections[section]}</h1><p>Your music, with a shared place to discover and discuss.</p></div><span className="music-sync" role="status">{store.status}</span></div>
+  return <div className="page music-page"><div className="page-title-row"><div><span className="eyebrow">Checkpoint Music</span><h1>{section==='home'?"What’re we listenin’ to?":musicSections[section]}</h1><p>Your music, with a shared place to discover and discuss.</p></div></div>
     {(store.error||error)&&<div className="music-error" role="alert">{error||store.error}<button onClick={()=>{setError('');store.retry()}}>Retry connection</button></div>}
     {!ready&&<p role="status">Waiting for the crew’s music collection…</p>}
     <fieldset className="music-workspace" disabled={!ready||busy}>
@@ -102,7 +111,7 @@ export function MusicContent({boardId,user,crew,section,onSection,search,showAdd
       <div className="music-filters"><label>Search<input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Artist or title"/></label><label>Genre<StyledSelect value={genre} onValueChange={value=>setGenre(value)}><option value="">All genres</option>{[...new Set(owned.flatMap(item=>item.genres))].sort().map(value=><option key={value}>{value}</option>)}<option value="__none">Uncategorized</option></StyledSelect></label><label>Tag<StyledSelect value={tag} onValueChange={value=>setTag(value)}><option value="">All tags</option>{[...new Set(owned.flatMap(item=>item.organization[owner]?.tags||[]))].sort().map(value=><option key={value}>{value}</option>)}</StyledSelect></label><label>Type<StyledSelect value={kind} onValueChange={value=>setKind(value)}><option value="albums">Albums & EPs</option><option value="songs">Songs</option><option value="all">All music</option></StyledSelect></label></div>
       <div className="music-inline-actions"><label className="music-checkbox"><input type="checkbox" checked={group} onChange={event=>setGroup(event.target.checked)}/>Group by artist</label><button className="button button-secondary" disabled={!filtered.length} onClick={()=>setSelectedId(filtered[Math.floor(Math.random()*filtered.length)].id)}><Shuffle size={15}/>Pick an album</button></div>
       </CollectionFilters>
-      <div className="music-album-grid">{group ? artistCollections(filtered).map(entries => entries.length < 2 ? tile(entries[0]) : <CollectionStack key={entries.map(item=>item.id).sort().join('|')} title={entries[0].artists.join(', ')} count={entries.length} kind="releases" front={tile(entries[0])} behind={entries.slice(1,3).map(item=>item.coverUrl && safeHttpUrl(item.coverUrl) ? <img key={item.id} src={safeHttpUrl(item.coverUrl)} alt="" loading="lazy" /> : <span key={item.id}>{item.title}</span>)}>{entries.map(tile)}</CollectionStack>) : filtered.map(tile)}</div>
+      <div className="music-album-grid">{group ? artistCollections(filtered).map(entries => entries.length < 2 ? tile(entries[0]) : <CollectionStack key={entries.map(item=>item.id).sort().join('|')} title={entries[0].artists.join(', ')} count={entries.length} kind="releases" front={tile(entries[0])} behind={entries.slice(1,3).map(item=>item.coverUrl && safeHttpUrl(item.coverUrl) ? <SharpArtwork key={item.id} src={item.coverUrl} /> : <span key={item.id}>{item.title}</span>)}>{entries.map(tile)}</CollectionStack>) : filtered.map(tile)}</div>
       {!filtered.length&&<p className="music-empty">{shelf==='friends'?'Albums you save from friends will appear here.':'No music matches this view. Try another genre or type.'}</p>}
     </>:section==='songs'?<><p className="music-muted">A shared feed for individual songs. Add music → Songs, or paste a Spotify/YouTube Music song link.</p>{items.filter(item=>item.kind==='song'&&item.sharedBy).sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).map(item=>card(item))}{!items.some(item=>item.kind==='song'&&item.sharedBy)&&<p className="music-empty">What song should the crew hear?</p>}</>:section==='poll'?<><p className="music-notice">Thumbs are for choosing our next album—not ratings. Three thumbs down closes a nomination; everyone’s personal collection stays intact.</p>{poll.map(item=>card(item))}{!poll.length&&<p className="music-empty">Open an album and nominate it to start the poll.</p>}<details className="music-artist-group"><summary>Passed on by the group</summary>{items.filter(item=>item.passedOn).map(item=>card(item))}</details></>:section==='club'?<>
       <h2>Current group listen</h2>{current?card(current):<p className="music-empty">No current group listen.</p>}<h2>Up next</h2>{clubQueue.map((item,index)=><div className="music-club-entry" key={item.id}>{card(item)}<div className="music-inline-actions"><span>#{index+1}</span><button className="button button-secondary" disabled={index===0} onClick={()=>clubMove(item,-1)}>Move up</button><button className="button button-secondary" disabled={index===clubQueue.length-1} onClick={()=>clubMove(item,1)}>Move down</button><button className="button button-primary" disabled={!!current} onClick={()=>clubAction(item,'start')}>Start group listen</button></div></div>)}{!clubQueue.length&&<p className="music-empty">Open an album and add it to club Up next.</p>}<h2>Previous group listens</h2>{items.filter(item=>item.club?.status==='listened').map(item=>card(item))}

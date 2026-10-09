@@ -211,6 +211,7 @@ export async function connectBoard(
   fallbackSessions: GameSession[],
   fallbackActivity: ActivityEntry[],
   onRemoteState: (games: Game[], books: Book[], members: Member[], gameNights: GameNight[], sessions: GameSession[], activity: ActivityEntry[], recommendationFeedback: RecommendationFeedback) => void,
+  onConnectionState?: (state: 'connecting' | 'live' | 'error') => void,
 ): Promise<BoardConnection | null> {
   if (!database) return null
   const firestore = database
@@ -309,12 +310,13 @@ export async function connectBoard(
     }
   }
 
-  const unsubscribe = onSnapshot(boardRef, (nextSnapshot) => {
-    if (!nextSnapshot.exists()) return
+  const unsubscribe = onSnapshot(boardRef, { includeMetadataChanges: true }, (nextSnapshot) => {
+    if (!nextSnapshot.exists()) { onConnectionState?.('error'); return }
+    onConnectionState?.(nextSnapshot.metadata.fromCache ? 'connecting' : 'live')
     const data = nextSnapshot.data() as BoardData
     latestMember = data.members?.[user.uid]
     if (isGameList(data.games)) onRemoteState(data.games, isBookList(data.books) ? data.books : [], membersFromData(data), isGameNightList(data.gameNights) ? data.gameNights : [], isSessionList(data.sessions) ? data.sessions : [], isActivityList(data.activity) ? data.activity : [], recommendationFeedbackFromData(data.recommendationFeedback))
-  })
+  }, () => onConnectionState?.('error'))
 
   return {
     async saveState({ games, books, gameNights, sessions, activity }) {

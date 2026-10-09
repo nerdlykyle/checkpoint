@@ -3,19 +3,19 @@ import { artworkKey, bookArtworkVersion, resolveBookArtwork, subscribeBookArtwor
 import { probeBookCover } from './lib/bookImageProbe'
 import './BookCoverImage.css'
 
-export default function BookCoverImage({ book, large = false, retry = 0, cinematic = false }: { book: ArtworkBook; large?: boolean; retry?: number; cinematic?: boolean }) {
+export default function BookCoverImage({ book, large = false, lazy = false, retry = 0, cinematic = false }: { book: ArtworkBook; large?: boolean; lazy?: boolean; retry?: number; cinematic?: boolean }) {
   const key = artworkKey(book)
   const version = useSyncExternalStore(
     useCallback(listener => subscribeBookArtwork(key, listener), [key]),
     useCallback(() => bookArtworkVersion(key), [key]),
   )
   const refreshToken = Math.max(version, retry)
-  return <CoverLoader key={`${key}:${large}:${refreshToken}`} book={book} large={large} refreshToken={refreshToken} cinematic={cinematic} />
+  return <CoverLoader key={`${key}:${large}:${refreshToken}`} book={book} large={large} lazy={lazy} refreshToken={refreshToken} cinematic={cinematic} />
 }
 
-function CoverLoader({ book, large, refreshToken, cinematic }: { book: ArtworkBook; large: boolean; refreshToken: number; cinematic: boolean }) {
+function CoverLoader({ book, large, lazy, refreshToken, cinematic }: { book: ArtworkBook; large: boolean; lazy: boolean; refreshToken: number; cinematic: boolean }) {
   const [url, setUrl] = useState<string>()
-  const [visible, setVisible] = useState(large)
+  const [visible, setVisible] = useState(large && !lazy)
   const anchor = useRef<HTMLSpanElement>(null)
   // The outer component remounts on any artwork identity change. Keep this
   // request stable when unrelated shelf/progress/metadata updates arrive.

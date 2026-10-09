@@ -13,7 +13,6 @@ export default function MusicTurntable({ item, service, onOpen }: { item: MusicI
       <div className="music-turntable-hardware" aria-hidden="true">
         <span className="music-turntable-screw" /><span className="music-turntable-screw is-right" />
         <div className="music-turntable-platter"><div className="music-turntable-record"><div className="music-turntable-label"><span>{item.title.slice(0, 2).toUpperCase()}</span>{url && url !== failedUrl && <img src={url} alt="" decoding="async" onError={() => setFailedUrl(url)} />}</div></div><span className="music-turntable-spindle" /></div>
-        <span className="music-turntable-brand">checkpoint · hi-fi</span>
         <div className="music-turntable-pivot" /><div className="music-turntable-arm"><span className="music-turntable-counterweight" /><span className="music-turntable-headshell" /></div>
         <span className="music-turntable-indicator"><span />CLUB LISTEN</span>
       </div>

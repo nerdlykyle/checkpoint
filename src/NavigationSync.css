@@ -1,0 +1,8 @@
+.navigation-sync { display:flex; align-items:center; gap:8px; min-height:32px; margin:2px 0 10px; padding:0 12px; color:#aeb9b5; font-size:11px; line-height:1.4; }
+.navigation-sync > i { width:7px; height:7px; flex:0 0 7px; border-radius:50%; background:#9099a4; }
+.navigation-sync.sync-live > i { background:#62d3a0; box-shadow:0 0 7px #62d3a044; }
+.navigation-sync.sync-connecting > i { background:#edc367; }
+.navigation-sync.sync-error > i { background:#f08085; }
+.navigation-sync > span { min-width:0; }
+.navigation-sync > button { display:grid; place-items:center; width:44px; height:44px; flex-shrink:0; padding:0; border:1px solid #657079; margin-left:auto; color:inherit; }
+@media(min-width:641px) and (max-width:850px) { .sidebar .navigation-sync { padding:0; justify-content:center; }.sidebar .navigation-sync > span { display:none; }.sidebar .navigation-sync > button { display:none; } }

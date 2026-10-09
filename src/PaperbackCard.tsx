@@ -1,4 +1,4 @@
-import { useContext } from 'react'
+import { useContext, useState, type CSSProperties } from 'react'
 import { Layers, SlidersHorizontal } from 'lucide-react'
 import { CollectionActionContext } from './CollectionActionContext'
 import BookCoverImage from './BookCoverImage'
@@ -10,6 +10,8 @@ import './PaperbackCard.css'
 
 export default function PaperbackCard({ book, user, crew = [], club = false, source, onOpen, onChapter }: { book: Book; user: string; crew?: Member[]; club?: boolean; source?: Member; onOpen: () => void; onChapter?: () => void }) {
   const collection = useContext(CollectionActionContext)
+  const [riffling, setRiffling] = useState(false)
+  const riffle = () => { if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) setRiffling(true) }
   const chapter = bookChapterBookmark(book, user)
   const color = bookmarkColor(crew.find(member => member.id === user))
   const readers = club ? (book.club?.participantIds || []).flatMap(id => {
@@ -19,25 +21,22 @@ export default function PaperbackCard({ book, user, crew = [], club = false, sou
     return [{ member, chapter: value }]
   }) : []
   const authors = book.authors.join(', ')
-  return <article className="paperback-card">
-    <button className="paperback-open" type="button" onClick={onOpen} aria-haspopup="dialog"
-      aria-label={`Open details and settings for ${book.title}${authors ? ` by ${authors}` : ''}${chapter !== null ? `, chapter ${chapter}` : ''}`}
-      title="Details & settings">
-      <span className="paperback-sheet" aria-hidden="true">
-        {book.series && <span className="paperback-series">{book.series.name}{book.series.position ? ` · Book ${book.series.position}` : ''}</span>}
-        <strong>{book.title}</strong>
-        <span className="paperback-author">{authors}</span>
-        <span className="paperback-settings"><SlidersHorizontal size={20} /></span>
-      </span>
-      <span className="paperback-cover" aria-hidden="true">
+  return <article className={`paperback-card${riffling ? ' is-riffling' : ''}`}
+    onPointerEnter={event => { if (event.pointerType === 'mouse') riffle() }}>
+    <button className="paperback-open" type="button" onClick={onOpen} onFocus={riffle} aria-haspopup="dialog"
+      aria-label={`Open ${book.title}${authors ? ` by ${authors}` : ''}${chapter !== null ? `, chapter ${chapter}` : ''}`}
+      title="Book details">
+      <span className="paperback-pages" aria-hidden="true">{Array.from({ length: 20 }, (_, index) => <span className="paperback-page" key={index} style={{ '--page': index } as CSSProperties} />)}</span>
+      <span className="paperback-cover" aria-hidden="true" onAnimationEnd={event => { if (event.target === event.currentTarget) setRiffling(false) }}>
         <span className="paperback-cover-front">
           <span className="paperback-fallback"><strong>{book.title}</strong><span>{authors}</span></span>
           <BookCoverImage book={book} large />
+          <span className="paperback-wear" />
         </span>
-        <span className="paperback-cover-back" />
       </span>
       {!club && chapter !== null && <span className={`paperback-ribbon${String(chapter).length > 3 ? ' paperback-ribbon-long' : ''}`} style={{ backgroundColor: color, color: bookmarkInk(color) }} aria-hidden="true">{chapter}</span>}
     </button>
+    <button className="paperback-settings icon-button" type="button" onClick={onOpen} aria-haspopup="dialog" aria-label={`Open details and settings for ${book.title}`} title="Details & settings"><SlidersHorizontal size={20} /></button>
     {source && <span className="paperback-source" title={`Saved from ${source.name}`} aria-label={`Saved from ${source.name}`}><MemberPortrait member={source} /></span>}
     {collection && <button className="paperback-collection icon-button" type="button" data-collection-toggle aria-label={collection.label} title={collection.label} aria-expanded={false} aria-controls={collection.controlsId} onClick={collection.onOpen}><Layers size={21} aria-hidden="true" /></button>}
     {club && <div className="club-bookmarks" aria-label="Readers’ bookmarks">{readers.map(({ member, chapter: value }) => {

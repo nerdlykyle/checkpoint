@@ -34,7 +34,7 @@ test('global accent fills exclude artwork hit areas on hover and press', () => {
   const fills = [...css.matchAll(/([^{}]+)\{[^{}]*background-color:var\(--button-accent\)[^{}]*\}/g)]
   assert.equal(fills.length, 2)
   for (const [, selector] of fills) {
-    assert.match(selector, /:not\(:is\(\.music-album-open,\.music-artwork-open,\.paperback-open,\.cartridge-art-open\)\)/)
+    assert.match(selector, /:not\(:is\(\.music-album-open,\.music-artwork-open,\.paperback-open,\.cartridge-art-open,\.game-card-open\)\)/)
   }
   assert.ok(fills.some(([, selector]) => selector.includes(':hover')))
   assert.ok(fills.some(([, selector]) => selector.includes(':active')))
@@ -48,6 +48,8 @@ test('only current club listens render an always-spinning decorative turntable',
   assert.match(component, /aria-haspopup="dialog" onClick={onOpen}/)
   assert.doesNotMatch(component, /setInterval|setTimeout|onMouseEnter|Pause|<audio|<video/)
   assert.match(component, /safeHttpUrl\(item.coverUrl\)/)
+  assert.doesNotMatch(component, /checkpoint · hi-fi/)
+  assert.match(css, /music-turntable-menu \{[^}]*right:8px; top:8px/)
   assert.match(css, /animation:music-vinyl-spin 18s linear infinite/)
   assert.match(css, /height:47%; transform-origin:50% 0; transform:rotate\(41deg\)/)
   assert.match(css, /prefers-reduced-motion:reduce.*animation:none/s)
@@ -61,9 +63,11 @@ test('non-current cards and library tiles share a worn sleeve with explicit artw
     assert.doesNotMatch(source, /card-glass|music-cinematic/)
   }
   const sleeve = readFileSync(new URL('../src/VinylSleeve.tsx', import.meta.url), 'utf8')
-  assert.match(sleeve, /url !== failedUrl/)
+  assert.match(sleeve, /<SharpArtwork src={url}/)
   assert.match(sleeve, /vinyl-sleeve-fallback/)
   assert.match(sleeve, /safeHttpUrl\(item.coverUrl\)/)
+  assert.match(sleeve, /\{children\}\s*<\/div>\s*<\/div>/)
+  assert.doesNotMatch(sleeve, /className="vinyl-sleeve" aria-hidden/)
 })
 
 test('sleeves have varied stable tilts and edge-to-edge artwork without a left spine stripe', () => {
@@ -73,6 +77,6 @@ test('sleeves have varied stable tilts and edge-to-edge artwork without a left s
   assert.match(css, /\.music-album-grid>:nth-child/)
   assert.match(css, /\.music-album-tile:nth-of-type/)
   assert.match(css, /rotate\(calc\(var\(--sleeve-tilt/)
-  assert.match(css, /\.vinyl-sleeve img \{ position:absolute; inset:0; width:100%; height:100%/)
+  assert.match(css, /\.vinyl-sleeve > \.sharp-artwork > img \{ position:absolute; inset:0; width:100%; height:100%/)
   assert.doesNotMatch(css, /#bbb19955|#fceac633|inset 0 0 0 1px #dbc79c80/)
 })

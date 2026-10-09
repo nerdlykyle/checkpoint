@@ -4,8 +4,10 @@
 .collection-stack-front > article { height:auto; }
 /* Pivot near the bottom like a hand of cards. Only the upper edges fan out. */
 .collection-stack-layers { position:absolute; inset:3px 10px 8px; z-index:0; pointer-events:none; }
-.collection-stack-layer { position:absolute; inset:0; border:1px solid #9a8eae; border-radius:20px; overflow:hidden; background:linear-gradient(125deg,#635477,#193e40); transform-origin:50% 95%; transform:translateY(-14px) rotate(4deg) scale(.98); }
-.collection-stack-layer:first-child { transform:translateY(-18px) rotate(-4deg) scale(.98); }
+.collection-stack-layer { position:absolute; inset:1%; border:1px solid #9a8eae; border-radius:20px; overflow:hidden; background:linear-gradient(125deg,#635477,#193e40); transform-origin:50% 95%; transform:translate3d(0,-14px,0) rotate(4deg); outline:1px solid transparent; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+.collection-stack-layer:first-child { transform:translate3d(0,-18px,0) rotate(-4deg); }
+/* Size at layout resolution rather than scaling a pre-rasterized card down.
+   A transparent outline gives rotated edges room for antialiasing. */
 .collection-stack-layer img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.8; }
 .collection-stack-layer > span { display:block; color:#c5bce0; padding:8px; }
 .collection-stack.is-expanded { grid-column:1/-1; }

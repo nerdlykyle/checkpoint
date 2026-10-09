@@ -16,10 +16,9 @@
 .music-turntable-counterweight { position:absolute; width:26px; height:21px; left:-8px; top:-21px; border-radius:4px; background:repeating-linear-gradient(#788287 0 1px,#39454b 1px 4px); box-shadow:inset 0 1px 1px #ffffff55; }
 .music-turntable-headshell { position:absolute; bottom:0; left:-4px; width:18px; height:31px; border-radius:4px 4px 2px 2px; background:linear-gradient(90deg,#10171b,#46555e 40%,#161e22); border:1px solid #657176; transform:rotate(-12deg); }
 .music-turntable-headshell::after { content:''; position:absolute; bottom:-5px; left:5px; width:5px; height:7px; border-radius:1px; background:#bbabdf; }
-.music-turntable-brand { position:absolute; right:6%; top:7%; font:700 11px Arial,sans-serif; letter-spacing:.03em; color:#c8cece; }
 .music-turntable-indicator { position:absolute; bottom:15px; left:7%; font-size:11px; color:#a0acb1; display:flex; align-items:center; gap:7px; }
 .music-turntable-indicator>span { width:5px; height:5px; background:#9ee2bb; border-radius:50%; box-shadow:0 0 5px #9ee2bb; }
-body .music-turntable-menu { position:absolute; right:5%; bottom:5%; width:44px; height:44px; min-height:44px; padding:0; display:grid; place-items:center; border:1px solid #607078; color:#fff; z-index:7; }
+body .music-turntable-menu { position:absolute; right:8px; top:8px; width:44px; height:44px; min-height:44px; padding:0; display:grid; place-items:center; border:1px solid #607078; color:#fff; z-index:7; }
 .music-turntable-caption { display:flex; justify-content:space-between; align-items:center; gap:15px; margin-top:17px; }
 .music-turntable-caption>div:first-child { min-width:0; flex:1; }
 .music-turntable-caption p { font-size:14px; color:#b3baba; margin:0 0 4px; overflow-wrap:anywhere; }
@@ -32,7 +31,6 @@ body .music-turntable-menu { position:absolute; right:5%; bottom:5%; width:44px;
  .music-turntable-arm { width:8px; }
  .music-turntable-counterweight { width:20px; height:15px; left:-6px; top:-15px; }
  .music-turntable-headshell { width:14px; height:24px; left:-2px; }
- .music-turntable-brand { font-size:10px; }
  .music-turntable-indicator { bottom:10px; left:6%; }
 }
 @media(prefers-reduced-motion:reduce) { .music-turntable-record { animation:none; } }

@@ -110,7 +110,7 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
     <div className={`organized-books${!readers ? ' paperback-library-grid' : ''}${canReorder ? " is-arranging" : ""}`} ref={drag.containerRef} onClickCapture={drag.onClickCapture}>{groupSeries ? groups.map((items) => {
       const first = items[0]
       if (!first.series || items.length < 2) return card(first)
-      return <CollectionStack key={items.map(item=>item.id).sort().join('|')} title={first.series.name} count={items.length} kind="books" front={card(first)} behind={items.slice(1,3).map(book=><BookCoverImage key={book.id} book={book} />)}>
+      return <CollectionStack key={items.map(item=>item.id).sort().join('|')} title={first.series.name} count={items.length} kind="books" front={card(first)} behind={items.slice(1,3).map(book=><BookCoverImage key={book.id} book={book} large lazy />)}>
         {items.map(card)}<button className="button button-secondary" type="button" onClick={() => onFindSeries(first)}>Find other books in this series</button>
       </CollectionStack>
     }) : visible.map(card)}</div>
