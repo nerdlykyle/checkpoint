@@ -1,152 +1,111 @@
-# Private membership — invitations on hold
+# Manual invitations (Firebase Spark)
 
-## Current release: existing members only
+## Using invitations
 
-`invitationsEnabled` is deliberately `false`. The frontend shows a closed-group
-screen to nonmembers, hides invitation controls, and blocks invitation requests.
-Firestore rules deny self-joining and preserve access for the existing UID-keyed
-members. Google sign-in by itself does not grant board access.
+Open your avatar → **Members & invitations**. Only the existing board owner sees
+invitation controls. Enter the recipient's Google account email, create a link,
+and copy/send it privately. No email is sent automatically. The recipient opens
+the link, signs in with that Google account, and chooses a display name.
 
-Deploy this closed mode with **only** `firestore:rules`, followed by the frontend.
-Do not deploy Functions, enable invitations, or change billing for this release.
-The invitation and Discord backend code below is staged for future use, not live.
+Links are email-bound, single-use and expire after seven days. The owner can
+revoke pending links. Accepted, expired and revoked invitations remain visible.
+The secret link is shown only when created, never stored in browser storage. If
+lost, revoke the pending invitation and create another. Ordinary shared board
+links do not grant membership.
 
-A future Spark-compatible invitation flow can instead use Firestore transactions
-and Security Rules (`getAfter`) to atomically validate an owner-created,
-email-bound, expiring invite and consume it when adding membership. This requires
-a separately tested rules/client implementation; flipping the current flag alone
-will not enable it. Manually shared links do not require an email delivery service.
-Google sign-in and Firestore are available within Spark's no-cost limits.
+Existing members need no invitation and continue using their original Google
+accounts. This release adds invitations, not member removal, reinstatement or
+account transfer. Existing administrative removal flags are still enforced.
 
-**2026-10-09 closed-mode verification:** Rules were released at
-`2026-10-09T16:09:47Z` and the live source matched the tested local rules. All 31
-documents in the fresh private backup were unchanged after deployment. The same
-three member UIDs remain; no Auth accounts, tokens, billing settings or Functions
-were changed. The emulator suite passed all 148 tests, with TypeScript, lint,
-production build and the three Functions unit tests also passing.
+## Free-plan architecture and safeguards
 
-## Existing members and data
+The live client uses Firestore directly, **not Cloud Functions**. No billing
+upgrade, paid mail service, migration or new Firebase project is required. Usage
+remains subject to Spark's normal Firestore/Auth quotas.
 
-There is **no data migration**. Access uses the existing Firebase UID keys in
-`boards/{boardId}.members`. Existing members keep their name, avatar, Steam
-preferences, bookmark color, shelves, votes, ratings, progress and session history.
-The existing `ownerUid` determines who can manage invitations; a display name or
-email never grants ownership.
+- The browser generates a 256-bit random token and stores only its SHA-256 hash
+  as the `boards/{boardId}/manualInvites/{hash}` document ID. Links carry the token
+  in a URL fragment, not the HTTP path/query/referrer.
+- Only the current owner can create/list/revoke invitations. An intended
+  recipient can read their exact invite with matching verified Google email.
+  Other members and unrelated accounts cannot list invitations.
+- Rules enforce owner identity, recipient email, server-time expiry, immutable
+  invite fields, and pending → used/revoked transitions. Used/revoked records
+  cannot be reopened, replaced or deleted by clients.
+- Acceptance is a Firestore transaction. It consumes the invitation and updates
+  only `members.{uid}`, `membershipClaims.{uid}`, and `updatedAt` on the board.
+  Both documents' Security Rules use `getAfter()` to require matching atomic
+  changes. Neither half may be committed alone. The recipient cannot read the
+  board beforehand or alter media, other profiles, owner or removal flags.
+- Concurrent acceptance and lost-response retries recognize the same completed
+  claim without overwriting the new profile. Later removal still denies access.
+- Clients cannot create boards, self-join without an invite, promote themselves,
+  add a different UID, overwrite an existing profile or remove another member.
 
-Keep the same Firebase project, web app configuration, Google provider and site
-origin during deployment. The update keeps Firebase Auth's existing persisted
-session; it must not clear browser storage, call sign-out, revoke refresh tokens,
-or recreate Auth users. A server membership check is not a sign-out. Existing
-members need no invite. Normal Google/Firebase session expiry and browser-cleared
-storage can still require signing in independently of the deployment.
+The old `functions/membership.js` service and callable in `functions/index.js`
+remain as historical tested source, but are **not used or deployed** for this
+flow. Their separate `membershipInvites`/`membershipEvents` collections remain
+inaccessible to clients. Do not deploy that alternate backend for this release.
+Its rate limits and removal controls are not features of manual invitations.
 
-Removing someone sets `removedMembers.{uid}: true`, without deleting their member
-profile or any content. All shared-board rules check this flag. A fresh invitation
-redeemed by the **same Google account/UID** restores access and retains the original
-profile. It does not transfer data to a different account. Personal private notes
-and music-service preferences remain accessible only to their original UID.
+## Preservation and authentication
 
-The frontend no longer creates a board or self-joins after a failed read, and no
-longer restores local cached media over an empty server response. Admission is
-checked against the server; an offline startup asks the user to retry.
+There is **no data migration**. Existing Firebase UID keys, `ownerUid`, profiles,
+avatars, bookmark colors, preferences, shelves, votes, progress, notes, sessions,
+games, books, music and favorites are preserved. Owner identity uses UID, never
+a display name or client-chosen email.
 
-## Planned invitation experience (disabled)
+Keep the same Firebase project, web configuration, Google provider and site
+origin. Auth uses the same persisted session. Do not clear browser storage,
+sign out users, revoke refresh tokens or recreate accounts during deployment.
+Normal session expiry/browser-cleared storage is independent of this update.
+Server-only membership verification is not a sign-out; offline admission asks
+the user to retry and never writes cached data over the board.
 
-Open your avatar → personal settings → **Members & invitations** (owner only).
-Enter the recipient's Google email, create an invitation and privately send the
-generated link. Creating an invitation does **not** send email automatically.
-The recipient signs in with that Google account, chooses a display name and joins.
+## Deployment checklist
 
-Links expire after seven days. They are single-use, email-bound and revocable.
-A same-account retry after a lost success response is idempotent. A removed member
-cannot reuse an old consumed link. Removal also revokes pending links for their
-email. To replace a lost invite link, revoke its pending invitation first.
-
-Tokens use 256 bits of randomness; only a SHA-256 hash is stored. Tokens are carried
-in URL fragments, not HTTP paths, query strings or referrers. The UI shows a new
-link only once. Only the callable backend can read or modify invites and the
-membership activity log. Operations are limited to 40 requests per authenticated
-account per 15 minutes; there can be at most 50 unexpired pending invitations.
-
-## Rollout history and future invitation deployment
-
-**2026-10-09 rollout status:** Owner and all three current members were verified.
-A private, checked local export includes 31 documents (24 music records, artist
-favorites, current group listen, preferences, board and puzzles). All 31 remained
-unchanged after the deployment attempt. Firebase blocked Functions deployment
-because the project requires the Blaze plan; no new rules or membership frontend
-were published. Billing was not changed. Only the independent paperback visual
-changes were pushed in commit `c782f29`. The user subsequently approved closing
-membership to the three existing accounts while keeping invitations on hold.
-For that release, take a fresh backup, run the emulator tests, deploy rules only,
-verify unchanged data, and publish the closed-mode frontend. No billing upgrade
-is required. The steps below apply only to a future authorized Functions-based
-invitation rollout, not the current closed-mode release.
-
-1. Confirm the target Firebase project and board. Read the live board with
-   administrator credentials and verify the existing owner UID belongs to the
-   intended owner and appears in `members`. Review all existing member UIDs for
-   unexpected accounts; do **not** auto-claim ownership from a name or email.
-   If the owner is missing or incorrect, stop for explicit owner confirmation.
-2. Take and verify a recoverable Firestore backup/export, including board
-   subcollections (music, favorites, puzzles), private notes and preferences.
-   Keep exports private and out of Git. Do not reseed or recreate the board.
-3. Run the local emulator test suite below. It cannot write to production.
-4. Deploy the membership callable, protected Discord handler, and rules together:
+1. Verify the intended board and member/owner UIDs with a read-only administrator
+   check. Stop for unexpected members or owner changes.
+2. Export and verify a private backup of the board, all subcollections (including
+   music, artist favorites, current listen and puzzles), each member's private
+   notes and music preferences. Keep exports outside Git.
+3. Run verification:
 
    ```sh
-   firebase deploy --only functions:manageMembership,functions:discordInteractions,firestore:rules --project espress-2f411
+   npm ci
+   npm --prefix functions ci
+   npx tsc -b
+   npx oxlint
+   npx vite build
+   firebase --config firebase.test.json --project demo-checkpoint emulators:exec --only firestore 'node --test scripts/*.test.mjs'
    ```
 
-   This needs an authorized Firebase login and a project supporting Cloud Functions.
-   All other deployed functions are intentionally left unchanged.
-5. Publish the tested frontend. Existing members sign in with their original
-   Google accounts; they should not redeem invitations or choose a legacy persona.
-6. Verify the owner and other current members still see their saved shelves,
-   settings, notes and history. Verify a nonmember cannot read the board or any
-   shared subcollection. Test one deliberately invited test account, then revoke
-   its access. Never remove a real existing member just to test the feature.
+4. Deploy **rules only**, then publish the tested frontend:
 
-If verification fails, stop new invitations and inspect the failing component.
-Do not overwrite live content with a local cache, change member UIDs, or restore
-the old self-joining rules as a workaround. Existing clients retain member access
-under the new rules but cannot self-join.
+   ```sh
+   firebase deploy --only firestore:rules --project espress-2f411
+   ```
 
-## Planned Discord access (backend not deployed)
+5. Compare released rules with tested source and verify backed-up documents are
+   unchanged. Do not create test users/invites in production. Verify the published
+   bundle and deployment status.
 
-The Admin SDK bypasses Firestore rules, so `/checkpoint` also checks membership.
-A trusted operator must create `discordMembership/{discordUserId}` with
-`{ boardId, uid }` after verifying both identities. Clients cannot read or write
-these mappings. Unlinked users receive a private instruction to open Checkpoint;
-linked but removed members are denied. Group command responses are ephemeral,
-not posted to a channel whose audience may include nonmembers.
-Personal Discord reminders remain unchanged. Do not infer mappings from names.
+Tests run the actual TypeScript client against emulator-enforced rules, covering
+valid joins, concurrent/retried acceptance, wrong email, unverified/non-Google
+identity, expiry, revocation, unauthorized creation/listing, existing-profile
+overwrite attempts, escalation, media tampering and half-transaction bypasses.
+Existing regression tests still cover books, games, music and profiles. Isolated
+browser checks verify invitation creation/revocation/join screens, owner-only
+controls and no overflow at desktop and phone widths with no console errors.
 
-## Verification
+## Boundaries and history
 
-```sh
-npm ci
-npm --prefix functions ci
-npx tsc -b
-npx oxlint
-npx vite build
-npm --prefix functions test
-firebase --config firebase.test.json --project demo-checkpoint emulators:exec --only firestore 'node --test scripts/*.test.mjs'
-```
+Invited members have the same trusted-group shared editing powers as existing
+members. Private notes/preferences remain UID-private. Joining does not transfer
+someone else's personal shelves. This is not multi-tenant group creation. Spark
+quotas still apply; no automatic emails or callable-style rate limiter is promised.
 
-The emulator tests cover Google identity requirements, wrong-email redemption,
-expiry, revocation, concurrent retries, owner-only controls, rate limits,
-outsider/self-join/promotion rejection, removal across shared subcollections, and
-byte-for-byte preservation of representative existing data during join/removal/rejoin.
-
-App Check can add abuse protection after it is configured and verified on all
-clients; it is not enabled blindly in this update. Authentication, authorization
-and backend rate limits do not depend on App Check.
-
-## Boundaries
-
-Current active members retain the application's existing shared editing powers.
-This update does not implement field-by-field author isolation for shared
-games/books/music documents, or a multi-tenant group creation flow. Downloaded
-content and existing browser caches cannot be remotely erased by revoking access.
-Private-note rules remain UID-private. Treat membership as a trusted-group model.
+On 2026-10-09 the Functions-based attempt was blocked by Spark with no data/billing
+changes. Closed membership was then published with all 31 backed-up documents
+unchanged. The user subsequently authorized this free manual invitation flow.
+No Discord deployment changes are included.

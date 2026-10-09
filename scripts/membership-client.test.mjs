@@ -40,18 +40,16 @@ test('membership rollout keeps Firebase persisted sign-in and never resets accou
   for (const source of [membership, backend]) assert.doesNotMatch(source, /signOut\(|revokeRefreshTokens|deleteUser|localStorage\.clear|indexedDB\.deleteDatabase/)
 })
 
-test('closed membership hides invitation UI and blocks callable requests while invitations are on hold', async () => {
+test('manual invitations use Firestore only and preserve owner-only UI', () => {
   const source = readFileSync(new URL('../src/lib/membership.ts', import.meta.url), 'utf8')
   const ui = readFileSync(new URL('../src/MembershipSettings.tsx', import.meta.url), 'utf8')
-  assert.match(source, /export const invitationsEnabled = false/)
+  assert.match(source, /export const invitationsEnabled = true/)
   assert.match(ui, /const token = invitationsEnabled \? invitationToken\(\) : null/)
-  assert.match(ui, /if \(!invitationsEnabled\) return <section/)
-  let calls = 0
-  const exports = {}
-  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
-  new Function('require','exports',code)(name => name === 'firebase/functions' ? { httpsCallable: () => { calls++; return () => {} } } : { membershipFunctions: {} }, exports)
-  await assert.rejects(exports.membershipAction({ action:'create' }), /currently closed/)
-  assert.equal(calls, 0)
+  assert.match(ui, /if \(!isOwner\) return/)
+  assert.doesNotMatch(source, /httpsCallable|firebase\/functions|membershipFunctions/)
+  assert.match(source, /runTransaction/)
+  assert.match(source, /crypto\.getRandomValues/)
+  assert.match(source, /SHA-256/)
 })
 
 test('a failed board read never creates membership, reseeds the board or writes cached media', async () => {

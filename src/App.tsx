@@ -466,7 +466,7 @@ function CrewModal({ boardId, isOwner, members: crew, currentUserId, googlePhoto
     <div className="modal-backdrop" onMouseDown={onClose}>
       <section className="modal crew-modal" onMouseDown={(event) => event.stopPropagation()} aria-modal="true" role="dialog">
         <div className="modal-heading"><div><span className="eyebrow">Checkpoint Crew</span><h2>{crew.length} {crew.length === 1 ? 'player' : 'players'} synced</h2></div><button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={19} /></button></div>
-        <div className="crew-auto-note"><Users size={18} /><div><strong>Private group</strong><p>Only existing members can access this group. Profiles and collections stay attached to their original accounts.</p></div></div>
+        <div className="crew-auto-note"><Users size={18} /><div><strong>Private group</strong><p>New members need an invitation from the owner. Profiles and collections stay attached to their original accounts.</p></div></div>
         <div className="crew-list">{crew.map((member) => <div className="crew-member" key={member.id}><Avatar id={member.id} /><div><strong>{member.name}</strong><span>{member.id === currentUserId ? 'You · online' : 'Crew member'}</span></div></div>)}</div>
         {firebaseConfigured && <MembershipSettings boardId={boardId} isOwner={isOwner} />}
         {currentMember && <BookmarkColorSettings key={currentUserId} member={currentMember} onSave={onSaveBookmarkColor} />}
@@ -1500,7 +1500,7 @@ function SignInScreen({ loading, error, onSignIn }: { loading: boolean; error: s
           <span className="google-g">G</span>{loading ? 'Opening Google…' : 'Continue with Google'}
         </button>
         {error && <p className="sign-in-error">{error}</p>}
-        <small>Access is limited to existing group members. New sign-ups are currently closed.</small>
+        <small>Private group. Existing members can sign in as usual; new members need an invitation.</small>
       </section>
     </main>
   )

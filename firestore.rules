@@ -7,6 +7,14 @@ service cloud.firestore {
       return request.auth != null && board.members.get(request.auth.uid, null) != null
         && !board.get('removedMembers', {}).get(request.auth.uid, false);
     }
+    function verifiedGoogle() {
+      return request.auth != null && request.auth.token.email_verified == true
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+    function boardOwner(boardId) {
+      return boardMember(boardId)
+        && get(/databases/$(database)/documents/boards/$(boardId)).data.ownerUid == request.auth.uid;
+    }
     // Private notes never live in the shared board document.
     match /readerNotes/{userId}/{kind}/{itemId} {
       allow read, delete: if kind in ['books', 'music'] && request.auth != null && request.auth.uid == userId;
@@ -86,14 +94,71 @@ service cloud.firestore {
           && validSelfProfile();
       }
 
+      function acceptingManualInvite() {
+        let uid = request.auth.uid;
+        let next = request.resource.data;
+        let id = next.membershipClaims[uid];
+        let invitePath = /databases/$(database)/documents/boards/$(boardId)/manualInvites/$(id);
+        let invite = get(invitePath).data;
+        let consumed = getAfter(invitePath).data;
+        let profile = next.members[uid];
+        return verifiedGoogle() && id.matches('^[a-f0-9]{64}$')
+          && resource.data.members.get(uid, null) == null
+          && !resource.data.get('removedMembers', {}).get(uid, false)
+          && next.diff(resource.data).affectedKeys().hasOnly(['members', 'membershipClaims', 'updatedAt'])
+          && next.members.diff(resource.data.members).affectedKeys().hasOnly([uid])
+          && next.membershipClaims.diff(resource.data.get('membershipClaims', {})).affectedKeys().hasOnly([uid])
+          && next.updatedAt == request.time
+          && profile.keys().hasOnly(['name', 'email', 'photoUrl', 'joinedAt'])
+          && profile.name is string && profile.name.size() > 0 && profile.name.size() <= 40
+          && profile.email == request.auth.token.email && profile.photoUrl == ''
+          && profile.joinedAt is string && profile.joinedAt.size() > 0 && profile.joinedAt.size() <= 40
+          && invite.status == 'pending' && invite.expiresAt > request.time
+          && invite.email == request.auth.token.email.lower()
+          && consumed.status == 'used' && consumed.usedBy == uid && consumed.usedAt == request.time;
+      }
+
       allow get: if validBoardId() && isMember();
       allow list, delete: if false;
-      // Group creation and membership are trusted-server operations only.
+      // No self-created groups; new membership requires an atomic invite claim.
       allow create: if false;
       allow update: if validBoardId()
         && ((isMember() && validBoard()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['games', 'books', 'gameNights', 'sessions', 'activity', 'recommendationFeedback', 'updatedAt']))
-          || editingOwnProfile());
+          || editingOwnProfile() || (signedIn() && acceptingManualInvite()));
+
+      match /manualInvites/{inviteId} {
+        function recipient() {
+          return verifiedGoogle() && resource.data.email == request.auth.token.email.lower();
+        }
+        function consuming() {
+          let boardPath = /databases/$(database)/documents/boards/$(boardId);
+          let before = get(boardPath).data;
+          let after = getAfter(boardPath).data;
+          return recipient() && resource.data.status == 'pending' && resource.data.expiresAt > request.time
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'usedBy', 'usedAt'])
+            && request.resource.data.status == 'used' && request.resource.data.usedBy == request.auth.uid
+            && request.resource.data.usedAt == request.time
+            && before.members.get(request.auth.uid, null) == null
+            && after.members[request.auth.uid].email == request.auth.token.email
+            && after.membershipClaims[request.auth.uid] == inviteId;
+        }
+        allow get: if boardOwner(boardId) || recipient();
+        allow list: if boardOwner(boardId);
+        allow create: if boardOwner(boardId) && verifiedGoogle() && inviteId.matches('^[a-f0-9]{64}$')
+          && request.resource.data.keys().hasOnly(['email', 'createdBy', 'createdAt', 'expiresAt', 'status'])
+          && request.resource.data.email is string && request.resource.data.email.size() <= 320
+          && request.resource.data.email.matches('^[^ @]+@[^ @]+[.][^ @]+$')
+          && request.resource.data.email == request.resource.data.email.lower()
+          && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
+          && request.resource.data.expiresAt is timestamp && request.resource.data.expiresAt > request.time
+          && request.resource.data.expiresAt <= request.time + duration.value(7, 'd')
+          && request.resource.data.status == 'pending';
+        allow update: if consuming() || (boardOwner(boardId) && resource.data.status == 'pending'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'revokedAt'])
+          && request.resource.data.status == 'revoked' && request.resource.data.revokedAt == request.time);
+        allow delete: if false;
+      }
 
       match /music/{musicId} {
         function musicMember() { return boardMember(boardId); }

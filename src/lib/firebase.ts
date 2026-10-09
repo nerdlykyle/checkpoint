@@ -9,7 +9,6 @@ import {
   type User,
 } from 'firebase/auth'
 import { initializeFirestore } from 'firebase/firestore'
-import { getFunctions } from 'firebase/functions'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -27,7 +26,6 @@ export const firebaseConfigured = Boolean(
 const app = firebaseConfigured ? initializeApp(firebaseConfig) : null
 export const auth = app ? getAuth(app) : null
 export const database = app ? initializeFirestore(app, { ignoreUndefinedProperties: true }) : null
-export const membershipFunctions = app ? getFunctions(app, 'us-central1') : null
 
 export function watchAuth(callback: (user: User | null) => void) {
   if (!auth) {

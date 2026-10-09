@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Copy, RefreshCw, UserMinus, UserPlus, X } from 'lucide-react'
+import { Copy, RefreshCw, UserPlus, X } from 'lucide-react'
 import type { User } from 'firebase/auth'
 import { signOut } from './lib/firebase'
 import { CheckpointLogo } from './CheckpointLogo'
@@ -40,7 +40,6 @@ function InvitationSettings({ boardId, isOwner }: { boardId: string; isOwner: bo
   const [roster, setRoster] = useState<MembershipRoster | null>(null)
   const [email, setEmail] = useState(''), [link, setLink] = useState('')
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('')
-  const [tab, setTab] = useState<'members' | 'invites' | 'history'>('members')
   useEffect(() => {
     if (!isOwner) return
     let active = true
@@ -53,19 +52,17 @@ function InvitationSettings({ boardId, isOwner }: { boardId: string; isOwner: bo
     setBusy(true); setError(''); setNotice(''); setLink('')
     try {
       const result = await membershipAction<{ token?: string }>({ action, boardId, ...values })
-      if (result.token) { setLink(invitationUrl(boardId,result.token)); setEmail(''); setTab('invites') }
-      else setNotice(action === 'remove' ? 'Access removed. Their settings and collections are preserved.' : 'Invitation revoked.')
+      if (result.token) { setLink(invitationUrl(boardId,result.token)); setEmail('') }
+      else setNotice('Invitation revoked.')
       await reload()
     } catch (next) { setError(message(next)) }
     finally { setBusy(false) }
   }
-  return <section className="membership-settings"><h3>Members & invitations</h3><p>Only you, the group owner, can invite or remove members. Invitations last 7 days and require the matching Google account.</p>
+  return <section className="membership-settings"><h3>Members & invitations</h3><p>Create a private link for a friend's Google email, then send it yourself. Links work once, expire after 7 days, and only admit the matching account.</p>
     <form className="membership-invite-form" onSubmit={event => { event.preventDefault(); void act('create',{email}) }}><label>Invite by email<input type="email" value={email} maxLength={320} required placeholder="friend@example.com" autoComplete="off" onChange={event => setEmail(event.target.value)} /></label><button className="button button-secondary" disabled={busy || !email.trim()}><UserPlus size={17} />Create invite</button></form>
     {link && <div className="membership-copy"><label>Copy this link and send it privately<input readOnly value={link} onClick={event=>event.currentTarget.select()} /></label><button className="button button-secondary" type="button" onClick={() => { void navigator.clipboard.writeText(link).then(()=>setNotice('Invite link copied.')).catch(()=>setError('Select the link and copy it manually.')) }}><Copy size={16} />Copy</button><small>This link is shown only now. Creating an invite does not send an email.</small></div>}
     {error && <p className="membership-error" role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}
-    <div className="membership-tabs" role="group" aria-label="Membership views">{(['members','invites','history'] as const).map(value=><button type="button" className={`button button-secondary ${tab===value?'active':''}`} aria-pressed={tab===value} onClick={()=>setTab(value)} key={value}>{value==='members'?'Active members':value==='invites'?'Pending invites':'Activity'}</button>)}<button type="button" className="icon-button" aria-label="Refresh membership" disabled={busy} onClick={()=>{setBusy(true);setError('');void reload().catch(next=>setError(message(next))).finally(()=>setBusy(false))}}><RefreshCw size={17}/></button></div>
-    {!roster ? <p>Membership list is not loaded yet.</p> : tab==='members' ? <ul className="membership-list">{roster.members.filter(member=>!member.removed).map(member=><li key={member.uid}><div><strong>{member.name}</strong><small>{member.role==='owner'?'Owner':member.email}</small></div>{member.role!=='owner' && <button className="icon-button" type="button" disabled={busy} aria-label={`Remove ${member.name} from group`} title="Remove access" onClick={()=>{if(window.confirm(`Remove ${member.name}'s access? Their settings, books, music, and history will be kept. A new invitation to the same Google account can restore access.`))void act('remove',{uid:member.uid})}}><UserMinus size={18}/></button>}</li>)}</ul>
-      : tab==='invites' ? <ul className="membership-list">{roster.invites.filter(invite=>invite.status==='pending').map(invite=><li key={invite.id}><div><strong>{invite.email}</strong><small>Expires {new Date(invite.expiresAt).toLocaleString()}</small></div><button className="icon-button" type="button" disabled={busy} aria-label={`Revoke invitation for ${invite.email}`} onClick={()=>void act('revoke',{inviteId:invite.id})}><X size={18}/></button></li>)}{!roster.invites.some(invite=>invite.status==='pending')&&<li>No pending invitations.</li>}</ul>
-      : <ul className="membership-list">{roster.events.map(event=><li key={event.id}><div><strong>{event.target} — {event.action}</strong><small>{new Date(event.createdAt).toLocaleString()} · {roster.members.find(member=>member.uid===event.actorUid)?.name || 'Member'}</small></div></li>)}{!roster.events.length&&<li>No membership changes recorded yet.</li>}</ul>}
+    <div className="membership-tabs"><h4>Invitations</h4><button type="button" className="icon-button" aria-label="Refresh invitations" disabled={busy} onClick={()=>{setBusy(true);setError('');void reload().catch(next=>setError(message(next))).finally(()=>setBusy(false))}}><RefreshCw size={17}/></button></div>
+    {!roster ? <p>Invitations are loading…</p> : <ul className="membership-list">{roster.invites.map(invite=><li key={invite.id}><div><strong>{invite.email}</strong><small>{invite.status==='pending' ? `Expires ${new Date(invite.expiresAt).toLocaleString()}` : invite.status==='used' ? 'Accepted' : invite.status==='revoked' ? 'Revoked' : 'Expired'}</small></div>{invite.status==='pending' && <button className="icon-button" type="button" disabled={busy} aria-label={`Revoke invitation for ${invite.email}`} title="Revoke invitation" onClick={()=>void act('revoke',{inviteId:invite.id})}><X size={18}/></button>}</li>)}{!roster.invites.length&&<li>No invitations yet.</li>}</ul>}
   </section>
 }
