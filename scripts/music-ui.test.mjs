@@ -65,3 +65,14 @@ test('non-current cards and library tiles share a worn sleeve with explicit artw
   assert.match(sleeve, /vinyl-sleeve-fallback/)
   assert.match(sleeve, /safeHttpUrl\(item.coverUrl\)/)
 })
+
+test('sleeves have varied stable tilts and edge-to-edge artwork without a left spine stripe', () => {
+  const css = readFileSync(new URL('../src/VinylSleeve.css', import.meta.url), 'utf8')
+  assert.equal(new Set([...css.matchAll(/--sleeve-tilt:([\d.-]+deg);/g)].map(match=>match[1])).size, 4)
+  assert.match(css, /\.collection-stack-front>\.music-album-tile \{ --sleeve-tilt:inherit/)
+  assert.match(css, /\.music-album-grid>:nth-child/)
+  assert.match(css, /\.music-album-tile:nth-of-type/)
+  assert.match(css, /rotate\(calc\(var\(--sleeve-tilt/)
+  assert.match(css, /\.vinyl-sleeve img \{ position:absolute; inset:0; width:100%; height:100%/)
+  assert.doesNotMatch(css, /#bbb19955|#fceac633|inset 0 0 0 1px #dbc79c80/)
+})
