@@ -1,0 +1,19 @@
+.campaign-notes-dialog { width:min(640px,calc(100vw - 40px)); max-width:none; max-height:calc(100dvh - 40px); margin:auto; padding:24px; border:1px solid #56616c; border-radius:20px; background:#141d23; color:#f3f5f7; box-shadow:0 24px 90px #0008; }
+.campaign-notes-dialog[open] { display:flex; flex-direction:column; gap:20px; }
+.campaign-notes-dialog::backdrop { background:#080d14bb; backdrop-filter:blur(7px); }
+.campaign-notes-dialog header { display:flex; align-items:flex-start; gap:16px; }
+.campaign-notes-dialog header > div { flex:1; min-width:0; }
+.campaign-notes-dialog .eyebrow { overflow-wrap:anywhere; }
+.campaign-notes-dialog h2 { margin:8px 0 0; font-size:25px; line-height:1.2; }
+.campaign-notes-dialog button { display:inline-flex; align-items:center; justify-content:center; flex:none; min-width:44px; min-height:44px; padding:10px 14px; border:1px solid #8f83d4; color:#f4efff; background:transparent; font:inherit; }
+.campaign-notes-dialog header button { width:44px; padding:0; }
+.campaign-notes-dialog textarea { display:block; flex:1; min-height:180px; height:min(330px,45dvh); width:100%; padding:16px; border:1px solid #58646c; border-radius:12px; background:#0c141b; color:#f4f6fa; font:inherit; font-size:18px; line-height:1.6; resize:vertical; }
+.campaign-notes-dialog textarea::placeholder { color:#a1adb9; }
+.campaign-notes-dialog footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.campaign-notes-dialog footer span { color:#aebbc7; font-size:13px; }
+@media(max-width:640px) {
+  .campaign-notes-dialog { position:fixed; inset:0; width:100%; height:100dvh; max-height:100dvh; margin:0; border:0; border-radius:0; padding: max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left)); }
+  .campaign-notes-dialog[open] { gap:16px; }
+  .campaign-notes-dialog textarea { min-height:80px; height:auto; resize:none; font-size:17px; }
+  .campaign-notes-dialog h2 { font-size:23px; }
+}
