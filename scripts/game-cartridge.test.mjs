@@ -20,8 +20,8 @@ test('air travels across 75%, is single-play hover only, and clicks stop motion'
   assert.match(css, /@media\(hover:hover\) and \(pointer:fine\) and \(prefers-reduced-motion:no-preference\)/)
   assert.match(source, /onPointerDown={\(\) => setMotionPaused\(true\)}/)
   assert.doesNotMatch(css, /infinite/)
-  assert.match(css, /stroke-dashoffset:340/)
-  assert.match(css, /stroke-dashoffset:-80/)
+  assert.match(css, /stroke-dashoffset:75/)
+  assert.match(css, /stroke-dashoffset:-320/)
 })
 test('glass shares the label clip and overscans its side and lower edges', () => {
   assert.match(css, /cartridge-label \{[^}]*overflow:hidden/)
