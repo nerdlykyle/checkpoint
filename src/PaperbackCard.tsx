@@ -2,6 +2,7 @@ import { useContext, useState, type CSSProperties } from 'react'
 import { Layers, SlidersHorizontal } from 'lucide-react'
 import { CollectionActionContext } from './CollectionActionContext'
 import BookCoverImage from './BookCoverImage'
+import { usePaperbackCurl } from './usePaperbackCurl'
 import { bookChapterBookmark } from './lib/bookChapterBookmark'
 import { MemberPortrait } from './MemberShelfPicker'
 import { bookmarkColor, bookmarkInk } from './lib/bookmarkColors'
@@ -11,7 +12,8 @@ import './PaperbackCard.css'
 export default function PaperbackCard({ book, user, crew = [], club = false, source, onOpen, onChapter }: { book: Book; user: string; crew?: Member[]; club?: boolean; source?: Member; onOpen: () => void; onChapter?: () => void }) {
   const collection = useContext(CollectionActionContext)
   const [riffling, setRiffling] = useState(false)
-  const riffle = () => { if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) setRiffling(true) }
+  const curl = usePaperbackCurl(book.id)
+  const riffle = () => { if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && !curl.play()) setRiffling(true) }
   const chapter = bookChapterBookmark(book, user)
   const color = bookmarkColor(crew.find(member => member.id === user))
   const readers = club ? (book.club?.participantIds || []).flatMap(id => {
@@ -23,9 +25,10 @@ export default function PaperbackCard({ book, user, crew = [], club = false, sou
   const authors = book.authors.join(', ')
   return <article className={`paperback-card${riffling ? ' is-riffling' : ''}`}
     onPointerEnter={event => { if (event.pointerType === 'mouse') riffle() }}>
-    <button className="paperback-open" type="button" onClick={onOpen} onFocus={riffle} aria-haspopup="dialog"
+    <button ref={curl.surface} className="paperback-open" type="button" onClick={onOpen} onFocus={riffle} aria-haspopup="dialog"
       aria-label={`Open ${book.title}${authors ? ` by ${authors}` : ''}${chapter !== null ? `, chapter ${chapter}` : ''}`}
       title="Book details">
+      <canvas ref={curl.canvas} className="paperback-curl-canvas" aria-hidden="true" />
       <span className="paperback-pages" aria-hidden="true">{Array.from({ length: 20 }, (_, index) => <span className="paperback-page" key={index} style={{ '--page': index } as CSSProperties} />)}</span>
       <span className="paperback-cover" aria-hidden="true" onAnimationEnd={event => { if (event.target === event.currentTarget) setRiffling(false) }}>
         <span className="paperback-cover-front">

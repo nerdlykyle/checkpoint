@@ -47,6 +47,12 @@ button.club-bookmark:is(:hover,:focus-visible) .club-bookmark-ribbon { transform
 /* The interaction stays on the stationary card. No face crosses 90 degrees,
    and every page has its own depth, avoiding the old backface/hover flicker. */
 .paperback-card:is(.is-riffling,:focus-within) { z-index:5; }
+.paperback-card:has([data-curl-active]) { z-index:5; }
+/* The canvas is only visible during the curl. The original high-resolution
+   image remains the idle cover, and all hit targets stay stationary. */
+.paperback-curl-canvas { position:absolute; z-index:2; left:-14.545455%; top:-9.756098%; width:129.09091%; height:119.512196%; display:none; pointer-events:none; }
+.paperback-open[data-curl-active] > .paperback-curl-canvas { display:block; }
+.paperback-open[data-curl-active] > :is(.paperback-cover,.paperback-pages) { visibility:hidden; }
 .paperback-settings.icon-button { position:absolute; z-index:5; top:8px; left:8px; display:grid; place-items:center; width:44px; height:44px; border:1px solid #ffffff90; color:white; backdrop-filter:blur(12px) brightness(.45); }
 .paperback-cover-front { position:absolute; inset:0; overflow:hidden; border-radius:inherit; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
 .paperback-pages { position:absolute; inset:3px 0 3px 2px; pointer-events:none; transform-style:preserve-3d; }
