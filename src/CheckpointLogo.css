@@ -1,0 +1,28 @@
+/* The SVG draws the purple shape itself, so the old .brand-mark box styling is switched off here.
+   The box keeps .brand-mark's width/height (33px, 29px on mobile). */
+.cp-logo,
+.cp-logo.brand-mark {
+  position: relative;
+  display: block;
+  flex: none;
+  width: 33px;
+  height: 33px;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+  transform: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.mobile-brand .cp-logo.brand-mark { width: 29px; height: 29px; }
+
+/* viewBox is -1 -1 35 35 around a 33-unit mark, so the svg overhangs the box by 1/33 on each side */
+.cp-logo > svg {
+  position: absolute;
+  left: calc(-100% / 33);
+  top: calc(-100% / 33);
+  width: calc(100% * 35 / 33);
+  height: calc(100% * 35 / 33);
+  overflow: visible;
+  filter: drop-shadow(0 7px 18px rgba(0, 0, 0, 0.18));
+}

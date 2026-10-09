@@ -1,4 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <style>
+    .cloth { animation: sway 1s steps(1, end) infinite; }
+    @media (prefers-reduced-motion: reduce) { .cloth { animation: none; } }
+    @keyframes sway {
+    0% { transform: translate(18px, 27px) skewY(0deg) scaleX(1) translate(-18px, -27px); }
+    8.333% { transform: translate(18px, 27px) skewY(5deg) scaleX(0.985) translate(-18px, -27px); }
+    16.667% { transform: translate(18px, 27px) skewY(8.66deg) scaleX(0.955) translate(-18px, -27px); }
+    25% { transform: translate(18px, 27px) skewY(10deg) scaleX(0.94) translate(-18px, -27px); }
+    33.333% { transform: translate(18px, 27px) skewY(8.66deg) scaleX(0.955) translate(-18px, -27px); }
+    41.667% { transform: translate(18px, 27px) skewY(5deg) scaleX(0.985) translate(-18px, -27px); }
+    50% { transform: translate(18px, 27px) skewY(0deg) scaleX(1) translate(-18px, -27px); }
+    58.333% { transform: translate(18px, 27px) skewY(-5deg) scaleX(0.985) translate(-18px, -27px); }
+    66.667% { transform: translate(18px, 27px) skewY(-8.66deg) scaleX(0.955) translate(-18px, -27px); }
+    75% { transform: translate(18px, 27px) skewY(-10deg) scaleX(0.94) translate(-18px, -27px); }
+    83.333% { transform: translate(18px, 27px) skewY(-8.66deg) scaleX(0.955) translate(-18px, -27px); }
+    91.667% { transform: translate(18px, 27px) skewY(-5deg) scaleX(0.985) translate(-18px, -27px); }
+    100% { transform: translate(18px, 27px) skewY(0deg) scaleX(1) translate(-18px, -27px); }
+    }
+  </style>
   <defs>
     <linearGradient id="checkpoint-purple" x1="10" y1="6" x2="54" y2="60" gradientUnits="userSpaceOnUse">
       <stop stop-color="#9185f5"/>
@@ -6,5 +25,8 @@
     </linearGradient>
   </defs>
   <path fill="url(#checkpoint-purple)" d="M20 4h28c7 0 12 5 12 12v32c0 7-5 12-12 12H14C8 60 4 56 4 50V20C4 10 10 4 20 4Z"/>
-  <path d="M18 51V19a1.8 1.8 0 0 1 .7-1.4A10.7 10.7 0 0 1 25 15.5c5.3 0 8.8 3.5 13 3.5 2.4 0 4.2-.5 5.4-1.4a1.8 1.8 0 0 1 2.8 1.4v17.8c0 .6-.3 1.1-.7 1.4a10.7 10.7 0 0 1-6.3 2.1c-5.3 0-8.8-3.5-14.2-3.5a10.7 10.7 0 0 0-7 2.7" fill="#fff" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="#fff" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 51V19"/>
+    <path class="cloth" d="M18 19a1.8 1.8 0 0 1 .7-1.4A10.7 10.7 0 0 1 25 15.5c5.3 0 8.8 3.5 13 3.5 2.4 0 4.2-.5 5.4-1.4a1.8 1.8 0 0 1 2.8 1.4v17.8c0 .6-.3 1.1-.7 1.4a10.7 10.7 0 0 1-6.3 2.1c-5.3 0-8.8-3.5-14.2-3.5a10.7 10.7 0 0 0-7 2.7"/>
+  </g>
 </svg>

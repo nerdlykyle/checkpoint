@@ -10,6 +10,7 @@ import {
 } from 'react'
 import type { User } from 'firebase/auth'
 import './App.css'
+import { CheckpointLogo } from './CheckpointLogo'
 import './CleanSplitCards.css'
 import BookClub, { type BookSection, type BookShelfFilter } from './BookClub'
 import BookmarkColorSettings from './BookmarkColorSettings'
@@ -353,7 +354,7 @@ function Avatar({ id, small = false }: { id: string; small?: boolean }) {
 }
 
 function MobileBrand() {
-  return <div className="mobile-brand"><span className="brand-mark"><Flag size={18} fill="currentColor" /></span><span>checkpoint</span></div>
+  return <div className="mobile-brand"><CheckpointLogo className="brand-mark" /><span>checkpoint</span></div>
 }
 
 function formatPlaytime(minutes: number) {
@@ -1484,7 +1485,7 @@ function SignInScreen({ loading, error, onSignIn }: { loading: boolean; error: s
     <main className="sign-in-screen">
       <div className="sign-in-glow" />
       <section className="sign-in-card">
-        <div className="sign-in-brand"><span className="brand-mark"><Flag size={22} fill="currentColor" /></span><strong>checkpoint</strong></div>
+        <div className="sign-in-brand"><CheckpointLogo className="brand-mark" /><strong>checkpoint</strong></div>
         <span className="eyebrow">The game plan, together</span>
         <h1>Your crew’s next adventure starts here.</h1>
         <p>Track the current campaign, rank what’s next, vote on favorites, and keep everyone in sync from any browser.</p>
@@ -1503,7 +1504,7 @@ function PersonaScreen({ user, onChoose }: { user: User; onChoose: (persona: Per
     <main className="sign-in-screen identity-screen">
       <div className="sign-in-glow" />
       <section className="sign-in-card identity-card">
-        <div className="sign-in-brand"><span className="brand-mark"><Flag size={22} fill="currentColor" /></span><strong>checkpoint</strong></div>
+        <div className="sign-in-brand"><CheckpointLogo className="brand-mark" /><strong>checkpoint</strong></div>
         <span className="eyebrow">One last checkpoint</span>
         <h1>Who are you?</h1>
         <p>You’re signed in as {user.email}. Pick your crew name so votes and games stay attached to you.</p>
@@ -1517,7 +1518,7 @@ function PersonaScreen({ user, onChoose }: { user: User; onChoose: (persona: Per
 }
 
 function LoadingScreen() {
-  return <main className="loading-screen"><span className="brand-mark"><Flag size={21} fill="currentColor" /></span><strong>Opening Checkpoint…</strong></main>
+  return <main className="loading-screen"><CheckpointLogo className="brand-mark" /><strong>Opening Checkpoint…</strong></main>
 }
 
 function SessionStartModal({ games, crew, defaultGameId, onClose, onStart }: { games: Game[]; crew: Member[]; defaultGameId?: string; onClose: () => void; onStart: (gameId: string, participantIds: string[]) => void }) {
@@ -2368,7 +2369,7 @@ function App() {
     <IntegrationsContext.Provider value={{ boardId, steam: steamSnapshot, deals: gameDeals, loading: integrationsLoading, error: integrationError }}>
     <div className="app-shell">
       <aside className="sidebar">
-        <button className="brand" type="button" onClick={() => mode === 'games' ? setView('dashboard') : mode === 'music' ? setMusicSection('home') : setBookSection('home')}><span className="brand-mark"><Flag size={21} fill="currentColor" /></span><span>checkpoint</span></button>
+        <button className="brand" type="button" onClick={() => mode === 'games' ? setView('dashboard') : mode === 'music' ? setMusicSection('home') : setBookSection('home')}><CheckpointLogo className="brand-mark" /><span>checkpoint</span></button>
         <button className="server-switcher" type="button" onClick={() => setShowCrew(true)}><div className="server-icon">{mode === 'games' ? <Gamepad2 size={18} /> : mode === 'music' ? <Headphones size={18} /> : <BookOpen size={18} />}</div><div><strong>Checkpoint Crew</strong><span>{groupMembers.length} {groupMembers.length === 1 ? 'member' : 'members'}</span></div><ChevronDown size={16} /></button>
         <ModeSwitcher mode={mode} onChange={switchMode} />
         {mode === 'games' ? <><nav className="main-nav" aria-label="Main navigation">
