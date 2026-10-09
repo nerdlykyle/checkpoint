@@ -1,7 +1,7 @@
 /* A stable hit area surrounds the moving cartridge, so the hover never loops. */
 .game-cartridge { min-width:0; width:100%; max-width:500px; align-self:start; container-type:inline-size; }
 .cartridge-stage { position:relative; isolation:isolate; padding-top:22px; padding-bottom:22px; }
-.cartridge-body { position:relative; width:100%; aspect-ratio:1.48; min-height:300px; transform-origin:50% 100%; }
+.cartridge-body { position:relative; z-index:2; width:100%; aspect-ratio:1.48; min-height:300px; transform-origin:50% 100%; }
 .cartridge-shell,.cartridge-shell > div { position:absolute; inset:0; border-radius:46% 46% 3% 3% / 17% 17% 3% 3%; }
 .cartridge-shell { background:#596970; box-shadow:0 14px 22px #0003; }
 .cartridge-shell > div { inset:1px; background:linear-gradient(135deg,#1c282d,#141c20 65%); }
@@ -43,9 +43,14 @@
 .cartridge-progress span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#8973f6,#67bcda,#88e5bb); transition:width .3s; }
 .cartridge-expand-hint { position:absolute; bottom:1%; left:calc(50% - 6px); color:#a0afb8; }
 .cartridge-expand-hint.is-expanded { transform:rotate(180deg); }
-.cartridge-air { position:absolute; width:75%; height:56px; left:12.5%; bottom:-10px; opacity:0; z-index:2; pointer-events:none; stroke:#d6f5ff; stroke-width:2.4; stroke-linecap:round; filter:drop-shadow(0 0 4px #94dfffaa); }
-.cartridge-air path:nth-child(2) { stroke-width:3.2; }
-.cartridge-air path:nth-child(3) { stroke-width:1.6; }
+/* Overlapping clouds form one continuous breath sweeping left to right.
+   Keep the entire air layer behind the opaque shell, including while it lifts. */
+.cartridge-air { position:absolute; width:75%; height:64px; left:12.5%; bottom:-12px; z-index:1; pointer-events:none; }
+.cartridge-puff { position:absolute; bottom:-24px; width:28%; height:84px; opacity:0; transform-origin:50% 100%; filter:blur(5px); }
+/* Broad overlapping heads stay connected; long, fading tails narrow below them.
+   Blur the whole puff after clipping so the taper never has a hard outline. */
+.cartridge-puff::before,.cartridge-puff::after { content:''; position:absolute; left:0; bottom:0; width:90%; height:76px; border-radius:50% 50% 0 0; background:linear-gradient(to bottom,#d5e4e870 12%,#d5e4e850 48%,#d5e4e810 85%,transparent); clip-path:polygon(0 0,100% 0,100% 30%,78% 64%,52% 100%,45% 100%,22% 64%,0 30%); }
+.cartridge-puff::after { left:25%; bottom:16px; width:75%; height:62px; }
 .cartridge-summary { margin:0 4% 12px; padding:14px; border:1px solid #576975; border-radius:12px; background:#151e23; color:#dce3e7; }
 .cartridge-summary p { margin:0 0 9px; font-size:14px; line-height:1.45; overflow-wrap:anywhere; }
 .cartridge-summary h4 { margin:0 0 10px; font-size:18px; overflow-wrap:anywhere; }
@@ -55,21 +60,23 @@
 .game-cartridge.is-archived .game-cover { filter:saturate(.5); }
 .details-added-by { display:flex; align-items:center; gap:7px; color:#a8b4b7; font-size:12px; margin-bottom:16px; }
 @media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference) {
-  .game-cartridge:not(.motion-paused):hover .cartridge-body { animation:cartridge-insert 1.35s both; }
-  .game-cartridge:not(.motion-paused):hover .cartridge-air { animation:cartridge-blow 1.35s both; }
+  .game-cartridge:not(.motion-paused):hover .cartridge-body { animation:cartridge-insert 1.11s both; }
+  .game-cartridge:not(.motion-paused):hover .cartridge-puff { animation:cartridge-puff-rise 480ms ease-out both; animation-delay:calc(210ms + var(--puff-order) * 25ms); }
 }
+/* Remove 240ms from the lifted hold (about five frames in the 20fps preview),
+   preserving the lift/snap timing and each puff's upward speed. */
 @keyframes cartridge-insert {
   0%,100% { transform:translateY(0) rotate(0); }
-  20%,65% { transform:translateY(-18px) rotate(-.8deg); }
-  76% { transform:translateY(-15px) rotate(.5deg); }
-  85% { transform:translateY(3px) scaleY(.985); }
-  93% { transform:translateY(-2px); }
+  24.3%,57.4% { transform:translateY(-18px) rotate(-.8deg); }
+  70.8% { transform:translateY(-15px) rotate(.5deg); }
+  81.8% { transform:translateY(3px) scaleY(.985); }
+  91.5% { transform:translateY(-2px); }
 }
-@keyframes cartridge-blow {
-  0%,20% { opacity:0; transform:translateY(22px) scaleY(.65); }
-  35% { opacity:.95; transform:translateY(8px) scaleY(.9); }
-  58% { opacity:.85; transform:translateY(-15px) scaleY(1); }
-  75%,100% { opacity:0; transform:translateY(-35px) scaleY(.8); }
+@keyframes cartridge-puff-rise {
+  0% { opacity:0; transform:translateY(16px) scale(.65); }
+  22% { opacity:.9; transform:translateY(4px) scale(.9); }
+  55% { opacity:.7; transform:translateY(-23px) scale(1.15); }
+  100% { opacity:0; transform:translateY(-62px) scale(1.35); }
 }
 @media(prefers-reduced-motion:reduce) { .cartridge-progress span { transition:none; } }
 @media(prefers-reduced-transparency:reduce) { .cartridge-frost { inset:0 -3px -3px; mask-image:none; -webkit-mask-image:none; background:#101a27fa; backdrop-filter:none; -webkit-backdrop-filter:none; } }

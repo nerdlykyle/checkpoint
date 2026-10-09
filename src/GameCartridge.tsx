@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from 'react'
+import { useId, useState, type CSSProperties, type ReactNode } from 'react'
 import { ChevronDown, MoreHorizontal } from 'lucide-react'
 import type { Game } from './types'
 import { statusLabels } from './data'
@@ -41,7 +41,7 @@ export default function GameCartridge({ game, artwork, vote, ownership, price, l
         <div className="cartridge-progress" role="progressbar" aria-label={`${game.title} completion`} aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} title={`${progress}% completed`}><span style={{ width: `${progress}%` }} /></div>
         <ChevronDown className={`cartridge-expand-hint${expanded ? ' is-expanded' : ''}`} size={13} aria-hidden="true" />
       </div>
-      <svg className="cartridge-air" viewBox="0 0 300 64" preserveAspectRatio="none" fill="none" aria-hidden="true">{[12, 58, 104, 150, 196, 242, 288].map(x => <path key={x} d={`M${x} 64 C${x - 12} 48 ${x + 12} 34 ${x} 20 S${x - 8} 6 ${x} 0`} />)}</svg>
+      <div className="cartridge-air" aria-hidden="true">{Array.from({ length: 7 }, (_, index) => <span className="cartridge-puff" key={index} style={{ '--puff-order': index, left: `${index * 12}%` } as CSSProperties} />)}</div>
     </div>
     <div className="cartridge-summary" id={summaryId} hidden={!expanded}>
       <h4>{game.title}</h4>
