@@ -35,3 +35,8 @@ test('stack covers are high resolution with lazy loading and error fallbacks', (
     assert.doesNotMatch(read(file),/scale\(\.98\)/)
   }
 })
+test('paperback rear covers use a soft paper rim without changing album outlines', () => {
+  const css=readFileSync(new URL('../src/CollectionStack.css',import.meta.url),'utf8')
+  assert.match(css,/\.collection-stack-books \.collection-stack-layer \{ border:0; box-shadow:/)
+  assert.match(css,/\.collection-stack-books \.collection-stack-layer::after[^}]+pointer-events:none; box-shadow:inset/)
+})

@@ -45,6 +45,9 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
 .sidebar-bottom > button { height: 36px; font-size: 12px; }
 .profile-row { margin-top: 12px; padding: 13px 10px 3px; border-top: 1px solid rgba(255,255,255,.07); display: flex; align-items: center; gap: 9px; }
 .profile-row > div { flex: 1; }.profile-row strong, .profile-row span { display: block; }.profile-row strong { color: #edf2ef; font-size: 12px; }.profile-row span { color: #72947f; font-size: 10px; margin-top: 2px; }
+.profile-row .profile-settings-button { display:grid; place-items:center; width:44px; height:44px; flex:0 0 44px; padding:6px; border:0; color:inherit; }
+.profile-row .profile-settings-button .avatar { display:inline-grid; margin:0; }
+.profile-row .profile-settings-button:focus-visible { outline:2px solid var(--purple,#8473ed); outline-offset:2px; }
 
 .main-area { min-height: 100vh; margin-left: 250px; }
 .topbar { position: sticky; top: 0; z-index: 15; height: 72px; padding: 0 38px; border-bottom: 1px solid rgba(222,219,211,.9); background: rgba(246,245,241,.9); backdrop-filter: blur(18px); display: flex; align-items: center; gap: 20px; }

@@ -34,10 +34,20 @@ test('global accent fills exclude artwork hit areas on hover and press', () => {
   const fills = [...css.matchAll(/([^{}]+)\{[^{}]*background-color:var\(--button-accent\)[^{}]*\}/g)]
   assert.equal(fills.length, 2)
   for (const [, selector] of fills) {
+    assert.match(selector, /:not\(\.brand\)/)
     assert.match(selector, /:not\(:is\(\.music-album-open,\.music-artwork-open,\.paperback-open,\.cartridge-art-open,\.game-card-open\)\)/)
   }
   assert.ok(fills.some(([, selector]) => selector.includes(':hover')))
   assert.ok(fills.some(([, selector]) => selector.includes(':active')))
+})
+
+test('vinyl reveal uses contrasting colored grooves and a larger two-way slide', () => {
+  const css = readFileSync(new URL('../src/VinylSleeve.css', import.meta.url), 'utf8')
+  assert.match(css, /conic-gradient/)
+  assert.match(css, /repeating-radial-gradient\(circle,#74658f/)
+  assert.equal((css.match(/translateX\(16%\)/g) || []).length, 2)
+  assert.equal((css.match(/translateX\(-6%\)/g) || []).length, 2)
+  assert.match(css, /prefers-reduced-motion:reduce/)
 })
 
 test('only current club listens render an always-spinning decorative turntable', () => {

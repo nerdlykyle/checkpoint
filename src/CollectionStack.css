@@ -10,6 +10,10 @@
    A transparent outline gives rotated edges room for antialiasing. */
 .collection-stack-layer img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.8; }
 .collection-stack-layer > span { display:block; color:#c5bce0; padding:8px; }
+/* Paperback stacks have a soft, warm paper rim instead of a high-contrast
+   one-pixel outline. Keep this scoped so album sleeves retain their treatment. */
+.collection-stack-books .collection-stack-layer { border:0; box-shadow:1px 2px 2px #c9c0aa45,3px 5px 12px #0006; }
+.collection-stack-books .collection-stack-layer::after { content:''; position:absolute; inset:0; z-index:1; border-radius:inherit; pointer-events:none; box-shadow:inset 0 0 2px 1px #e1d7bf55,inset -2px -2px 3px #e1d7bf30; }
 .collection-stack.is-expanded { grid-column:1/-1; }
 .collection-stack-preview[hidden],.collection-stack-items[hidden] { display:none; }
 .collection-stack-items { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr)); gap:16px; padding:16px; border:1px solid #4d465c; border-radius:20px; background:#15191e; }

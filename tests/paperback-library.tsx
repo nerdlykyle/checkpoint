@@ -14,8 +14,12 @@ const books: Book[] = [
   ...(['to-read','to-read','read','paused','dnf'] as BookShelf[]).map((shelf,index)=>({ ...common, id:`sample-${index}`, title:['The First Voyage','The Last Voyage','A Finished Book','A Paused Book','An Unfinished Book'][index], authors:['Preview Author'], shelves:{nern:shelf}, ...(index<2 ? {series:{name:'Voyages',position:index+1}, readerOrganization:{nern:{order:index+2}}} : {}) })),
 ]
 const crew = [{id:'nern',name:'Nern',initials:'N',color:'#8473ed'}, {id:'jern',name:'Jern',initials:'J',color:'#32b5a2'}] as Member[]
+// A deliberately labeled sample collection for judging artwork edges, not catalog data.
+const previewBooks = new URLSearchParams(location.search).has('stack-edges')
+  ? [1,2,3].map(position=>({...books[0],id:`edge-sample-${position}`,series:{name:'Edge treatment preview',position},shelves:{nern:'to-read' as BookShelf}}))
+  : books
 function Fixture() {
-  const [items,setItems] = useState(books), [shelf,setShelf] = useState<BookShelf|'all'>('all'), [message,setMessage] = useState('Isolated preview — sample books only')
+  const [items,setItems] = useState(previewBooks), [shelf,setShelf] = useState<BookShelf|'all'>('all'), [message,setMessage] = useState('Isolated preview — sample books only')
   return <><p role="status" style={{padding:16}}>{message}</p><BookClub books={items} currentUser="nern" crew={crew} section="library" shelfFilter={shelf} onShelfFilterChange={setShelf} search="" showAdd={false} onCloseAdd={()=>{}} onOpenAdd={()=>{}} onShowMyBooks={()=>{}} onChange={setItems} notify={setMessage}/></>
 }
 createRoot(document.getElementById('root')!).render(<Fixture/> )

@@ -15,10 +15,10 @@ body :is(.queue-item,.library-card) { cursor:pointer; }
   box-shadow:none !important;
 }
 @media(hover:hover) {
-  :is(button, a.button, a[role="button"], a.text-button, .book-link-row a):not(:disabled):not([aria-disabled="true"]):not(:is(.music-album-open,.music-artwork-open,.paperback-open,.cartridge-art-open,.game-card-open)):hover { background-color:var(--button-accent) !important; background-image:none !important; border-color:var(--button-accent) !important; color:#fff !important; }
+  :is(button, a.button, a[role="button"], a.text-button, .book-link-row a):not(:disabled):not([aria-disabled="true"]):not(.brand):not(:is(.music-album-open,.music-artwork-open,.paperback-open,.cartridge-art-open,.game-card-open)):hover { background-color:var(--button-accent) !important; background-image:none !important; border-color:var(--button-accent) !important; color:#fff !important; }
 }
 /* Artwork-sized hit areas reveal controls; they must never paint over the art. */
-:is(button, a.button, a[role="button"], a.text-button, .book-link-row a):not(:disabled):not([aria-disabled="true"]):not(:is(.music-album-open,.music-artwork-open,.paperback-open,.cartridge-art-open,.game-card-open)):active { background-color:var(--button-accent) !important; background-image:none !important; border-color:var(--button-accent) !important; color:#fff !important; }
+:is(button, a.button, a[role="button"], a.text-button, .book-link-row a):not(:disabled):not([aria-disabled="true"]):not(.brand):not(:is(.music-album-open,.music-artwork-open,.paperback-open,.cartridge-art-open,.game-card-open)):active { background-color:var(--button-accent) !important; background-image:none !important; border-color:var(--button-accent) !important; color:#fff !important; }
 :is(button, a.button):disabled { background-color:transparent !important; background-image:none !important; box-shadow:none !important; }
 body .text-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:44px; padding:10px 13px !important; border:1px solid #69737b !important; font-size:12px; line-height:1.4; text-decoration:none; }
 body .button-light, body .google-button { color:#f1f4f3; border:1px solid #ffffff55; }
