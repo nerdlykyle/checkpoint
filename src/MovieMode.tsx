@@ -5,6 +5,7 @@ import { useMovieStore } from './lib/movieStore'
 import { movieSections, movieShelves, moviesOnShelf, validateMovie, type Movie, type MovieAction, type MovieDraft, type MovieSection, type MovieShelf } from './lib/movies'
 import { MovieCassette, MovieSleeve } from './MovieArtwork'
 import MovieDetails from './MovieDetails'
+import MemberShelfPicker from './MemberShelfPicker'
 import MovieSearch, { MovieCredits } from './MovieSearch'
 import type { movieRequest } from './lib/movieSearch'
 import type { ConnectionState } from './NavigationSync'
@@ -42,10 +43,13 @@ export function MovieContent({ boardId, user, crew, section, onSection, search, 
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const [library, setLibrary] = useState<MovieShelf>('all')
+  const [memberShelf, setMemberShelf] = useState({ user, member: user })
+  const reader = memberShelf.user === user && (memberShelf.member === user || crew.some(member => member.id === memberShelf.member)) ? memberShelf.member : user
+  const readerName = crew.find(member => member.id === reader)?.name || 'Member'
   const selected = store.items.find(item => item.id === selectedId)
   const current = store.items.find(item => item.clubStatus === 'watching')
   const queue = store.items.filter(item => item.clubStatus === 'up-next').sort((a, b) => a.queuedAt.localeCompare(b.queuedAt) || a.id.localeCompare(b.id))
-  const shown = (section === 'queue' ? queue : section === 'watched' ? store.items.filter(item => item.clubStatus === 'watched') : moviesOnShelf(store.items, user, library))
+  const shown = (section === 'queue' ? queue : section === 'watched' ? store.items.filter(item => item.clubStatus === 'watched') : moviesOnShelf(store.items, reader, library))
     .filter(item => `${item.title} ${item.year}`.toLowerCase().includes((search || query).trim().toLowerCase()))
   const open = (id: string) => { setSelectedId(id); setEditing(false); setError('') }
   const close = () => { if (!pending.current) { setSelectedId(null); setEditing(false); setError('') } }
@@ -74,16 +78,19 @@ export function MovieContent({ boardId, user, crew, section, onSection, search, 
         {current ? <MovieCassette key={current.id} movie={current} onOpen={() => open(current.id)} /> : store.ready && empty('No group watch yet. Add a movie, then choose Start group watch in its details.')}
       </section>
       <section><div className="section-heading"><h2>Group watchlist</h2><button type="button" className="button" onClick={() => onSection('queue')}>View all</button></div>{queue.length ? shelf(queue.slice(0, 6)) : store.ready && <p className="movie-muted">The queue is empty. Add movies from their three-dot details menu.</p>}</section>
-      <section><div className="section-heading"><h2>My movies</h2><button type="button" className="button" onClick={() => onSection('library')}>Browse library</button></div>{shelf(store.items.filter(item => item.libraries[user]).slice(0, 6))}</section>
+      <section><div className="section-heading"><h2>My movies</h2><button type="button" className="button" onClick={() => { setMemberShelf({user,member:user}); setLibrary('all'); setQuery(''); onSection('library') }}>Browse library</button></div>{shelf(store.items.filter(item => item.libraries[user]).slice(0, 6))}</section>
     </> : <>
-      {section === 'library' && <div className="filter-tabs movie-shelf-tabs" role="group" aria-label="Movie shelves">{(Object.keys(movieShelves) as MovieShelf[]).map(value => <button type="button" key={value} className={value === library ? 'active' : ''} aria-pressed={value === library} onClick={() => setLibrary(value)}>{movieShelves[value]} <span>{moviesOnShelf(store.items,user,value).length}</span></button>)}</div>}
-      {section === 'library' && library === 'watchlist' && <p className="movie-muted">Your saved movies you haven’t marked as seen.</p>}
+      {section === 'library' && <>
+        <MemberShelfPicker key={`${boardId}:${user}`} crew={crew} currentUser={user} selected={reader} kind="movies" onSelect={member => { setMemberShelf({user,member}); setLibrary('all'); setQuery('') }} />
+        <div className="filter-tabs movie-shelf-tabs" role="group" aria-label="Movie shelves">{(Object.keys(movieShelves) as MovieShelf[]).map(value => <button type="button" key={value} className={value === library ? 'active' : ''} aria-pressed={value === library} onClick={() => setLibrary(value)}>{value === 'all' && reader !== user ? 'Library' : movieShelves[value]} <span>{moviesOnShelf(store.items,reader,value).length}</span></button>)}</div>
+        {library === 'group' || library === 'crew' ? <p className="movie-muted">This collection is shared across the crew.</p> : reader !== user ? <p className="movie-muted">Browsing {readerName}’s collection. Watched and Watchlist reflect their choices; your seen status and ratings remain your own.</p> : library === 'watchlist' ? <p className="movie-muted">Your saved movies you haven’t marked as seen.</p> : null}
+      </>}
       {section === 'watched' && <p className="movie-muted">Past group watches. Your personal Watched shelf is separate.</p>}
       <label className="movie-search"><Search size={18} /><span className="sr-only">Filter movies</span><input type="search" placeholder="Find a movie on this shelf" value={query} onChange={event => setQuery(event.target.value)} /></label>
       {shown.length ? shelf(shown) : store.ready && empty(search || query ? 'No movies match this search.' : 'No movies on this shelf yet.')}
     </>}
     <MovieCredits />
-    {showAdd && <MovieDialog title={addDraft ? 'Confirm movie' : 'Add movie'} onClose={onCloseAdd}>{addDraft ? <MovieEditor initial={addDraft} adding onCancel={() => setAddDraft(null)} onSave={async draft => { await store.add(draft); onCloseAdd(); setLibrary('all'); setQuery(''); onSection('library'); notify('Movie saved to your library') }} /> : <MovieSearch boardId={boardId} onChoose={setAddDraft} request={catalogRequest} />}</MovieDialog>}
+    {showAdd && <MovieDialog title={addDraft ? 'Confirm movie' : 'Add movie'} onClose={onCloseAdd}>{addDraft ? <MovieEditor initial={addDraft} adding onCancel={() => setAddDraft(null)} onSave={async draft => { await store.add(draft); onCloseAdd(); setMemberShelf({user,member:user}); setLibrary('all'); setQuery(''); onSection('library'); notify('Movie saved to your library') }} /> : <MovieSearch boardId={boardId} onChoose={setAddDraft} request={catalogRequest} />}</MovieDialog>}
     {selected && <MovieDialog wide={!editing} title={editing ? 'Edit movie' : selected.title} onClose={close}>
       {editing ? <MovieEditor key={selected.id} initial={selected} onCancel={() => setEditing(false)} onSave={async draft => { await store.edit(selected.id, draft); setEditing(false); notify('Movie details saved') }} /> : <>
         <MovieDetails movie={selected} current={current} user={user} crew={crew} disabled={busy || !store.ready} onAction={action => void run(action)} onRate={stars => void rate(stars)} onEdit={() => setEditing(true)} />

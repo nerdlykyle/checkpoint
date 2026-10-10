@@ -1,4 +1,4 @@
-import { Check, ListVideo, Pencil, Play, Plus, Star, Trash2 } from 'lucide-react'
+import { Check, Eye, EyeOff, ListVideo, Pencil, Play, Plus, Star, Trash2 } from 'lucide-react'
 import { MoviePoster } from './MovieArtwork'
 import type { Movie, MovieAction } from './lib/movies'
 import type { Member } from './types'
@@ -8,6 +8,7 @@ export default function MovieDetails({ movie, current, user, crew, disabled, onA
   onAction: (action: MovieAction) => void; onRate: (stars: number) => void; onEdit: () => void
 }) {
   const stars = movie.ratings?.[user] || 0
+  const hasSeen = movie.seenBy?.[user] === true
   const ratings = crew.map(member => movie.ratings?.[member.id] || 0).filter(value => value > 0)
   const seen = crew.filter(member => movie.seenBy?.[member.id] === true).length
   return <>
@@ -30,10 +31,10 @@ export default function MovieDetails({ movie, current, user, crew, disabled, onA
           <button type="button" className="button" disabled={disabled || Boolean(current && current.id !== movie.id)} onClick={() => onAction(movie.clubStatus === 'watching' ? 'finish' : 'start')}>{movie.clubStatus === 'watching' ? <Check size={18} /> : <Play size={18} />}{movie.clubStatus === 'watching' ? 'Finish group watch' : 'Start group watch'}</button>
         </div>{current && current.id !== movie.id && <p className="movie-muted">Finish “{current.title}” before starting another group watch.</p>}
         <p className="movie-muted">Finishing a group watch never changes anyone’s personal watched status.</p></section>
-        <section><h3>My viewing</h3><label className="movie-viewing-label" htmlFor="movie-seen-status">Have you seen this movie?</label>
-          <select id="movie-seen-status" className="movie-seen-select" disabled={disabled} value={movie.seenBy?.[user] === undefined ? 'unknown' : movie.seenBy[user] ? 'seen' : 'unseen'} onChange={event => onAction(event.target.value === 'seen' ? 'seen' : 'unseen')}>
-            <option value="unknown" disabled>Not marked yet</option><option value="unseen">Not yet · Watchlist</option><option value="seen">Seen it · Watched</option>
-          </select><p className="movie-muted">Saves to your personal shelf. Your crew can see this status when choosing a group movie.</p>
+        <section><h3>My viewing</h3>
+          <button type="button" className="icon-button movie-seen-toggle" disabled={disabled} aria-label="Seen this movie" aria-pressed={hasSeen} title={hasSeen ? 'Seen — tap to mark unseen' : 'Unseen — tap to mark seen'} onClick={() => onAction(hasSeen ? 'unseen' : 'seen')}>
+            {hasSeen ? <Eye size={22} aria-hidden="true" /> : <EyeOff size={22} aria-hidden="true" />}
+          </button><p className="movie-muted">Tap to mark seen. Tap again to undo.</p>
         </section>
         <section><h3>My rating</h3><div className="movie-stars" role="group" aria-label="Your movie rating">{[1,2,3,4,5].map(value => <button type="button" key={value} disabled={disabled} aria-label={`Rate ${value} ${value === 1 ? 'star' : 'stars'}`} aria-pressed={stars === value} title={`${value} / 5`} onClick={() => onRate(value)}><Star size={23} fill={value <= stars ? 'currentColor' : 'none'} /></button>)}</div>
           <div className="movie-rating-note"><small>{stars ? `${stars} / 5 · Saved` : 'Choose a star to save your rating'}</small>{stars > 0 && <button type="button" className="icon-button" title="Clear my rating" aria-label="Clear my rating" disabled={disabled} onClick={() => onRate(0)}><Trash2 size={16} /></button>}</div>

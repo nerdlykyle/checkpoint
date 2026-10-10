@@ -8,7 +8,7 @@ import type { movieRequest } from '../src/lib/movieSearch'
 import '../src/index.css'
 import '../src/App.css'
 const draft = {title:'The Last Signal',year:'2026',posterUrl:'',description:'An astronomer follows a mysterious transmission to a coastal town. A fictional film used only for this isolated preview.'}
-const initial = await Promise.all(['The Last Signal','Midnight Pines','Golden Hour'].map(async (title,index) => ({...makeMovie(await movieId({...draft,title}),{...draft,title},'owner'),posterUrl:index<2?`${location.origin}/tests/movie-poster.svg`:'',clubStatus:index===0?'watching':'up-next',queuedAt:String(index)} as Movie)))
+const initial = await Promise.all(['The Last Signal','Midnight Pines','Golden Hour'].map(async (title,index) => ({...makeMovie(await movieId({...draft,title}),{...draft,title},'owner'),posterUrl:index<2?`${location.origin}/tests/movie-poster.svg`:'',clubStatus:index===0?'watching':'up-next',queuedAt:String(index),libraries:index===0?{owner:true}:index===1?{owner:true,friend:true}:{friend:true},seenBy:index===1?{friend:true}:index===2?{friend:false}:{}} as Movie)))
 // Deliberately delayed mock responses exercise stale-result protection, empty
 // results and catalog failures without a credential or production API call.
 const fixtureCatalog: typeof movieRequest = async <T,>(_board: string, params: Record<string,string>): Promise<T> => {

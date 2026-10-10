@@ -10,11 +10,17 @@ Motion can be paused and respects reduced-motion preferences.
 My movies has My library, Watched, Watchlist, Group watchlist, and Crew collection
 tabs. Watched and Watchlist are personal; Group watchlist is the shared queue.
 Club watched remains the separate group-watch history.
+The same avatar-based member picker used for books and music lets members browse
+each other's movie libraries, Watched, and Watchlist. Crews above three members
+get the existing searchable All members picker. Personal actions in movie details
+always apply to the signed-in member, never the person whose shelf is being viewed.
 
 Movie details uses a two-column layout (stacked on mobile) with synopsis, group
 controls, personal viewing status, 1–5 star ratings, and crew ratings/seen status.
 “Seen it” and “Not yet” save the movie to the member's library and update only
 that member's status. Finishing a group watch never marks members as having seen it.
+The viewing control is an icon-only eye toggle: tap to mark seen, tap again to
+mark unseen. Its pressed state and tooltip describe the state without a dropdown.
 Ratings save immediately; clearing a rating stores zero (excluded from averages).
 
 Optional `seenBy` and `ratings` maps work with existing movie records without a

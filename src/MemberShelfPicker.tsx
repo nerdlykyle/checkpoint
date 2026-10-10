@@ -12,7 +12,7 @@ export function MemberPortrait({ member }: { member: Member }) {
 }
 
 export default function MemberShelfPicker({ crew, currentUser, selected, kind, onSelect }: {
-  crew: Member[]; currentUser: string; selected: string; kind: 'books' | 'music'; onSelect: (id: string) => void
+  crew: Member[]; currentUser: string; selected: string; kind: 'books' | 'music' | 'movies'; onSelect: (id: string) => void
 }) {
   const key = `checkpoint:recent-shelves:${kind}:${currentUser}`
   const [recent, setRecent] = useState<string[]>(() => {

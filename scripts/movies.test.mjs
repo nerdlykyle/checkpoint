@@ -1,8 +1,17 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { changeMovie, makeMovie, movieId, moviesOnShelf, rateMovie, validateMovie } from '../src/lib/movies.ts'
 
 const draft = {title:'The Last Signal',year:'2026',posterUrl:'',description:'A fictional film.'}
+test('viewing uses an accessible reversible icon toggle instead of a dropdown', () => {
+  const details=readFileSync(new URL('../src/MovieDetails.tsx',import.meta.url),'utf8')
+  assert.doesNotMatch(details, /<select|movie-seen-select/)
+  assert.match(details, /aria-label="Seen this movie" aria-pressed={hasSeen}/)
+  assert.match(details, /onAction\(hasSeen \? 'unseen' : 'seen'\)/)
+  assert.match(details, /hasSeen \? <Eye /)
+  assert.match(details, /: <EyeOff /)
+})
 test('legacy movies need no migration and personal seen status stays separate from group history', async () => {
   const old = {...makeMovie(await movieId(draft),draft,'owner'),libraries:{owner:true,friend:true},clubStatus:'watching'}
   assert.equal(moviesOnShelf([old],'owner','watchlist').length,1)
@@ -30,6 +39,24 @@ test('ratings preserve friends, permit clearing and do not change shelves', asyn
   assert.deepEqual(rated.libraries,old.libraries)
   assert.equal(rated.seenBy,undefined)
   for(const invalid of [-1,6,1.5,NaN,'5']) assert.throws(()=>rateMovie(old,'owner',invalid))
+})
+test('browsing a friend’s library filters their shelves while saving changes only your copy', async () => {
+  const friendMovie=changeMovie(makeMovie(await movieId(draft),draft,'friend'),'friend','seen','')
+  assert.equal(moviesOnShelf([friendMovie],'owner','all').length,0)
+  assert.equal(moviesOnShelf([friendMovie],'friend','all').length,1)
+  assert.equal(moviesOnShelf([friendMovie],'friend','watched').length,1)
+  assert.equal(moviesOnShelf([friendMovie],'friend','watchlist').length,0)
+  const saved=changeMovie(friendMovie,'owner','save','')
+  assert.equal(moviesOnShelf([saved],'owner','watchlist').length,1)
+  assert.equal(moviesOnShelf([saved],'friend','watched').length,1)
+  assert.deepEqual(saved.seenBy,{friend:true})
+  const removed=changeMovie(saved,'owner','remove','')
+  assert.equal(moviesOnShelf([removed],'owner','all').length,0)
+  assert.equal(moviesOnShelf([removed],'friend','watched').length,1)
+  const ui=readFileSync(new URL('../src/MovieMode.tsx',import.meta.url),'utf8')
+  assert.match(ui,/moviesOnShelf\(store.items, reader, library\)/)
+  assert.match(ui,/useMovieStore\(props.boardId, props.user, props.boardReady\)/)
+  assert.match(ui,/<MovieDetails[^>]+user={user}/)
 })
 test('group watchlist is shared and sorted without altering personal libraries', async () => {
   const old=makeMovie(await movieId(draft),draft,'friend')
