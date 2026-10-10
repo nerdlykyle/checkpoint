@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { collection, doc, FieldPath, onSnapshot, runTransaction } from 'firebase/firestore'
 import { auth, database, firebaseConfigured } from './firebase'
-import { changeMovie, makeMovie, movieId, rateMovie, validateMovie, type Movie, type MovieAction, type MovieDraft } from './movies'
+import { changeMovie, makeMovie, movieId, rateMovie, reviewMovie, validateMovie, type Movie, type MovieAction, type MovieDraft } from './movies'
 import type { ConnectionState } from '../NavigationSync'
 
 export function useMovieStore(boardId: string, user: string, enabled: boolean) {
@@ -71,5 +71,6 @@ export function useMovieStore(boardId: string, user: string, enabled: boolean) {
     return mutate(id, (old, current) => changeMovie(old, user, action, current), fields, undefined, action === 'start' || action === 'finish' ? action : undefined)
   }
   const rate = (id: string, stars: number) => mutate(id, old => rateMovie(old, user, stars), [new FieldPath('ratings',user)])
-  return { items, ready, connection, error, add, edit, action, rate, retry: () => setRevision(value => value + 1) }
+  const review = (id: string, text: string) => mutate(id, old => reviewMovie(old, user, text), [new FieldPath('reviews', user)])
+  return { items, ready, connection, error, add, edit, action, rate, review, retry: () => setRevision(value => value + 1) }
 }

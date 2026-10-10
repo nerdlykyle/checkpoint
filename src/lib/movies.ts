@@ -10,6 +10,7 @@ export type Movie = MovieDraft & {
   libraries: Record<string, boolean>
   seenBy?: Record<string, boolean>
   ratings?: Record<string, number>
+  reviews?: Record<string, string>
 }
 export type MovieAction = 'save' | 'remove' | 'queue' | 'unqueue' | 'start' | 'finish' | 'seen' | 'unseen'
 export type MovieShelf = 'all' | 'watched' | 'watchlist' | 'group' | 'crew'
@@ -22,6 +23,10 @@ export function moviesOnShelf(items: Movie[], user: string, shelf: MovieShelf): 
 export function rateMovie(item: Movie, user: string, stars: number): Movie {
   if (!Number.isInteger(stars) || stars < 0 || stars > 5) throw new Error('Choose a rating from 1 to 5, or clear your rating.')
   return { ...item, ratings: { ...item.ratings, [user]: stars } }
+}
+export function reviewMovie(item: Movie, user: string, text: string): Movie {
+  if (text.length > 2000) throw new Error('Keep your review under 2,000 characters.')
+  return { ...item, reviews: { ...item.reviews, [user]: text.trim() } }
 }
 export const movieSections: Record<MovieSection, string> = {
   home: 'Movie home', library: 'My movies', queue: 'Group watchlist', watched: 'Club watched',

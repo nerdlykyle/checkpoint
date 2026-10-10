@@ -164,9 +164,12 @@ service cloud.firestore {
       match /movies/{movieId} {
         function validMovie() {
           let data = request.resource.data;
-          return data.keys().hasOnly(['id', 'title', 'year', 'posterUrl', 'description', 'addedBy', 'createdAt', 'clubStatus', 'queuedAt', 'libraries', 'tmdbId', 'seenBy', 'ratings'])
+          return data.keys().hasOnly(['id', 'title', 'year', 'posterUrl', 'description', 'addedBy', 'createdAt', 'clubStatus', 'queuedAt', 'libraries', 'tmdbId', 'seenBy', 'ratings', 'reviews'])
             && data.get('seenBy', {}) is map && data.get('seenBy', {}).size() <= 2000
             && data.get('ratings', {}) is map && data.get('ratings', {}).size() <= 2000
+            && data.get('reviews', {}) is map && data.get('reviews', {}).size() <= 2000
+            && data.get('reviews', {}).get(request.auth.uid, '') is string
+            && data.get('reviews', {}).get(request.auth.uid, '').size() <= 2000
             && data.get('seenBy', {}).get(request.auth.uid, false) is bool
             && data.get('ratings', {}).get(request.auth.uid, 0) is int
             && data.get('ratings', {}).get(request.auth.uid, 0) >= 0
@@ -201,12 +204,14 @@ service cloud.firestore {
           && request.resource.data.clubStatus == 'none' && request.resource.data.queuedAt == ''
           && request.resource.data.get('seenBy', {}).keys().hasOnly([request.auth.uid])
           && request.resource.data.get('ratings', {}).keys().hasOnly([request.auth.uid])
+          && request.resource.data.get('reviews', {}).keys().hasOnly([request.auth.uid])
           && request.resource.data.libraries.keys().hasOnly([request.auth.uid])
           && request.resource.data.libraries[request.auth.uid] == true;
         allow update: if boardMember(boardId) && validMovie() && validClubChange()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'year', 'posterUrl', 'description', 'clubStatus', 'queuedAt', 'libraries', 'seenBy', 'ratings'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'year', 'posterUrl', 'description', 'clubStatus', 'queuedAt', 'libraries', 'seenBy', 'ratings', 'reviews'])
           && request.resource.data.get('seenBy', {}).diff(resource.data.get('seenBy', {})).affectedKeys().hasOnly([request.auth.uid])
           && request.resource.data.get('ratings', {}).diff(resource.data.get('ratings', {})).affectedKeys().hasOnly([request.auth.uid])
+          && request.resource.data.get('reviews', {}).diff(resource.data.get('reviews', {})).affectedKeys().hasOnly([request.auth.uid])
           && request.resource.data.libraries.diff(resource.data.libraries).affectedKeys().hasOnly([request.auth.uid])
           && request.resource.data.libraries.get(request.auth.uid, false) is bool;
         allow delete: if false;
@@ -228,6 +233,16 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // Separate from legacy shared game records; only the author can write.
+      match /gameReviews/{gameId}/members/{reviewerId} {
+        allow read: if boardMember(boardId);
+        allow create, update: if boardMember(boardId) && request.auth.uid == reviewerId
+          && request.resource.data.keys().hasOnly(['text', 'stars', 'updatedAt'])
+          && request.resource.data.text is string && request.resource.data.text.size() <= 2000
+          && request.resource.data.stars is int && request.resource.data.stars >= 0 && request.resource.data.stars <= 5
+          && request.resource.data.updatedAt is string && request.resource.data.updatedAt.size() <= 40;
+        allow delete: if false;
+      }
       match /music/{musicId} {
         function musicMember() { return boardMember(boardId); }
         allow read: if musicMember();

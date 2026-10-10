@@ -14,6 +14,7 @@ import { CheckpointLogo } from './CheckpointLogo'
 import './CleanSplitCards.css'
 import './GameArtworkCards.css'
 import GameShelf from './GameShelf'
+import GameReviews from './GameReviews'
 import NavigationSync, { type ConnectionState } from './NavigationSync'
 import BookClub, { type BookSection, type BookShelfFilter } from './BookClub'
 import BookmarkColorSettings from './BookmarkColorSettings'
@@ -35,7 +36,7 @@ import { initialGames, members, statusLabels } from './data'
 import type { ActivityChange, ActivityEntry, ActivitySnapshot, AppMode, Book, ContentType, Game, GameDeal, GameLink, GameNight, GameSession, GameStatus, Member, Persona, PuzzleBoard, PuzzleImage, PuzzlePage, PuzzlePoint, PuzzleStroke, Recommendation, RecommendationFeedback, RecommendationFeed, SteamAchievementSnapshot, SteamCrewSnapshot, SteamLinkPreference } from './types'
 import { firebaseConfigured, signInWithGoogle, signOut, watchAuth } from './lib/firebase'
 import { parseSteamStoreLink, resolveSteamStoreLink, searchGames, type GameSearchResult } from './lib/gameSearch'
-import { connectBoard, getBoardId, type BoardConnection, type SteamProfile } from './lib/sharedBoard'
+import { CHECKPOINT_CREW_BOARD_ID, connectBoard, getBoardId, type BoardConnection, type SteamProfile } from './lib/sharedBoard'
 import { connectPuzzle, createEmptyPuzzleBoard, createPuzzlePage, normalizePuzzleBoard, type PuzzleConnection } from './lib/sharedPuzzle'
 import { gameIntegrationsConfigured, loadGameAchievements, loadSteamArtwork, loadSteamCrew, resolveSteamProfile } from './lib/gameIntegrations'
 import { loadCheapSharkDeals } from './lib/cheapShark'
@@ -1333,6 +1334,7 @@ export function GameDetailsModal({ game, onClose, onSave, onVote, onRemove, onAr
             {linkError && <p className="game-link-error">{linkError}</p>}
           </section>
           <SteamGamePanel game={game} onManualOwnershipChange={onManualOwnershipChange} />
+          <GameReviews key={`${game.id}:${currentUser}`} boardId={CHECKPOINT_CREW_BOARD_ID} gameId={game.id} user={currentUser} crew={crew} />
           <div className="modal-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit">Save changes</button></div>
         </form>
       </section>

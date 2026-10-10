@@ -1,11 +1,12 @@
 import { Check, Eye, EyeOff, ListVideo, Pencil, Play, Plus, Star, Trash2 } from 'lucide-react'
 import { MoviePoster } from './MovieArtwork'
+import ReviewEditor from './ReviewEditor'
 import type { Movie, MovieAction } from './lib/movies'
 import type { Member } from './types'
 
-export default function MovieDetails({ movie, current, user, crew, disabled, onAction, onRate, onEdit }: {
+export default function MovieDetails({ movie, current, user, crew, disabled, onAction, onRate, onReview, onEdit }: {
   movie: Movie; current?: Movie; user: string; crew: Member[]; disabled: boolean
-  onAction: (action: MovieAction) => void; onRate: (stars: number) => void; onEdit: () => void
+  onAction: (action: MovieAction) => void; onRate: (stars: number) => void; onReview: (text: string) => Promise<void>; onEdit: () => void
 }) {
   const stars = movie.ratings?.[user] || 0
   const hasSeen = movie.seenBy?.[user] === true
@@ -39,9 +40,10 @@ export default function MovieDetails({ movie, current, user, crew, disabled, onA
         <section><h3>My rating</h3><div className="movie-stars" role="group" aria-label="Your movie rating">{[1,2,3,4,5].map(value => <button type="button" key={value} disabled={disabled} aria-label={`Rate ${value} ${value === 1 ? 'star' : 'stars'}`} aria-pressed={stars === value} title={`${value} / 5`} onClick={() => onRate(value)}><Star size={23} fill={value <= stars ? 'currentColor' : 'none'} /></button>)}</div>
           <div className="movie-rating-note"><small>{stars ? `${stars} / 5 · Saved` : 'Choose a star to save your rating'}</small>{stars > 0 && <button type="button" className="icon-button" title="Clear my rating" aria-label="Clear my rating" disabled={disabled} onClick={() => onRate(0)}><Trash2 size={16} /></button>}</div>
         </section>
-        <section><h3>Crew ratings</h3><p className="movie-muted">{seen} of {crew.length} have seen it</p><div className="movie-crew-ratings">{crew.map(member => {
+        <section><ReviewEditor key={`${movie.id}:${user}`} saved={movie.reviews?.[user] || ''} disabled={disabled} onSave={onReview} /></section>
+        <section><h3>Crew ratings & reviews</h3><p className="movie-muted">{seen} of {crew.length} have seen it</p><div className="movie-crew-ratings">{crew.map(member => {
           const rating = movie.ratings?.[member.id] || 0, watched = movie.seenBy?.[member.id]
-          return <div className="movie-crew-rating" key={member.id}><span className="avatar avatar-small" style={{background:member.color}}>{member.photoUrl ? <img src={member.photoUrl} alt="" /> : member.initials || member.name.slice(0,1)}</span><div><strong>{member.name}{member.id === user ? ' (you)' : ''}</strong><small>{watched === undefined ? 'Not marked yet' : watched ? 'Seen it' : 'Not seen yet'}</small></div><span aria-label={`${member.name}: ${rating ? `${rating} out of 5 stars` : 'Not rated'}`}>{rating ? <><Star size={14} aria-hidden="true" /> {rating}/5</> : 'Not rated'}</span></div>
+          return <div className="movie-crew-rating" key={member.id}><span className="avatar avatar-small" style={{background:member.color}}>{member.photoUrl ? <img src={member.photoUrl} alt="" /> : member.initials || member.name.slice(0,1)}</span><div><strong>{member.name}{member.id === user ? ' (you)' : ''}</strong><small>{watched === undefined ? 'Not marked yet' : watched ? 'Seen it' : 'Not seen yet'}</small></div><span aria-label={`${member.name}: ${rating ? `${rating} out of 5 stars` : 'Not rated'}`}>{rating ? <><Star size={14} aria-hidden="true" /> {rating}/5</> : 'Not rated'}</span>{movie.reviews?.[member.id] && <p className="crew-review-text">{movie.reviews[member.id]}</p>}</div>
         })}</div></section>
       </aside>
     </div>

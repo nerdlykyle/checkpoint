@@ -1,0 +1,14 @@
+.written-review { display: grid; gap: 10px; margin-top: 18px; }
+.written-review textarea { box-sizing: border-box; width: 100%; min-width: 0; padding: 12px; border: 1px solid var(--border, #3e4b50); border-radius: 12px; background: #0e1518; color: inherit; font: inherit; font-size: 16px; line-height: 1.5; resize: vertical; }
+.written-review small { color: var(--muted, #a1adaa); }
+.written-review .button { justify-self: start; }
+.written-review p, .crew-review-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+.game-reviews { padding: 24px; border-top: 1px solid var(--border, #3e4b50); }
+.game-review-stars { display: flex; gap: 6px; margin-block: 12px; }
+.game-review-stars button { min-width: 44px; min-height: 44px; }
+.game-crew-review { padding-block: 12px; border-bottom: 1px solid var(--border, #3e4b50); }
+.game-crew-review small { margin-left: 10px; }
+.crew-ratings p, .music-rating p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.movie-crew-rating { flex-wrap: wrap; }
+.movie-crew-rating .crew-review-text { flex-basis: 100%; margin: 8px 0 0; }
+.movie-crew-rating > span:nth-of-type(2) { font-size: 12px; color: #d6bd83; display: flex; gap: 3px; align-items: center; white-space: nowrap; }

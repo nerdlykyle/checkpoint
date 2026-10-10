@@ -93,7 +93,12 @@ export function MovieContent({ boardId, user, crew, section, onSection, search, 
     {showAdd && <MovieDialog title={addDraft ? 'Confirm movie' : 'Add movie'} onClose={onCloseAdd}>{addDraft ? <MovieEditor initial={addDraft} adding onCancel={() => setAddDraft(null)} onSave={async draft => { await store.add(draft); onCloseAdd(); setMemberShelf({user,member:user}); setLibrary('all'); setQuery(''); onSection('library'); notify('Movie saved to your library') }} /> : <MovieSearch boardId={boardId} onChoose={setAddDraft} request={catalogRequest} />}</MovieDialog>}
     {selected && <MovieDialog wide={!editing} title={editing ? 'Edit movie' : selected.title} onClose={close}>
       {editing ? <MovieEditor key={selected.id} initial={selected} onCancel={() => setEditing(false)} onSave={async draft => { await store.edit(selected.id, draft); setEditing(false); notify('Movie details saved') }} /> : <>
-        <MovieDetails movie={selected} current={current} user={user} crew={crew} disabled={busy || !store.ready} onAction={action => void run(action)} onRate={stars => void rate(stars)} onEdit={() => setEditing(true)} />
+        <MovieDetails movie={selected} current={current} user={user} crew={crew} disabled={busy || !store.ready} onAction={action => void run(action)} onRate={stars => void rate(stars)} onReview={async text => {
+          if (pending.current) throw new Error('A save is already in progress.')
+          pending.current = true; setBusy(true)
+          try { await store.review(selected.id, text) }
+          finally { pending.current = false; setBusy(false) }
+        }} onEdit={() => setEditing(true)} />
         {busy && <p role="status">Saving…</p>}{error && <p className="movie-error" role="alert">{error}</p>}
       </>}
     </MovieDialog>}
