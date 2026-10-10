@@ -4,6 +4,14 @@ import { readFileSync } from 'node:fs'
 import { makeGameReview } from '../src/lib/gameReviews.ts'
 import { reviewMovie, makeMovie, changeMovie, rateMovie } from '../src/lib/movies.ts'
 
+test('movie review editor sits in the left column above movie settings', () => {
+  const details=readFileSync(new URL('../src/MovieDetails.tsx',import.meta.url),'utf8')
+  const main=details.split('className="movie-detail-main"')[1].split('<aside')[0]
+  assert.ok(main.indexOf('<ReviewEditor') > 0)
+  assert.ok(main.indexOf('<ReviewEditor') < main.indexOf('<h3>Movie settings'))
+  assert.equal(details.split('<ReviewEditor').length-1,1)
+})
+
 test('movie reviews preserve ratings, crew reviews, shelves and group state', () => {
   const old = { ...makeMovie('movie-test', {title:'Film',year:'2026',posterUrl:'',description:''}, 'owner'), reviews:{friend:'Their review'}, ratings:{owner:4,friend:5} }
   const next = reviewMovie(old, 'owner', '  My thoughts\nSecond line  ')
