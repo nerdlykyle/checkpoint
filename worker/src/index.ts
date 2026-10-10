@@ -1,9 +1,12 @@
 import { musicCatalog } from './music.js'
+import { authorizeMovieCatalog, movieCatalog, MovieCatalogError } from './movies.js'
 
 interface Env {
   ALLOWED_ORIGINS: string
   CHECKPOINT_BOARD_ID: string
   STEAM_WEB_API_KEY?: string
+  TMDB_READ_ACCESS_TOKEN?: string
+  FIREBASE_PROJECT_ID?: string
 }
 
 const STEAM_API = 'https://api.steampowered.com'
@@ -19,7 +22,7 @@ function responseHeaders(request: Request, env: Env) {
   return {
     'Access-Control-Allow-Origin': allowedOrigin(request, env),
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Accept, Content-Type',
+    'Access-Control-Allow-Headers': 'Accept, Content-Type, Authorization',
     'Access-Control-Max-Age': '86400',
     'Cache-Control': 'no-store',
     'Content-Type': 'application/json; charset=utf-8',
@@ -175,6 +178,12 @@ async function handleRequest(request: Request, env: Env) {
   if (url.pathname === '/health') return json(request, env, { ok: true, steamConfigured: Boolean(env.STEAM_WEB_API_KEY) })
   if (!boardAllowed(url, env)) return json(request, env, { error: 'board_not_allowed' }, 403)
   try {
+    if (url.pathname === '/movies/catalog') {
+      const origin = request.headers.get('Origin')
+      if (origin && !env.ALLOWED_ORIGINS.split(',').map(value => value.trim()).includes(origin)) return json(request, env, { error: 'Origin not allowed.' }, 403)
+      await authorizeMovieCatalog(request, env)
+      return json(request, env, await movieCatalog(env, Object.fromEntries(url.searchParams)))
+    }
     if (url.pathname === '/music/catalog') {
       return json(request, env, await musicCatalog(Object.fromEntries(url.searchParams)))
     }
@@ -201,6 +210,7 @@ async function handleRequest(request: Request, env: Env) {
     }
     return json(request, env, { error: 'not_found' }, 404)
   } catch (error) {
+    if (error instanceof MovieCatalogError) return json(request, env, { error: error.message }, error.status)
     const message = error instanceof Error ? error.message : 'service_unavailable'
     const status = message.startsWith('invalid_') ? 400 : message === 'steam_game_not_found' || message === 'steam_artwork_not_found' ? 404 : message === 'steam_unconfigured' ? 503 : 502
     return json(request, env, { error: message }, status)

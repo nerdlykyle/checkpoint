@@ -4,6 +4,11 @@ This Worker keeps the Steam Web API key out of the public site. CheapShark prici
 
 It also serves public MusicBrainz metadata and Spotify/YouTube link resolution at `/music/catalog`, using the same board allowlist. No streaming-service secret or Firebase billing upgrade is needed. See [Music mode](../docs/music.md) for limits, storage, and release steps.
 
+Movie search uses `/movies/catalog`, with a server-only `TMDB_READ_ACCESS_TOKEN`
+secret and `FIREBASE_PROJECT_ID`. Unlike the public music metadata endpoint, it
+requires a Firebase ID token and a successful board-member check. See
+[Movies](../docs/movies.md) for setup, attribution, and release order.
+
 Required deployment configuration:
 
 - `STEAM_WEB_API_KEY`: a Wrangler secret created from a Steam Web API key

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1200" viewBox="0 0 800 1200">
+  <defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#17313d"/><stop offset="1" stop-color="#728782"/></linearGradient></defs>
+  <path fill="url(#sky)" d="M0 0h800v1200H0z"/>
+  <circle cx="530" cy="410" r="245" fill="#d9d0a3"/>
+  <path fill="#3b5f64" d="m0 670 230-125 200 125 185-180 185 95v615H0z"/>
+  <path fill="#1b3c48" d="m0 840 315-160 260 135 225-45v430H0z"/>
+  <path fill="#0f2831" d="m0 1000 360-120 440 115v205H0z"/>
+  <text x="400" y="1070" text-anchor="middle" fill="#e5ddbe" font-family="serif" font-size="33" letter-spacing="9">MOVIE PREVIEW</text>
+</svg>

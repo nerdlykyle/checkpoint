@@ -24,7 +24,7 @@ body .text-button { display:inline-flex; align-items:center; justify-content:cen
 body .button-light, body .google-button { color:#f1f4f3; border:1px solid #ffffff55; }
 body .button-primary { border:1px solid #9b8fea; color:#f0ecff; }
 body .mobile-menu-nav > button:not(.active) > span { background:transparent; }
-body .mode-switcher { grid-template-columns:repeat(3,minmax(0,1fr)); }
+body .mode-switcher { grid-template-columns:repeat(4,minmax(0,1fr)); }
 body .mode-switcher button { min-height:44px; height:44px; }
 body .music-listening-links { flex-direction:row; }
 body .music-listening-links .music-service-link { display:inline-flex; align-items:center; justify-content:center; flex:0 0 44px; width:44px; height:44px; min-height:44px; padding:10px; border:1px solid #ffffff40; border-radius:12px; }

@@ -81,7 +81,7 @@ service cloud.firestore {
           && (!profile.keys().hasAny(['steamProfileUrl']) || (profile.steamProfileUrl is string && profile.steamProfileUrl.size() <= 500))
           && (!profile.keys().hasAny(['steamAvatarUrl']) || (profile.steamAvatarUrl is string && profile.steamAvatarUrl.size() <= 500))
           && (!profile.keys().hasAny(['steamLinkPreference']) || profile.steamLinkPreference in ['auto', 'app', 'browser'])
-          && (!profile.keys().hasAny(['preferredMode']) || profile.preferredMode in ['games', 'books', 'music'])
+          && (!profile.keys().hasAny(['preferredMode']) || profile.preferredMode in ['games', 'books', 'music', 'movies'])
           && (!profile.keys().hasAny(['bookmarkColor']) || (profile.bookmarkColor is string && profile.bookmarkColor.matches('^#[0-9a-fA-F]{6}$')))
           && (!profile.keys().hasAny(['persona']) || profile.persona in ['Nern', 'Jern', 'Vern'])
           && profile.joinedAt == resource.data.members[request.auth.uid].joinedAt;
@@ -157,6 +157,64 @@ service cloud.firestore {
         allow update: if consuming() || (boardOwner(boardId) && resource.data.status == 'pending'
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'revokedAt'])
           && request.resource.data.status == 'revoked' && request.resource.data.revokedAt == request.time);
+        allow delete: if false;
+      }
+
+      // Movie records are additive: existing media and membership are untouched.
+      match /movies/{movieId} {
+        function validMovie() {
+          let data = request.resource.data;
+          return data.keys().hasOnly(['id', 'title', 'year', 'posterUrl', 'description', 'addedBy', 'createdAt', 'clubStatus', 'queuedAt', 'libraries', 'tmdbId'])
+            && (!data.keys().hasAny(['tmdbId']) || (data.tmdbId is int && data.tmdbId > 0 && data.tmdbId <= 9999999999))
+            && movieId.matches('^movie-[a-f0-9]{64}$') && data.id == movieId
+            && data.title is string && data.title.size() > 0 && data.title.size() <= 250
+            && data.year is string && (data.year == '' || data.year.matches('^[0-9]{4}$'))
+            && data.posterUrl is string && data.posterUrl.size() <= 2000
+            && (data.posterUrl == '' || data.posterUrl.matches('https://.*'))
+            && data.description is string && data.description.size() <= 5000
+            && data.createdAt is string && data.createdAt.size() <= 40
+            && data.queuedAt is string && data.queuedAt.size() <= 40
+            && data.clubStatus in ['none', 'up-next', 'watching', 'watched']
+            && data.libraries is map && data.libraries.size() <= 2000;
+        }
+        function validClubChange() {
+          let before = resource.data.clubStatus;
+          let after = request.resource.data.clubStatus;
+          let statePath = /databases/$(database)/documents/boards/$(boardId)/movieState/current;
+          return before == after
+            || (before != 'watching' && after in ['none', 'up-next'])
+            || (after == 'watching'
+              && (!exists(statePath) || get(statePath).data.movieId in ['', movieId])
+              && getAfter(statePath).data.movieId == movieId)
+            || (before == 'watching' && after == 'watched'
+              && get(statePath).data.movieId == movieId && getAfter(statePath).data.movieId == '');
+        }
+        allow read: if boardMember(boardId);
+        allow create: if boardMember(boardId) && validMovie()
+          && request.resource.data.addedBy == request.auth.uid
+          && request.resource.data.clubStatus == 'none' && request.resource.data.queuedAt == ''
+          && request.resource.data.libraries.keys().hasOnly([request.auth.uid])
+          && request.resource.data.libraries[request.auth.uid] == true;
+        allow update: if boardMember(boardId) && validMovie() && validClubChange()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'year', 'posterUrl', 'description', 'clubStatus', 'queuedAt', 'libraries'])
+          && request.resource.data.libraries.diff(resource.data.libraries).affectedKeys().hasOnly([request.auth.uid])
+          && request.resource.data.libraries.get(request.auth.uid, false) is bool;
+        allow delete: if false;
+      }
+      match /movieState/{stateId} {
+        function validStateChange() {
+          let next = request.resource.data.movieId;
+          let previous = resource == null ? '' : resource.data.movieId;
+          return (next != '' && (previous == '' || previous == next)
+              && getAfter(/databases/$(database)/documents/boards/$(boardId)/movies/$(next)).data.clubStatus == 'watching')
+            || (next == '' && previous != ''
+              && getAfter(/databases/$(database)/documents/boards/$(boardId)/movies/$(previous)).data.clubStatus == 'watched');
+        }
+        allow read: if boardMember(boardId);
+        allow create, update: if stateId == 'current' && boardMember(boardId)
+          && request.resource.data.keys().hasOnly(['movieId'])
+          && request.resource.data.movieId is string && request.resource.data.movieId.size() <= 70
+          && validStateChange();
         allow delete: if false;
       }
 
