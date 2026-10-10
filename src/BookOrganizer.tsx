@@ -1,10 +1,9 @@
 import StyledSelect from "./StyledSelect"
 import MemberShelfPicker from './MemberShelfPicker'
 import { useState } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpToLine, BookMarked, GripVertical, ListOrdered, Plus, Shuffle, SlidersHorizontal } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpToLine, Check, GripVertical, ListOrdered, Plus, Shuffle } from 'lucide-react'
 import type { Book, BookShelf, Member } from './types'
 import BookCoverImage from './BookCoverImage'
-import ArtworkControls from './ArtworkControls'
 import CollectionStack from './CollectionStack'
 import PaperbackCard from './PaperbackCard'
 import { bookCollections } from './lib/mediaCollections'
@@ -27,7 +26,7 @@ export function SeriesLabel({ book }: { book: Book }) {
   return <span className="series-label">{book.series.name}{book.series.position !== undefined ? ` · Book ${book.series.position}` : ''}{book.series.total ? ` of ${book.series.total}` : ''}</span>
 }
 
-export default function BookOrganizer({ books, currentUser, crew, readers, shelf, search, onShelfFilter, onChange, onOpen, onChapter, onEdit, onShelf, onFindSeries, onRefresh, refreshing }: Props) {
+export default function BookOrganizer({ books, currentUser, crew, readers, shelf, search, onShelfFilter, onChange, onOpen, onShelf, onFindSeries, onRefresh, refreshing }: Props) {
   const [reader, setReader] = useState(currentUser)
   const [genre, setGenre] = useState('')
   const [tag, setTag] = useState('')
@@ -61,10 +60,11 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
     onMove: (id, target) => move(id, queue.findIndex(book => book.id === target) + 1) })
   const card = (book: Book) => {
     const rank = queue.findIndex((item) => item.id === book.id) + 1
-    if (!readers) return <div key={book.id} className="organized-paperback" data-shelf-book={book.id} data-reorder-id={book.id}>
-      <PaperbackCard book={book} user={currentUser} crew={crew} source={crew.find(member => member.id === book.readerOrganization?.[currentUser]?.savedFrom)} onOpen={() => onOpen(book.id)} />
-      <div className="paperback-shelf-caption"><span>{canReorder ? `#${rank} · ` : ''}{shelfNames[book.shelves[currentUser]]}</span>
-        {book.shelves[currentUser] === 'to-read' && <button className="icon-button" type="button" aria-label={`Read ${book.title} next`} title="Read next" onClick={() => { move(book.id, 1); setSort('order'); setGroupSeries(false); onShelfFilter('to-read') }}><ArrowUpToLine size={18} /></button>}
+    return <div key={book.id} className="organized-paperback" data-shelf-book={book.id} data-reorder-id={book.id}>
+      <PaperbackCard book={book} user={owner} crew={crew} source={crew.find(member => member.id === book.readerOrganization?.[owner]?.savedFrom)} onOpen={() => onOpen(book.id, mine ? undefined : owner)} />
+      <div className="paperback-shelf-caption"><span>{canReorder ? `#${rank} · ` : ''}{shelfNames[book.shelves[owner]]}{!mine && book.ratings[owner]?.stars ? ` · ${book.ratings[owner].stars}/5 ★` : ''}</span>
+        {mine && book.shelves[currentUser] === 'to-read' && <button className="icon-button" type="button" aria-label={`Read ${book.title} next`} title="Read next" onClick={() => { move(book.id, 1); setSort('order'); setGroupSeries(false); onShelfFilter('to-read') }}><ArrowUpToLine size={18} /></button>}
+        {!mine && <button className="icon-button" type="button" disabled={Boolean(book.shelves[currentUser])} aria-label={book.shelves[currentUser] ? `${book.title} is on my shelf` : `Save ${book.title} to my books`} title={book.shelves[currentUser] ? 'On my shelf' : 'Save to my books'} onClick={() => onShelf(book, 'to-read', owner)}>{book.shelves[currentUser] ? <Check size={18} /> : <Plus size={18} />}</button>}
       </div>
       {canReorder && <div className="paperback-order-actions">
         <button type="button" className="book-drag-handle" aria-label={`Drag ${book.title} to reorder; use arrow buttons or Move for keyboard control`} {...drag.handleProps(book.id)}><GripVertical size={20} /></button>
@@ -73,22 +73,6 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
         <button className="icon-button" type="button" aria-label={`Move ${book.title} to position`} title="Move to position" onClick={() => { setMoving(book.id); setPosition(String(rank)) }}><ListOrdered size={18} /></button>
       </div>}
     </div>
-    return <article key={book.id} data-shelf-book={book.id} data-reorder-id={book.id} className="organized-book clean-split">
-      {canReorder && <button type="button" className="book-drag-handle" aria-label={`Drag ${book.title} to reorder; use arrow buttons or Move for keyboard control`} {...drag.handleProps(book.id)}><GripVertical size={20} /></button>}
-      <div className="organized-cover"><BookCoverImage book={book} /><ArtworkControls title={book.title} source={crew.find(member=>member.id===book.readerOrganization?.[owner]?.savedFrom)} onOpen={()=>onOpen(book.id,mine?undefined:owner)} /></div>
-      <div className="organized-content">
-      <div className="organized-copy"><span className="eyebrow">{sort === 'order' && shelf !== 'all' && !groupSeries ? `#${rank} · ` : ''}{shelfNames[book.shelves[owner]]}</span><h3 className="organized-title">{book.title}</h3><p>{book.authors.join(', ')}</p><SeriesLabel book={book} />
-        <div className="book-tag-list">{book.genres?.map((value) => <button type="button" key={value} onClick={() => setGenre(value)}>{value}</button>)}{book.readerOrganization?.[owner]?.tags?.map((value) => <button type="button" className="personal-tag" key={value} onClick={() => setTag(value)}>#{value}</button>)}</div>
-        {!mine && <p>{ownerName} · Chapter {book.progress[owner]?.lastChapter ?? 0}{book.ratings[owner]?.stars ? ` · ${book.ratings[owner].stars}/5 stars` : ''}</p>}
-      </div>
-      <div className="organized-actions">{mine ? <>
-        <StyledSelect aria-label={`Shelf for ${book.title}`} value={book.shelves[currentUser]} onValueChange={(value) => onShelf(book, value as BookShelf)}>{Object.entries(shelfNames).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</StyledSelect>
-        <div className="organized-action-row organized-icon-actions"><button className="organized-icon-action" type="button" onClick={() => onEdit(book.id)} aria-label={`Organize ${book.title}`} title={`Organize ${book.title}`}><SlidersHorizontal size={18} aria-hidden="true" /></button>{book.shelves[currentUser] === 'reading' && <button className="organized-icon-action" type="button" onClick={() => onChapter(book.id)} aria-label={`Update chapter for ${book.title}; last read: ${book.progress[currentUser]?.lastChapter ?? 0}`} title={`Update chapter · Last read: ${book.progress[currentUser]?.lastChapter ?? 0}`}><BookMarked size={18} aria-hidden="true" /></button>}</div>
-        {canReorder && <div className="organized-action-row"><button type="button" disabled={rank === 1} aria-label={`Move ${book.title} up`} onClick={() => move(book.id, rank - 1)}><ArrowUp size={15} /></button><button type="button" disabled={rank === queue.length} aria-label={`Move ${book.title} down`} onClick={() => move(book.id, rank + 1)}><ArrowDown size={15} /></button><button type="button" onClick={() => { setMoving(book.id); setPosition(String(rank)) }}>Move…</button></div>}
-        {book.shelves[currentUser] === 'to-read' && <button type="button" onClick={() => { move(book.id, 1); setSort('order'); setGroupSeries(false); onShelfFilter('to-read') }}>Read next</button>}
-      </> : <button type="button" disabled={Boolean(book.shelves[currentUser])} onClick={() => onShelf(book, 'to-read',owner)}><Plus size={15} />{book.shelves[currentUser] ? 'On my shelf' : 'Save to my books'}</button>}</div>
-      </div>
-    </article>
   }
   const groups = bookCollections(visible)
   return <section className="book-organizer" aria-label="Personal book shelves">
@@ -107,7 +91,7 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
     <p className="book-organizer-hint">{groupSeries ? 'Newest books appear at the front of each series. Expand a collection to see matching books on this shelf.' : canReorder ? 'Drag the grip, use arrows, or choose Move to set a position. Positions refer to the full shelf, even when filtered.' : mine ? 'Turn off Group by series and choose Reading order to arrange individual books.' : 'Ratings and discussion remain shared. Private notes are never shown here.'}</p>
     <p className="sr-only" role="status">{announcement}</p>
     <p className="sr-only" role="status">{drag.announcement}</p>
-    <div className={`organized-books${!readers ? ' paperback-library-grid' : ''}${canReorder ? " is-arranging" : ""}`} ref={drag.containerRef} onClickCapture={drag.onClickCapture}>{groupSeries ? groups.map((items) => {
+    <div className={`organized-books paperback-library-grid${canReorder ? " is-arranging" : ""}`} ref={drag.containerRef} onClickCapture={drag.onClickCapture}>{groupSeries ? groups.map((items) => {
       const first = items[0]
       if (!first.series || items.length < 2) return card(first)
       return <CollectionStack key={items.map(item=>item.id).sort().join('|')} title={first.series.name} count={items.length} kind="books" front={card(first)} behind={items.slice(1,3).map(book=><BookCoverImage key={book.id} book={book} large lazy />)}>
