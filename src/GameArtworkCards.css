@@ -1,61 +1,62 @@
-/* Compact artwork-first games. The current campaign cartridge is separate. */
-.radar-grid,.library-grid { grid-template-columns:repeat(auto-fill,minmax(min(190px,100%),1fr)); gap:16px; align-items:stretch; }
-.library-card.game-art-card { position:relative; display:flex; flex-direction:column; justify-content:flex-end; isolation:isolate; overflow:hidden; width:100%; min-width:0; min-height:350px; aspect-ratio:135 / 190; padding:0; border-radius:16px; gap:0; }
-.library-card.game-art-card>.game-cover { position:absolute; inset:0; width:100%; height:100%; border:0; border-radius:0; margin:0; box-shadow:none; }
-.game-art-card .game-cover-image { width:100%; height:100%; object-fit:cover; }
-.game-art-card .cover-year { display:none; }
-.game-art-card .cover-mark { top:22%; bottom:auto; }
-.game-art-topline { position:absolute; inset:8px 8px auto; display:flex; align-items:flex-start; gap:4px; z-index:2; }
-.game-art-status { display:flex; align-items:center; gap:5px; margin-top:8px; padding:5px 7px; border-radius:8px; font-size:11px; color:#f1f4f3; background:#0c121cb3; }
-body .game-art-card .more-button { width:44px; height:44px; min-width:44px; border:1px solid #ffffff70; border-radius:12px; color:#fff; backdrop-filter:blur(12px) brightness(.65); }
-.library-card.game-art-card .library-card-copy { position:relative; isolation:isolate; flex:none; overflow:visible; margin:0; padding:14px 12px 10px; min-width:0; }
-.game-art-glass::before { content:''; position:absolute; z-index:-1; inset:0; background:rgb(12 18 28 / .92); pointer-events:none; }
-@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) and (mask-image:linear-gradient(transparent,#000)) {
- .game-art-glass::before { top:-100%; background:rgb(12 18 28 / .55); -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px); -webkit-mask-image:linear-gradient(transparent calc(50% - 40px),#000 50%); mask-image:linear-gradient(transparent calc(50% - 40px),#000 50%); }
+/* Landscape N64-style cases. The featured campaign cartridge stays separate. */
+.radar-grid,.library-grid { grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr)); gap:38px 28px; align-items:start; }
+.library-card.game-art-card {
+  --case-depth:clamp(24px,14cqw,62px);
+  position:relative; display:block; width:100%; min-width:0; min-height:0; aspect-ratio:1.51;
+  padding:0; border:0; border-radius:7px; background:transparent; overflow:visible;
+  perspective:1100px; perspective-origin:50% 45%; isolation:isolate; box-shadow:none;
+  transform:none; transition:none;
 }
-.library-card.game-art-card h3 { font-size:20px; line-height:1.2; height:2.4em; margin:0 0 5px; color:#fff; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-shadow:0 1px 4px #0008; }
-.library-card.game-art-card p { color:#d5dedb; font-size:11px; line-height:1.35; }
-.game-art-card .game-case-badges { gap:3px; }
-.game-art-metadata-row { display:flex; align-items:center; gap:4px; min-height:20px; }
-.game-art-metadata-row p { min-width:0; }
-.game-art-metadata-row .game-case-badges { flex-shrink:0; }
-.game-art-card .free-game-label,.game-art-card .dlc-card-label { margin:0; font-size:10px; }
-.game-art-card .card-integrations { display:flex; flex-direction:column; align-items:flex-start; gap:5px; margin:8px 0; min-height:55px; }
-.game-art-card .card-integrations:empty { display:none; }
-.game-art-card .card-integrations:not(:has(.deal-badge)) { min-height:0; }
-.game-art-card .ownership-badge { color:#e0e7e3; font-size:11px; }
-.game-art-card .deal-badge { max-width:100%; }
-.game-art-card .library-card-footer { display:flex; flex-direction:column; align-items:stretch; justify-content:flex-end; min-height:54px; gap:6px; margin-top:6px; padding:0; }
-.game-art-card .library-card-actions { align-self:flex-end; gap:4px; }
-body .game-art-card .library-card-actions button { min-width:44px; width:auto; min-height:44px; height:44px; padding:0 7px; border-color:#ffffff60; color:#f1eaf1; }
-.game-art-card .library-card-actions .is-voted { color:#ff9abe; }
-.game-art-card .mini-progress { width:100%; height:4px; margin:0; background:#ffffff25; }
-.game-art-card .mini-progress span { background:linear-gradient(90deg,#8973f6,#88e5bb); }
-.radar-grid>.radar-add { min-width:0; min-height:0; padding:16px 8px; }
+.library-card.game-art-card:hover { transform:none; box-shadow:none; }
+.game-case-solid { position:absolute; inset:0; transform-style:preserve-3d; transform-origin:45% 50%; transform:rotateX(0) rotateY(0); transition:transform .62s cubic-bezier(.2,.75,.2,1); }
+.game-case-shadow { position:absolute; left:7%; right:5%; bottom:-10px; height:18px; border-radius:50%; background:#0008; filter:blur(10px); pointer-events:none; transition:transform .62s ease,opacity .62s ease; }
+@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference) {
+  .game-art-card:hover .game-case-solid { transform:translateY(-4px) scale(1.05) rotateX(15deg) rotateY(-26deg); }
+  .game-art-card:hover .game-case-shadow { transform:translateX(-5px) scale(.94); opacity:.6; }
+  .game-shelf-group:has(.game-art-card:hover) { z-index:4; }
+}
+.game-case-front { position:absolute; inset:0; border:1px solid #737d88; border-radius:7px; overflow:hidden; background:#192126; backface-visibility:hidden; transform:translateZ(.15px); }
+.game-case-front::after { content:''; position:absolute; inset:0; pointer-events:none; box-shadow:inset 0 1px 0 #ffffff40,inset 2px 0 4px #0003; border-radius:inherit; }
+.game-case-front > .game-cover { position:absolute; inset:0; width:100%; height:100%; margin:0; border:0; border-radius:0; box-shadow:none; }
+.game-case-front .game-cover-image { width:100%; height:100%; object-fit:cover; object-position:center 25%; }
+.game-case-front .cover-year { display:none; }
+.game-case-front .cover-mark { top:30%; bottom:auto; }
+.game-case-front > .game-card-open { position:absolute; inset:0 25% 0 0; z-index:1; width:75%; height:100%; padding:0; border:0; }
+.game-case-front > .game-card-open::before { content:''; position:absolute; inset:55% 0 0; background:linear-gradient(transparent,#071017b3); pointer-events:none; }
+body .game-card-open:is(:hover,:active) { background:transparent !important; }
+.library-card.game-art-card .game-case-title { position:absolute; left:12px; right:calc(25% + 12px); bottom:12px; z-index:2; margin:0; height:auto; font-size:17px; font-weight:400; line-height:1.22; color:#fff; text-shadow:0 1px 4px #0008; pointer-events:none; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.game-case-rail { position:absolute; inset:0 0 0 auto; z-index:3; width:25%; min-width:66px; padding:3px 7px 10px; display:flex; flex-direction:column; align-items:center; gap:5px; background:linear-gradient(180deg,#293445e8,#152127f5); border-left:1px solid #ffffff35; }
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
+  .game-case-rail { background:linear-gradient(180deg,#293445b3,#152127e8); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); }
+}
+.game-case-topline { width:100%; display:flex; align-items:center; justify-content:space-between; gap:2px; }
+.game-case-status { display:flex; align-items:center; justify-content:center; min-width:10px; }
+.game-case-status .status-dot { width:8px; height:8px; box-shadow:0 0 0 2px #14202788; }
+body .game-case-topline .more-button { width:44px; min-width:44px; height:44px; margin:0; border:1px solid transparent; border-radius:var(--button-radius,12px); color:#eef2f1; }
+.game-case-platform { display:grid; place-items:center; margin-top:auto; min-height:22px; color:#edf0f2; }
+.game-case-price { width:100%; text-align:center; }
+.game-case-price:empty { display:none; }
+.game-case-price .deal-badge { width:100%; min-height:44px; display:flex; flex-direction:column; justify-content:center; gap:3px; padding:5px 0; border:0; border-top:1px solid #ffffff38; border-radius:0; background:transparent; }
+.game-case-price .deal-badge strong { font-size:17px; font-weight:400; }
+.game-case-price .deal-badge :is(svg,span) { display:none; }
+.game-case-price .deal-badge em { padding:0; background:transparent; font-size:11px; font-weight:400; color:#bce8cf; }
+.game-case-free { display:block; padding:7px 0; border-top:1px solid #ffffff38; color:#bce8cf; font-size:14px; }
+.game-case-owners { width:100%; display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:3px; border-top:1px solid #ffffff38; padding-top:7px; }
+.game-case-owners .avatar { width:22px; height:22px; flex:0 0 22px; border:1px solid #ffffff80; font-size:9px; }
+.game-case-owner-more { font-size:11px; color:#eee; }
+.game-case-spine { position:absolute; left:100%; top:0; width:var(--case-depth); height:100%; transform-origin:left center; transform:rotateY(90deg); backface-visibility:hidden; border:1px solid #6a7382; background:linear-gradient(90deg,#354452,#192530); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.game-case-spine span { writing-mode:vertical-rl; text-orientation:mixed; max-height:90%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#e3e9eb; font-size:12px; line-height:1; }
+.game-case-top { position:absolute; left:0; right:0; top:calc(-1 * var(--case-depth)); height:var(--case-depth); transform-origin:center bottom; transform:rotateX(90deg); backface-visibility:hidden; background:linear-gradient(180deg,#273340,#435260); border:1px solid #737c86; }
+.game-case-bottom { position:absolute; left:0; right:0; top:100%; height:var(--case-depth); transform-origin:center top; transform:rotateX(-90deg); backface-visibility:hidden; background:linear-gradient(180deg,#435260,#273340); border:1px solid #737c86; }
+.game-case-bottom::after { content:''; position:absolute; inset:2px 4px; border-bottom:1px solid #ffffff17; }
+.game-case-back { position:absolute; inset:0; transform:translateZ(calc(-1 * var(--case-depth))) rotateY(180deg); backface-visibility:hidden; background:#19232d; border:1px solid #657080; border-radius:5px; }
+.game-case-front .archive-restore-button { position:absolute; z-index:3; left:8px; top:8px; width:44px; height:44px; color:#fff; border-color:#ffffff80; backdrop-filter:blur(12px); }
+.game-case-front .game-extra-count { position:absolute; top:10px; left:10px; right:auto; z-index:2; padding:5px 8px; color:#fff; background:#16232cbb; border-radius:8px; font-size:11px; pointer-events:none; }
+.is-archived .game-case-front .game-extra-count { left:58px; }
+.radar-grid>.radar-add { min-width:0; min-height:0; aspect-ratio:1.51; padding:16px 8px; }
 @media(max-width:700px) {
- .radar-grid,.library-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
- .radar-grid .library-card.game-art-card:nth-child(n+4) { display:flex; }
- .library-card.game-art-card { aspect-ratio:auto; min-height:260px; border-radius:12px; }
- .library-card.game-art-card .library-card-copy { padding:9px 6px 6px; }
- .game-art-topline { inset:3px 3px auto; }
- .game-art-status { padding:4px; margin-top:9px; background:#0c121c99; }
- .game-art-status-label { display:none; }
- .library-card.game-art-card h3 { font-size:13px; margin:0 0 4px; }
- .library-card.game-art-card p { font-size:11px; }
- .game-art-genre { display:none; }
- .game-art-card .card-integrations { min-height:64px; gap:3px; margin:5px 0; }
- .game-art-card .ownership-badge { font-size:11px; min-height:17px; }
- .game-art-card .owner-avatars { display:none; }
- .game-art-card .deal-badge { min-height:44px; padding:3px 4px; gap:3px; }
- .game-art-card .deal-badge strong { font-size:11px; }
- .game-art-card .deal-badge em,.game-art-card .deal-badge>svg { display:none; }
- .game-art-card .library-card-actions { gap:2px; }
- body .game-art-card .library-card-actions button { padding:0 3px; font-size:11px; gap:3px; }
- .game-art-glass::before { -webkit-mask-image:linear-gradient(transparent calc(50% - 24px),#000 50%); mask-image:linear-gradient(transparent calc(50% - 24px),#000 50%); }
- .radar-grid>.radar-add { border-radius:12px; }
- .radar-grid>.radar-add strong { font-size:12px; }
- .radar-grid>.radar-add small { display:none; }
+  .radar-grid,.library-grid { grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr)); gap:28px 20px; }
+  .radar-grid .library-card.game-art-card:nth-child(n+4) { display:block; }
 }
-/* Below 360px two columns preserve separate 44px reaction targets. */
-@media(max-width:359px) { .radar-grid,.library-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-@media(prefers-reduced-transparency:reduce) { .game-art-glass::before { inset:0; background:rgb(12 18 28 / .96); backdrop-filter:none; -webkit-backdrop-filter:none; mask-image:none; -webkit-mask-image:none; } }
+@media(prefers-reduced-motion:reduce) { .game-case-solid,.game-case-shadow { transition:none; } }
+@media(prefers-reduced-transparency:reduce) { .game-case-rail { background:#202c36; backdrop-filter:none; -webkit-backdrop-filter:none; } }

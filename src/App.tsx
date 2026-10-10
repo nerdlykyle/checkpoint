@@ -1,7 +1,7 @@
 import {
   BadgeDollarSign, BookOpen, BringToFront, CalendarDays, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Crop, Eraser, ExternalLink,
   Copy, FilePlus, Flag, Gamepad2, GripVertical, Headphones, Heart, History, ImagePlus, Images, LayoutDashboard, Library, Link2, ListFilter, MoreHorizontal,
-  LogOut, Menu, MoonStar, Move, NotebookPen, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Search, SendToBack, Settings, Sparkles,
+  LogOut, Menu, Monitor, MoonStar, Move, NotebookPen, Pause, Pencil, Play, Plus, Puzzle, RefreshCw, RotateCcw, Search, SendToBack, Settings, Smartphone, Sparkles,
   Square, Timer, ThumbsDown, ThumbsUp, Trash2, Trophy, Undo2, Unlink, Users, X, ZoomIn, ZoomOut,
 } from 'lucide-react'
 import {
@@ -133,9 +133,9 @@ function migrateLegacyGame(game: Game): Game {
 }
 
 const CurrentUserContext = createContext(DEMO_USER)
-const MembersContext = createContext<Member[]>(members)
+export const MembersContext = createContext<Member[]>(members)
 const GamesContext = createContext<Game[]>([])
-const IntegrationsContext = createContext<{
+export const IntegrationsContext = createContext<{
   boardId: string
   steam: SteamCrewSnapshot | null
   deals: Record<string, GameDeal>
@@ -1349,16 +1349,28 @@ function QueueItem({ game, rank, onVote, onOpen, dragHandle }: { game: Game; ran
 }
 
 export function LibraryCard({ game, onOpen, onRestore, onActivate, expanded, extraCount, controlsId }: { game: Game; onOpen: () => void; onVote?: () => void; onArchive?: () => void; onRestore?: () => void; onActivate?: () => void; expanded?: boolean; extraCount?: number; controlsId?: string }) {
+  const crew = useContext(MembersContext)
+  const { steam } = useContext(IntegrationsContext)
+  const ownership = ownershipForGame(game, crew, steam)
+  const PlatformIcon = /pc|steam|windows|mac|linux/i.test(game.platform) ? Monitor : /android|ios|mobile/i.test(game.platform) ? Smartphone : Gamepad2
   return <article className={`library-card game-art-card${game.status === 'archived' ? ' is-archived' : ''}`}>
-    <Cover game={game} size="medium" />
-    <button type="button" className="game-card-open" onClick={onActivate || onOpen} aria-label={extraCount ? `${expanded ? 'Collapse' : 'Expand'} extra content for ${game.title}` : `Open ${game.title}`} aria-expanded={extraCount ? expanded : undefined} aria-controls={extraCount ? controlsId : undefined} />
-    {Boolean(extraCount) && <span className="game-extra-count">+{extraCount} DLC</span>}
-    <div className="game-art-topline"><span className="game-art-status" title={statusLabels[game.status]} aria-label={statusLabels[game.status]}><span className={`status-dot status-${game.status}`} /><span className="game-art-status-label">{statusLabels[game.status]}</span></span><button className="more-button" type="button" onClick={event => { event.stopPropagation(); onOpen() }} aria-label={`View details for ${game.title}`} aria-haspopup="dialog" title="Game details"><MoreHorizontal size={19} /></button></div>
-    <div className="library-card-copy game-art-glass">
-      <h3 title={game.title}>{game.title}</h3><div className="game-art-metadata-row"><p className="game-art-meta"><span className="game-art-genre">{game.contentType === 'dlc' && game.parentGameTitle ? `DLC for ${game.parentGameTitle}` : game.genre} · </span>{game.platform}</p>
-      <div className="game-case-badges">{game.contentType === 'dlc' && <span className="dlc-card-label">DLC</span>}{isFreeGame(game) && <span className="free-game-label">Free</span>}</div></div>
-      <div className="card-integrations"><OwnershipBadge game={game} compact /><DealBadge game={game} compact /></div>
-      <div className="library-card-footer">{game.status === 'playing' && <div className="mini-progress" role="progressbar" aria-label={`${game.title} completion`} aria-valuenow={game.progress} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${Math.min(100, Math.max(0, game.progress || 0))}%` }} /></div>}{game.status === 'archived' && onRestore && <button className="archive-restore-button" type="button" onClick={onRestore} aria-label={`Restore ${game.title}`} title="Restore game"><RotateCcw size={17} /></button>}</div>
+    <div className="game-case-shadow" aria-hidden="true" />
+    <div className="game-case-solid">
+      <div className="game-case-back" aria-hidden="true" /><div className="game-case-top" aria-hidden="true" /><div className="game-case-bottom" aria-hidden="true" />
+      <div className="game-case-spine" aria-hidden="true"><span>{game.title}</span></div>
+      <div className="game-case-front">
+        <Cover game={game} size="medium" />
+        <button type="button" className="game-card-open" onClick={onActivate || onOpen} aria-label={extraCount ? `${expanded ? 'Collapse' : 'Expand'} extra content for ${game.title}` : `Open ${game.title}`} aria-expanded={extraCount ? expanded : undefined} aria-controls={extraCount ? controlsId : undefined} />
+        <h3 className="game-case-title" title={game.title}>{game.title}</h3>
+        {Boolean(extraCount) && <span className="game-extra-count">+{extraCount} DLC</span>}
+        <div className="game-case-rail">
+          <div className="game-case-topline"><span className="game-case-status" title={statusLabels[game.status]} aria-label={statusLabels[game.status]}><span className={`status-dot status-${game.status}`} /></span><button className="more-button" type="button" onClick={onOpen} aria-label={`View details for ${game.title}`} aria-haspopup="dialog" title="Game details"><MoreHorizontal size={19} /></button></div>
+          <span className="game-case-platform" title={game.platform} aria-label={game.platform}><PlatformIcon size={19} aria-hidden="true" /></span>
+          {!ownership.everyoneOwns && <div className="game-case-price">{isFreeGame(game) ? <span className="game-case-free">Free</span> : <DealBadge game={game} compact />}</div>}
+          {ownership.owners.length > 0 && <div className="game-case-owners" aria-label={`Owned by ${ownership.owners.map(member => member.name).join(', ')}`} title={`Owned by ${ownership.owners.map(member => member.name).join(', ')}`}>{ownership.owners.slice(0, 3).map(member => <Avatar id={member.id} small key={member.id} />)}{ownership.owners.length > 3 && <span className="game-case-owner-more">+{ownership.owners.length - 3}</span>}</div>}
+        </div>
+        {game.status === 'archived' && onRestore && <button className="archive-restore-button" type="button" onClick={onRestore} aria-label={`Restore ${game.title}`} title="Restore game"><RotateCcw size={17} /></button>}
+      </div>
     </div>
   </article>
 }
