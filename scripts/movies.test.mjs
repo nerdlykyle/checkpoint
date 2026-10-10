@@ -1,8 +1,44 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { changeMovie, makeMovie, movieId, validateMovie } from '../src/lib/movies.ts'
+import { changeMovie, makeMovie, movieId, moviesOnShelf, rateMovie, validateMovie } from '../src/lib/movies.ts'
 
 const draft = {title:'The Last Signal',year:'2026',posterUrl:'',description:'A fictional film.'}
+test('legacy movies need no migration and personal seen status stays separate from group history', async () => {
+  const old = {...makeMovie(await movieId(draft),draft,'owner'),libraries:{owner:true,friend:true},clubStatus:'watching'}
+  assert.equal(moviesOnShelf([old],'owner','watchlist').length,1)
+  assert.equal(moviesOnShelf([old],'owner','watched').length,0)
+  const seen = changeMovie(old,'owner','seen',old.id)
+  assert.equal(seen.clubStatus,'watching')
+  assert.equal(seen.seenBy.owner,true)
+  assert.equal(seen.seenBy.friend,undefined)
+  assert.equal(moviesOnShelf([seen],'owner','watched').length,1)
+  assert.equal(moviesOnShelf([seen],'owner','watchlist').length,0)
+  assert.equal(moviesOnShelf([seen],'friend','watchlist').length,1)
+  const finished=changeMovie(seen,'owner','finish',seen.id)
+  assert.deepEqual(finished.seenBy,{owner:true})
+  assert.equal(moviesOnShelf([finished],'friend','watched').length,0)
+  const removed=changeMovie(seen,'owner','remove',seen.id)
+  assert.equal(moviesOnShelf([removed],'owner','watched').length,0)
+  assert.equal(changeMovie(removed,'owner','save',seen.id).seenBy.owner,true)
+  assert.equal(changeMovie(seen,'owner','unseen',seen.id).seenBy.owner,false)
+})
+test('ratings preserve friends, permit clearing and do not change shelves', async () => {
+  const old={...makeMovie(await movieId(draft),draft,'owner'),ratings:{friend:4}}
+  const rated=rateMovie(old,'owner',5)
+  assert.deepEqual(rated.ratings,{friend:4,owner:5})
+  assert.deepEqual(rateMovie(rated,'owner',0).ratings,{friend:4,owner:0})
+  assert.deepEqual(rated.libraries,old.libraries)
+  assert.equal(rated.seenBy,undefined)
+  for(const invalid of [-1,6,1.5,NaN,'5']) assert.throws(()=>rateMovie(old,'owner',invalid))
+})
+test('group watchlist is shared and sorted without altering personal libraries', async () => {
+  const old=makeMovie(await movieId(draft),draft,'friend')
+  const queued=changeMovie(old,'owner','queue','')
+  assert.equal(moviesOnShelf([queued],'owner','group').length,1)
+  assert.equal(moviesOnShelf([queued],'owner','all').length,0)
+  assert.equal(moviesOnShelf([queued],'friend','watchlist').length,1)
+  assert.equal(moviesOnShelf([changeMovie(queued,'owner','unqueue','')],'owner','group').length,0)
+})
 test('movie validation rejects unsafe art and invalid fields', () => {
   assert.throws(() => validateMovie({...draft,title:' '}))
   assert.throws(() => validateMovie({...draft,year:'abc'}))

@@ -5,6 +5,23 @@ The current group watch uses an animated VHS cassette. Other movies use worn sle
 hover or tap reveals the cassette, and the three-dot button opens movie details.
 Motion can be paused and respects reduced-motion preferences.
 
+## Personal viewing and crew ratings
+
+My movies has My library, Watched, Watchlist, Group watchlist, and Crew collection
+tabs. Watched and Watchlist are personal; Group watchlist is the shared queue.
+Club watched remains the separate group-watch history.
+
+Movie details uses a two-column layout (stacked on mobile) with synopsis, group
+controls, personal viewing status, 1–5 star ratings, and crew ratings/seen status.
+“Seen it” and “Not yet” save the movie to the member's library and update only
+that member's status. Finishing a group watch never marks members as having seen it.
+Ratings save immediately; clearing a rating stores zero (excluded from averages).
+
+Optional `seenBy` and `ratings` maps work with existing movie records without a
+migration. Missing seen status means “Not marked yet,” not an explicit “Not seen.”
+Only a member's own entries can change; transactions preserve concurrent updates.
+Deploy the updated Firestore rules before publishing these controls.
+
 ## Catalog search
 
 Add Movie searches TMDB by title with an optional release-year filter. Selecting a

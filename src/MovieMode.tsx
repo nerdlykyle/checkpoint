@@ -1,9 +1,10 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, Film, Library, ListVideo, Pencil, Play, Plus, Search, Trash2, X } from 'lucide-react'
+import { Check, Film, Library, ListVideo, Plus, Search, X } from 'lucide-react'
 import { useMovieStore } from './lib/movieStore'
-import { movieSections, validateMovie, type Movie, type MovieAction, type MovieDraft, type MovieSection } from './lib/movies'
-import { MovieCassette, MoviePoster, MovieSleeve } from './MovieArtwork'
+import { movieSections, movieShelves, moviesOnShelf, validateMovie, type Movie, type MovieAction, type MovieDraft, type MovieSection, type MovieShelf } from './lib/movies'
+import { MovieCassette, MovieSleeve } from './MovieArtwork'
+import MovieDetails from './MovieDetails'
 import MovieSearch, { MovieCredits } from './MovieSearch'
 import type { movieRequest } from './lib/movieSearch'
 import type { ConnectionState } from './NavigationSync'
@@ -40,11 +41,11 @@ export function MovieContent({ boardId, user, crew, section, onSection, search, 
   const pending = useRef(false)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
-  const [library, setLibrary] = useState<'mine' | 'crew'>('mine')
+  const [library, setLibrary] = useState<MovieShelf>('all')
   const selected = store.items.find(item => item.id === selectedId)
   const current = store.items.find(item => item.clubStatus === 'watching')
   const queue = store.items.filter(item => item.clubStatus === 'up-next').sort((a, b) => a.queuedAt.localeCompare(b.queuedAt) || a.id.localeCompare(b.id))
-  const shown = (section === 'queue' ? queue : store.items.filter(item => section === 'watched' ? item.clubStatus === 'watched' : library === 'crew' || item.libraries[user]))
+  const shown = (section === 'queue' ? queue : section === 'watched' ? store.items.filter(item => item.clubStatus === 'watched') : moviesOnShelf(store.items, user, library))
     .filter(item => `${item.title} ${item.year}`.toLowerCase().includes((search || query).trim().toLowerCase()))
   const open = (id: string) => { setSelectedId(id); setEditing(false); setError('') }
   const close = () => { if (!pending.current) { setSelectedId(null); setEditing(false); setError('') } }
@@ -53,6 +54,13 @@ export function MovieContent({ boardId, user, crew, section, onSection, search, 
     pending.current = true; setBusy(true); setError('')
     try { await store.action(selected.id, action); notify(action === 'remove' ? 'Removed from your movies. The crew’s copy is unchanged.' : 'Movies updated') }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not save. Please try again.') }
+    finally { pending.current = false; setBusy(false) }
+  }
+  const rate = async (stars: number) => {
+    if (!selected || pending.current) return
+    pending.current = true; setBusy(true); setError('')
+    try { await store.rate(selected.id, stars); notify(stars ? 'Your rating was saved' : 'Your rating was cleared') }
+    catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not save your rating. Please retry.') }
     finally { pending.current = false; setBusy(false) }
   }
   const shelf = (items: Movie[]) => <div className="movie-shelf">{items.map(item => <MovieSleeve key={item.id} movie={item} onOpen={() => open(item.id)} />)}</div>
@@ -65,34 +73,27 @@ export function MovieContent({ boardId, user, crew, section, onSection, search, 
       <section className="movie-home-feature"><div className="section-heading"><div><span className="eyebrow">Tonight’s feature</span><h2>Our current group watch</h2></div></div>
         {current ? <MovieCassette key={current.id} movie={current} onOpen={() => open(current.id)} /> : store.ready && empty('No group watch yet. Add a movie, then choose Start group watch in its details.')}
       </section>
-      <section><div className="section-heading"><h2>Up next</h2><button type="button" className="button" onClick={() => onSection('queue')}>View all</button></div>{queue.length ? shelf(queue.slice(0, 6)) : store.ready && <p className="movie-muted">The queue is empty. Add movies from their three-dot details menu.</p>}</section>
+      <section><div className="section-heading"><h2>Group watchlist</h2><button type="button" className="button" onClick={() => onSection('queue')}>View all</button></div>{queue.length ? shelf(queue.slice(0, 6)) : store.ready && <p className="movie-muted">The queue is empty. Add movies from their three-dot details menu.</p>}</section>
       <section><div className="section-heading"><h2>My movies</h2><button type="button" className="button" onClick={() => onSection('library')}>Browse library</button></div>{shelf(store.items.filter(item => item.libraries[user]).slice(0, 6))}</section>
     </> : <>
-      {section === 'library' && <div className="filter-tabs">{(['mine', 'crew'] as const).map(value => <button type="button" key={value} className={value === library ? 'active' : ''} aria-pressed={value === library} onClick={() => setLibrary(value)}>{value === 'mine' ? 'My library' : 'Crew collection'}</button>)}</div>}
+      {section === 'library' && <div className="filter-tabs movie-shelf-tabs" role="group" aria-label="Movie shelves">{(Object.keys(movieShelves) as MovieShelf[]).map(value => <button type="button" key={value} className={value === library ? 'active' : ''} aria-pressed={value === library} onClick={() => setLibrary(value)}>{movieShelves[value]} <span>{moviesOnShelf(store.items,user,value).length}</span></button>)}</div>}
+      {section === 'library' && library === 'watchlist' && <p className="movie-muted">Your saved movies you haven’t marked as seen.</p>}
+      {section === 'watched' && <p className="movie-muted">Past group watches. Your personal Watched shelf is separate.</p>}
       <label className="movie-search"><Search size={18} /><span className="sr-only">Filter movies</span><input type="search" placeholder="Find a movie on this shelf" value={query} onChange={event => setQuery(event.target.value)} /></label>
       {shown.length ? shelf(shown) : store.ready && empty(search || query ? 'No movies match this search.' : 'No movies on this shelf yet.')}
     </>}
     <MovieCredits />
-    {showAdd && <MovieDialog title={addDraft ? 'Confirm movie' : 'Add movie'} onClose={onCloseAdd}>{addDraft ? <MovieEditor initial={addDraft} adding onCancel={() => setAddDraft(null)} onSave={async draft => { await store.add(draft); onCloseAdd(); setLibrary('mine'); setQuery(''); onSection('library'); notify('Movie saved to your library') }} /> : <MovieSearch boardId={boardId} onChoose={setAddDraft} request={catalogRequest} />}</MovieDialog>}
-    {selected && <MovieDialog title={editing ? 'Edit movie' : selected.title} onClose={close}>
+    {showAdd && <MovieDialog title={addDraft ? 'Confirm movie' : 'Add movie'} onClose={onCloseAdd}>{addDraft ? <MovieEditor initial={addDraft} adding onCancel={() => setAddDraft(null)} onSave={async draft => { await store.add(draft); onCloseAdd(); setLibrary('all'); setQuery(''); onSection('library'); notify('Movie saved to your library') }} /> : <MovieSearch boardId={boardId} onChoose={setAddDraft} request={catalogRequest} />}</MovieDialog>}
+    {selected && <MovieDialog wide={!editing} title={editing ? 'Edit movie' : selected.title} onClose={close}>
       {editing ? <MovieEditor key={selected.id} initial={selected} onCancel={() => setEditing(false)} onSave={async draft => { await store.edit(selected.id, draft); setEditing(false); notify('Movie details saved') }} /> : <>
-        <div className="movie-detail-intro"><div className="movie-detail-poster"><MoviePoster movie={selected} /></div><div><span className="eyebrow">{selected.clubStatus === 'watching' ? 'Current group watch' : selected.clubStatus === 'up-next' ? 'Club up next' : selected.clubStatus === 'watched' ? 'Watched together' : 'Crew collection'}</span><h3>{selected.title}</h3><p>{selected.year}</p><small>Added by {crew.find(member => member.id === selected.addedBy)?.name || 'a crew member'}</small></div></div>
-        <section className="movie-detail-synopsis"><h3>Synopsis</h3><p>{selected.description || 'No synopsis yet. Use Edit movie to add one.'}</p></section>
-        {selected.tmdbId && <a href={`https://www.themoviedb.org/movie/${selected.tmdbId}`} target="_blank" rel="noreferrer">Movie details on TMDB</a>}
-        <div className="movie-detail-actions">
-          <button type="button" className="icon-button" title="Edit movie" aria-label="Edit movie" disabled={busy || !store.ready} onClick={() => setEditing(true)}><Pencil size={20} /></button>
-          <button type="button" className="icon-button" title={selected.libraries[user] ? 'Remove from my library' : 'Save to my library'} aria-label={selected.libraries[user] ? 'Remove from my library' : 'Save to my library'} disabled={busy || !store.ready} onClick={() => void run(selected.libraries[user] ? 'remove' : 'save')}>{selected.libraries[user] ? <Trash2 size={20} /> : <Plus size={20} />}</button>
-          {selected.clubStatus !== 'watching' && <button type="button" className="button" disabled={busy || !store.ready} onClick={() => void run(selected.clubStatus === 'up-next' ? 'unqueue' : 'queue')}><ListVideo size={18} />{selected.clubStatus === 'up-next' ? 'Remove from Up next' : 'Add to Up next'}</button>}
-          <button type="button" className="button" disabled={busy || !store.ready || Boolean(current && current.id !== selected.id)} onClick={() => void run(selected.clubStatus === 'watching' ? 'finish' : 'start')}>{selected.clubStatus === 'watching' ? <Check size={18} /> : <Play size={18} />}{selected.clubStatus === 'watching' ? 'Finish group watch' : 'Start group watch'}</button>
-        </div>
-        {current && current.id !== selected.id && <p className="movie-muted">Finish “{current.title}” before starting another group watch.</p>}
+        <MovieDetails movie={selected} current={current} user={user} crew={crew} disabled={busy || !store.ready} onAction={action => void run(action)} onRate={stars => void rate(stars)} onEdit={() => setEditing(true)} />
         {busy && <p role="status">Saving…</p>}{error && <p className="movie-error" role="alert">{error}</p>}
       </>}
     </MovieDialog>}
   </div>
 }
 
-function MovieDialog({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+function MovieDialog({ title, onClose, children, wide = false }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null), label = useId()
   useEffect(() => {
     const dialog = ref.current, trigger = document.activeElement as HTMLElement | null
@@ -100,7 +101,7 @@ function MovieDialog({ title, onClose, children }: { title: string; onClose: () 
     dialog?.showModal(); document.body.style.overflow = 'hidden'
     return () => { dialog?.close(); document.body.style.overflow = overflow; if (trigger?.isConnected) trigger.focus({ preventScroll: true }) }
   }, [])
-  return createPortal(<dialog ref={ref} className="movie-dialog" aria-labelledby={label} onCancel={event => { event.preventDefault(); onClose() }}><header><h2 id={label}>{title}</h2><button autoFocus type="button" className="icon-button" aria-label="Close movie details" onClick={onClose}><X size={22} /></button></header><div className="movie-dialog-body">{children}</div></dialog>, document.body)
+  return createPortal(<dialog ref={ref} className={`movie-dialog${wide ? ' movie-dialog-details' : ''}`} aria-labelledby={label} onCancel={event => { event.preventDefault(); onClose() }}><header><h2 id={label}>{title}</h2><button autoFocus type="button" className="icon-button" aria-label="Close movie details" onClick={onClose}><X size={22} /></button></header><div className="movie-dialog-body">{children}</div></dialog>, document.body)
 }
 
 function MovieEditor({ initial, onSave, onCancel, adding = false }: { initial?: MovieDraft; onSave: (draft: MovieDraft) => Promise<void>; onCancel: () => void; adding?: boolean }) {

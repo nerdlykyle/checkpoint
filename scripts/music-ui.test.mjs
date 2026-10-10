@@ -35,7 +35,10 @@ test('global accent fills exclude artwork hit areas on hover and press', () => {
   assert.equal(fills.length, 2)
   for (const [, selector] of fills) {
     assert.match(selector, /:not\(\.brand\)/)
-    assert.match(selector, /:not\(:is\(\.music-album-open,\.music-artwork-open,\.paperback-open,\.cartridge-art-open,\.game-card-open\)\)/)
+    const excludedArtwork = selector.match(/:not\(:is\(([^)]+)\)\)/)?.[1].split(',') || []
+    for (const artwork of ['.music-album-open', '.music-artwork-open', '.paperback-open', '.cartridge-art-open', '.game-card-open', '.movie-sleeve-open']) {
+      assert.ok(excludedArtwork.includes(artwork), `${artwork} must not cover artwork with an accent fill`)
+    }
   }
   assert.ok(fills.some(([, selector]) => selector.includes(':hover')))
   assert.ok(fills.some(([, selector]) => selector.includes(':active')))

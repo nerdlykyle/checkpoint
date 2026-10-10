@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MovieContent, MovieNavigation } from '../src/MovieMode'
-import { changeMovie, makeMovie, movieId, type Movie, type MovieSection } from '../src/lib/movies'
+import { changeMovie, makeMovie, movieId, rateMovie, type Movie, type MovieSection } from '../src/lib/movies'
 import type { Member } from '../src/types'
 import type { movieRequest } from '../src/lib/movieSearch'
 import '../src/index.css'
@@ -22,8 +22,9 @@ function Fixture() {
   const store = { items, ready:true, connection:'local' as const,error:'',retry:()=>{},
     add:async(draft:Parameters<typeof makeMovie>[1])=>{const id=await movieId(draft);setItems(old=>old.some(item=>item.id===id)?old.map(item=>item.id===id?changeMovie(item,'owner','save',''):item):[...old,makeMovie(id,draft,'owner')]);return id},
     edit:async(id:string,draft:Parameters<typeof makeMovie>[1])=>{setItems(old=>old.map(item=>item.id===id?{...item,...draft}:item))},
+    rate:async(id:string,stars:number)=>{setItems(old=>old.map(item=>item.id===id?rateMovie(item,'owner',stars):item))},
     action:async(id:string,action:Parameters<typeof changeMovie>[2])=>{setItems(old=>old.map(item=>item.id===id?changeMovie(item,'owner',action,old.find(item=>item.clubStatus==='watching')?.id||''):item))},
   }
-  return <><header style={{padding:16}}><p role="status">{message}</p><MovieNavigation section={section} onSelect={setSection}/></header><MovieContent boardId="qa-movies" user="owner" crew={[{id:'owner',name:'Owner'}] as Member[]} section={section} onSection={setSection} search="" showAdd={showAdd} onCloseAdd={()=>setAdd(false)} onOpenAdd={()=>setAdd(true)} notify={setMessage} boardReady store={store} catalogRequest={fixtureCatalog}/></>
+  return <><header style={{padding:16}}><p role="status">{message}</p><MovieNavigation section={section} onSelect={setSection}/></header><MovieContent boardId="qa-movies" user="owner" crew={[{id:'owner',name:'Owner',initials:'O',color:'#7568e8'},{id:'friend',name:'Friend',initials:'F',color:'#358a85'}] as Member[]} section={section} onSection={setSection} search="" showAdd={showAdd} onCloseAdd={()=>setAdd(false)} onOpenAdd={()=>setAdd(true)} notify={setMessage} boardReady store={store} catalogRequest={fixtureCatalog}/></>
 }
 createRoot(document.getElementById('root')!).render(<Fixture/> )

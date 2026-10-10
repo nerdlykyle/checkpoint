@@ -164,7 +164,13 @@ service cloud.firestore {
       match /movies/{movieId} {
         function validMovie() {
           let data = request.resource.data;
-          return data.keys().hasOnly(['id', 'title', 'year', 'posterUrl', 'description', 'addedBy', 'createdAt', 'clubStatus', 'queuedAt', 'libraries', 'tmdbId'])
+          return data.keys().hasOnly(['id', 'title', 'year', 'posterUrl', 'description', 'addedBy', 'createdAt', 'clubStatus', 'queuedAt', 'libraries', 'tmdbId', 'seenBy', 'ratings'])
+            && data.get('seenBy', {}) is map && data.get('seenBy', {}).size() <= 2000
+            && data.get('ratings', {}) is map && data.get('ratings', {}).size() <= 2000
+            && data.get('seenBy', {}).get(request.auth.uid, false) is bool
+            && data.get('ratings', {}).get(request.auth.uid, 0) is int
+            && data.get('ratings', {}).get(request.auth.uid, 0) >= 0
+            && data.get('ratings', {}).get(request.auth.uid, 0) <= 5
             && (!data.keys().hasAny(['tmdbId']) || (data.tmdbId is int && data.tmdbId > 0 && data.tmdbId <= 9999999999))
             && movieId.matches('^movie-[a-f0-9]{64}$') && data.id == movieId
             && data.title is string && data.title.size() > 0 && data.title.size() <= 250
@@ -193,10 +199,14 @@ service cloud.firestore {
         allow create: if boardMember(boardId) && validMovie()
           && request.resource.data.addedBy == request.auth.uid
           && request.resource.data.clubStatus == 'none' && request.resource.data.queuedAt == ''
+          && request.resource.data.get('seenBy', {}).keys().hasOnly([request.auth.uid])
+          && request.resource.data.get('ratings', {}).keys().hasOnly([request.auth.uid])
           && request.resource.data.libraries.keys().hasOnly([request.auth.uid])
           && request.resource.data.libraries[request.auth.uid] == true;
         allow update: if boardMember(boardId) && validMovie() && validClubChange()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'year', 'posterUrl', 'description', 'clubStatus', 'queuedAt', 'libraries'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'year', 'posterUrl', 'description', 'clubStatus', 'queuedAt', 'libraries', 'seenBy', 'ratings'])
+          && request.resource.data.get('seenBy', {}).diff(resource.data.get('seenBy', {})).affectedKeys().hasOnly([request.auth.uid])
+          && request.resource.data.get('ratings', {}).diff(resource.data.get('ratings', {})).affectedKeys().hasOnly([request.auth.uid])
           && request.resource.data.libraries.diff(resource.data.libraries).affectedKeys().hasOnly([request.auth.uid])
           && request.resource.data.libraries.get(request.auth.uid, false) is bool;
         allow delete: if false;

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { collection, doc, onSnapshot, runTransaction } from 'firebase/firestore'
+import { collection, doc, FieldPath, onSnapshot, runTransaction } from 'firebase/firestore'
 import { auth, database, firebaseConfigured } from './firebase'
-import { changeMovie, makeMovie, movieId, validateMovie, type Movie, type MovieAction, type MovieDraft } from './movies'
+import { changeMovie, makeMovie, movieId, rateMovie, validateMovie, type Movie, type MovieAction, type MovieDraft } from './movies'
 import type { ConnectionState } from '../NavigationSync'
 
 export function useMovieStore(boardId: string, user: string, enabled: boolean) {
@@ -36,7 +36,7 @@ export function useMovieStore(boardId: string, user: string, enabled: boolean) {
 
   // All mutations read the latest record. A personal removal never deletes the
   // shared movie, another member’s library, or a group watch.
-  const mutate = async (id: string, update: (old: Movie, current: string) => Movie, initial?: Movie, session?: 'start' | 'finish') => {
+  const mutate = async (id: string, update: (old: Movie, current: string) => Movie, fields: FieldPath[], initial?: Movie, session?: 'start' | 'finish') => {
     if (!enabled || !ready) throw new Error('Wait for movie sync before making changes.')
     if (!firebaseConfigured) {
       const old = local.current.find(item => item.id === id) || initial
@@ -53,16 +53,23 @@ export function useMovieStore(boardId: string, user: string, enabled: boolean) {
       const old = item.exists() ? item.data() as Movie : initial
       if (!old) throw new Error('Movie not found. Refresh and try again.')
       const updated = update(old, state.data()?.movieId || '')
-      transaction.set(itemRef, updated)
+      // Field paths preserve other members even if their saves race this one.
+      // Only brand-new movie records need a full document write.
+      if (item.exists()) transaction.set(itemRef, updated, { mergeFields: fields })
+      else transaction.set(itemRef, updated)
       if (session) transaction.set(stateRef, { movieId: session === 'start' ? id : '' })
     })
   }
   const add = async (input: MovieDraft) => {
     const draft = validateMovie(input), id = await movieId(draft)
-    await mutate(id, old => changeMovie(old, user, 'save', ''), makeMovie(id, draft, user))
+    await mutate(id, old => changeMovie(old, user, 'save', ''), [new FieldPath('libraries', user)], makeMovie(id, draft, user))
     return id
   }
-  const edit = (id: string, draft: MovieDraft) => mutate(id, old => ({ ...old, ...validateMovie(draft) }))
-  const action = (id: string, action: MovieAction) => mutate(id, (old, current) => changeMovie(old, user, action, current), undefined, action === 'start' || action === 'finish' ? action : undefined)
-  return { items, ready, connection, error, add, edit, action, retry: () => setRevision(value => value + 1) }
+  const edit = (id: string, draft: MovieDraft) => mutate(id, old => ({ ...old, ...validateMovie(draft) }), ['title','year','posterUrl','description'].map(key => new FieldPath(key)))
+  const action = (id: string, action: MovieAction) => {
+    const fields = action === 'seen' || action === 'unseen' ? [new FieldPath('seenBy',user),new FieldPath('libraries',user)] : action === 'save' || action === 'remove' ? [new FieldPath('libraries',user)] : [new FieldPath('clubStatus'),new FieldPath('queuedAt')]
+    return mutate(id, (old, current) => changeMovie(old, user, action, current), fields, undefined, action === 'start' || action === 'finish' ? action : undefined)
+  }
+  const rate = (id: string, stars: number) => mutate(id, old => rateMovie(old, user, stars), [new FieldPath('ratings',user)])
+  return { items, ready, connection, error, add, edit, action, rate, retry: () => setRevision(value => value + 1) }
 }

@@ -8,10 +8,23 @@ export type Movie = MovieDraft & {
   clubStatus: MovieStatus
   queuedAt: string
   libraries: Record<string, boolean>
+  seenBy?: Record<string, boolean>
+  ratings?: Record<string, number>
 }
-export type MovieAction = 'save' | 'remove' | 'queue' | 'unqueue' | 'start' | 'finish'
+export type MovieAction = 'save' | 'remove' | 'queue' | 'unqueue' | 'start' | 'finish' | 'seen' | 'unseen'
+export type MovieShelf = 'all' | 'watched' | 'watchlist' | 'group' | 'crew'
+export const movieShelves: Record<MovieShelf, string> = { all: 'My library', watched: 'Watched', watchlist: 'Watchlist', group: 'Group watchlist', crew: 'Crew collection' }
+export function moviesOnShelf(items: Movie[], user: string, shelf: MovieShelf): Movie[] {
+  if (shelf === 'group') return items.filter(item => item.clubStatus === 'up-next').sort((a,b) => a.queuedAt.localeCompare(b.queuedAt) || a.id.localeCompare(b.id))
+  if (shelf === 'crew') return items
+  return items.filter(item => item.libraries[user] && (shelf === 'all' || (shelf === 'watched' ? item.seenBy?.[user] === true : item.seenBy?.[user] !== true)))
+}
+export function rateMovie(item: Movie, user: string, stars: number): Movie {
+  if (!Number.isInteger(stars) || stars < 0 || stars > 5) throw new Error('Choose a rating from 1 to 5, or clear your rating.')
+  return { ...item, ratings: { ...item.ratings, [user]: stars } }
+}
 export const movieSections: Record<MovieSection, string> = {
-  home: 'Movie home', library: 'My movies', queue: 'Up next', watched: 'Club watched',
+  home: 'Movie home', library: 'My movies', queue: 'Group watchlist', watched: 'Club watched',
 }
 export function movieImageUrl(value: string): string {
   if (!value.trim()) return ''
@@ -38,6 +51,7 @@ export function makeMovie(id: string, draft: MovieDraft, user: string): Movie {
   return { ...validateMovie(draft), id, addedBy: user, createdAt: new Date().toISOString(), clubStatus: 'none', queuedAt: '', libraries: { [user]: true } }
 }
 export function changeMovie(item: Movie, user: string, action: MovieAction, currentId: string): Movie {
+  if (action === 'seen' || action === 'unseen') return { ...item, libraries: { ...item.libraries, [user]: true }, seenBy: { ...item.seenBy, [user]: action === 'seen' } }
   if (action === 'save' || action === 'remove') return { ...item, libraries: { ...item.libraries, [user]: action === 'save' } }
   if (action === 'start') {
     if (currentId && currentId !== item.id) throw new Error('Finish the current group watch first.')
