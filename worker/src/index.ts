@@ -1,4 +1,5 @@
 import { musicCatalog } from './music.js'
+import { cachedMusicArtwork } from './artwork'
 import { authorizeMovieCatalog, movieCatalog, MovieCatalogError } from './movies.js'
 
 interface Env {
@@ -176,6 +177,10 @@ async function handleRequest(request: Request, env: Env) {
   if (request.method !== 'GET') return json(request, env, { error: 'method_not_allowed' }, 405)
   const url = new URL(request.url)
   if (url.pathname === '/health') return json(request, env, { ok: true, steamConfigured: Boolean(env.STEAM_WEB_API_KEY) })
+  if (url.pathname.startsWith('/music/artwork/')) {
+    try { return await cachedMusicArtwork(request, caches.default) }
+    catch { return new Response('Artwork unavailable', { status: 502, headers: { 'Cache-Control': 'no-store' } }) }
+  }
   if (!boardAllowed(url, env)) return json(request, env, { error: 'board_not_allowed' }, 403)
   try {
     if (url.pathname === '/movies/catalog') {

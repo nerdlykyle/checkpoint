@@ -16,3 +16,8 @@ Required deployment configuration:
 - `ALLOWED_ORIGINS`: the GitHub Pages origin plus local development origins
 
 Checkpoint’s browser cache divides each Central Time day into morning, afternoon, and evening windows, so prices refresh at most once in each window whenever someone has the site open.
+# Album artwork cache
+
+`GET /music/artwork/{release|release-group}/{MusicBrainz UUID}/{250|500|1200}` serves public Cover Art Archive images. It caches successful images at the edge and in the browser for seven days. It accepts no arbitrary URLs, query strings, credentials, or private library data. Redirects are limited to Cover Art Archive and Internet Archive HTTPS hosts, with an eight-second deadline and five-MiB size limit. Errors are not cached. The site falls back to the original image provider if this service fails.
+
+Deploy this worker before publishing a frontend that uses the endpoint. No new secret or database migration is needed.

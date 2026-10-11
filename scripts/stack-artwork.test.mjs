@@ -28,7 +28,7 @@ test('stack covers are high resolution with lazy loading and error fallbacks', (
   const image=read('SharpArtwork.tsx')
   assert.match(image,/media="\(min-width: 701px\)"/)
   assert.match(image,/currentSrc/)
-  assert.match(image,/loading="lazy"/)
+  assert.match(image,/loading={eager \? 'eager' : 'lazy'}/)
   for(const file of ['CollectionStack.css','GameShelf.css']) {
     assert.match(read(file),/outline:1px solid transparent/)
     assert.match(read(file),/translate3d/)

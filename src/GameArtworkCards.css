@@ -3,7 +3,7 @@
 .library-card.game-art-card {
   --case-depth:clamp(24px,14cqw,62px);
   position:relative; display:block; width:100%; min-width:0; min-height:0; aspect-ratio:1.51;
-  padding:0; border:0; border-radius:7px; background:transparent; overflow:visible;
+  padding:0; border:0; border-radius:0; background:transparent; overflow:visible;
   perspective:1100px; perspective-origin:50% 45%; isolation:isolate; box-shadow:none;
   transform:none; transition:none;
 }
@@ -15,7 +15,7 @@
   .game-art-card:hover .game-case-shadow { transform:translateX(-5px) scale(.94); opacity:.6; }
   .game-shelf-group:has(.game-art-card:hover) { z-index:4; }
 }
-.game-case-front { position:absolute; inset:0; border:1px solid #737d88; border-radius:7px; overflow:hidden; background:#192126; backface-visibility:hidden; transform:translateZ(.15px); }
+.game-case-front { position:absolute; inset:0; border:1px solid #737d88; border-radius:0; overflow:hidden; background:#192126; backface-visibility:hidden; transform:translateZ(.15px); }
 .game-case-front::after { content:''; position:absolute; inset:0; pointer-events:none; box-shadow:inset 0 1px 0 #ffffff40,inset 2px 0 4px #0003; border-radius:inherit; }
 .game-case-front > .game-cover { position:absolute; inset:0; width:100%; height:100%; margin:0; border:0; border-radius:0; box-shadow:none; }
 .game-case-front .game-cover-image { width:100%; height:100%; object-fit:cover; object-position:center 25%; }
@@ -49,7 +49,7 @@ body .game-case-topline .more-button { width:44px; min-width:44px; height:44px; 
 .game-case-top { position:absolute; left:0; right:0; top:calc(-1 * var(--case-depth)); height:var(--case-depth); transform-origin:center bottom; transform:rotateX(90deg); backface-visibility:hidden; background:linear-gradient(180deg,#273340,#435260); border:1px solid #737c86; }
 .game-case-bottom { position:absolute; left:0; right:0; top:100%; height:var(--case-depth); transform-origin:center top; transform:rotateX(-90deg); backface-visibility:hidden; background:linear-gradient(180deg,#435260,#273340); border:1px solid #737c86; }
 .game-case-bottom::after { content:''; position:absolute; inset:2px 4px; border-bottom:1px solid #ffffff17; }
-.game-case-back { position:absolute; inset:0; transform:translateZ(calc(-1 * var(--case-depth))) rotateY(180deg); backface-visibility:hidden; background:#19232d; border:1px solid #657080; border-radius:5px; }
+.game-case-back { position:absolute; inset:0; transform:translateZ(calc(-1 * var(--case-depth))) rotateY(180deg); backface-visibility:hidden; background:#19232d; border:1px solid #657080; border-radius:0; }
 .game-case-front .archive-restore-button { position:absolute; z-index:3; left:8px; top:8px; width:44px; height:44px; color:#fff; border-color:#ffffff80; backdrop-filter:blur(12px); }
 .game-case-front .game-extra-count { position:absolute; top:10px; left:10px; right:auto; z-index:2; padding:5px 8px; color:#fff; background:#16232cbb; border-radius:8px; font-size:11px; pointer-events:none; }
 .is-archived .game-case-front .game-extra-count { left:58px; }

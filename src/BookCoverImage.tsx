@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { artworkKey, bookArtworkVersion, resolveBookArtwork, subscribeBookArtwork, type ArtworkBook } from './lib/bookArtwork'
+import { artworkKey, bookArtworkVersion, cachedBookArtwork, resolveBookArtwork, subscribeBookArtwork, type ArtworkBook } from './lib/bookArtwork'
 import { probeBookCover } from './lib/bookImageProbe'
 import './BookCoverImage.css'
 
@@ -14,7 +14,7 @@ export default function BookCoverImage({ book, large = false, lazy = false, retr
 }
 
 function CoverLoader({ book, large, lazy, refreshToken, cinematic }: { book: ArtworkBook; large: boolean; lazy: boolean; refreshToken: number; cinematic: boolean }) {
-  const [url, setUrl] = useState<string>()
+  const [url, setUrl] = useState<string | undefined>(() => refreshToken ? undefined : cachedBookArtwork(book, large))
   const [visible, setVisible] = useState(large && !lazy)
   const anchor = useRef<HTMLSpanElement>(null)
   // The outer component remounts on any artwork identity change. Keep this
@@ -37,5 +37,5 @@ function CoverLoader({ book, large, lazy, refreshToken, cinematic }: { book: Art
       .catch(() => { /* Keep the readable initials if every provider is unavailable. */ })
     return () => controller.abort()
   }, [visible, large, refreshToken])
-  return <><span ref={anchor} aria-hidden="true">{book.title.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase()}</span>{url && <><img src={url} alt={`Cover of ${book.title}`} decoding="async" referrerPolicy="no-referrer" />{cinematic && <div className="reading-art-blur" aria-hidden="true"><img src={url} alt="" referrerPolicy="no-referrer" /></div>}</>}</>
+  return <><span ref={anchor} aria-hidden="true">{book.title.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase()}</span>{url && <><img src={url} alt={`Cover of ${book.title}`} loading={lazy ? 'lazy' : 'eager'} decoding="async" referrerPolicy="no-referrer" onError={() => setUrl(undefined)} />{cinematic && <div className="reading-art-blur" aria-hidden="true"><img src={url} alt="" referrerPolicy="no-referrer" /></div>}</>}</>
 }

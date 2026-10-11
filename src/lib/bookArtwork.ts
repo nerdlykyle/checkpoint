@@ -108,6 +108,27 @@ export async function lookupBookArtwork(book: ArtworkBook, refresh = false) {
 const artworkVersions = new Map<string, number>()
 const artworkListeners = new Map<string, Set<() => void>>()
 const loadedCovers = new Map<string, string>()
+const COVER_CACHE = 'checkpoint-cover-cache-v1'
+const COVER_TTL = 30 * 24 * 60 * 60_000
+let restored = false
+function restoreCovers() {
+  if (restored || typeof localStorage === 'undefined') return
+  restored = true
+  try {
+    const entries = JSON.parse(localStorage.getItem(COVER_CACHE) || '[]')
+    if (!Array.isArray(entries)) return
+    for (const entry of entries.slice(-200)) {
+      if (Array.isArray(entry) && typeof entry[0] === 'string' && typeof entry[1] === 'string' && Number.isFinite(entry[2]) && Date.now() - entry[2] < COVER_TTL && normalizeBookCover(entry[1])) loadedCovers.set(entry[0], entry[1])
+    }
+  } catch { /* Artwork remains usable when browser storage is unavailable. */ }
+}
+function persistCovers() {
+  try { localStorage.setItem(COVER_CACHE, JSON.stringify([...loadedCovers].slice(-200).map(([key, url]) => [key, url, Date.now()]))) } catch { /* Optional artwork cache only. */ }
+}
+export function cachedBookArtwork(book: ArtworkBook, large: boolean) {
+  restoreCovers()
+  return loadedCovers.get(`${artworkKey(book)}:${large}`)
+}
 export const bookArtworkVersion = (key: string) => artworkVersions.get(key) ?? 0
 export function subscribeBookArtwork(key: string, listener: () => void) {
   const listeners = artworkListeners.get(key) ?? new Set()
@@ -115,9 +136,11 @@ export function subscribeBookArtwork(key: string, listener: () => void) {
   return () => { listeners.delete(listener); if (!listeners.size) artworkListeners.delete(key) }
 }
 export function refreshBookArtwork(book: ArtworkBook) {
+  restoreCovers()
   const key = artworkKey(book)
   lookupCache.delete(key)
   loadedCovers.delete(`${key}:false`); loadedCovers.delete(`${key}:true`)
+  persistCovers()
   artworkVersions.set(key, Math.max(Date.now(), bookArtworkVersion(key) + 1))
   artworkListeners.get(key)?.forEach(listener => listener())
 }
@@ -143,6 +166,7 @@ export async function resolveBookArtwork(book: ArtworkBook, options: {
   lookup?: (book: ArtworkBook) => Promise<string[]>
 }) {
   const { large, signal, probe, refreshToken = 0, lookup = lookupBookArtworkCandidates } = options
+  restoreCovers()
   const cacheKey = `${artworkKey(book)}:${large}`
   const tried = new Set<string>()
   const tryUrls = async (urls: (string | undefined)[]) => {
@@ -156,6 +180,7 @@ export async function resolveBookArtwork(book: ArtworkBook, options: {
         signal.throwIfAborted()
         if (loadedCovers.size >= 200) loadedCovers.delete(loadedCovers.keys().next().value!)
         loadedCovers.set(cacheKey, url)
+        persistCovers()
         return url
       }
     }
@@ -163,6 +188,8 @@ export async function resolveBookArtwork(book: ArtworkBook, options: {
   }
   const cached = await tryUrls([loadedCovers.get(cacheKey)])
   if (cached) return cached
+  loadedCovers.delete(cacheKey)
+  persistCovers()
   let recovered: string[] | undefined
   const recoveryUrls = (urls: string[]) => urls.flatMap(url => [normalizeBookCover(url, large), normalizeBookCover(url)])
   if (refreshToken) {

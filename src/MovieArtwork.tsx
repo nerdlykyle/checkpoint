@@ -13,17 +13,16 @@ export function MoviePoster({ movie }: { movie: Movie }) {
 
 export function MovieCassette({ movie, onOpen }: { movie: Movie; onOpen: () => void }) {
   return <article className="movie-feature">
-    <div className="movie-cassette" role="img" aria-label={`VHS cassette of ${movie.title}, with film on both spools`}>
+    <div className="movie-cassette" role="group" aria-label={`VHS cassette of ${movie.title}, with film on both spools`}>
       <span className="movie-topmark" aria-hidden="true">Insert this side up · ▲ · Do not touch the tape</span>
       <div className="movie-window left" aria-hidden="true"><div className="movie-reel"><div className="movie-hub" /></div></div>
       <div className="movie-art-label"><MoviePoster movie={movie} /><h3 className="movie-cassette-title" title={movie.title}>{movie.title}</h3></div>
       <div className="movie-window right" aria-hidden="true"><div className="movie-reel"><div className="movie-hub" /></div></div>
-      <span className="movie-vhs" aria-hidden="true">VHS</span><span className="movie-grade" aria-hidden="true">High grade · T-120</span>
+      <span className="movie-vhs" aria-hidden="true">VHS</span>
+      <button type="button" className="icon-button movie-cassette-menu" title="Movie details" aria-label={`Open ${movie.title} details`} aria-haspopup="dialog" onClick={onOpen}><MoreHorizontal size={20} /></button>
       <i className="movie-screw left" aria-hidden="true" /><i className="movie-screw right" aria-hidden="true" />
     </div>
-    <div className="movie-feature-caption"><div>{movie.year && <p>{movie.year}</p>}</div><div className="movie-actions">
-      <button type="button" className="icon-button" title="Movie details" aria-label={`Open ${movie.title} details`} aria-haspopup="dialog" onClick={onOpen}><MoreHorizontal size={20} /></button>
-    </div></div>
+    {movie.year && <div className="movie-feature-caption"><p>{movie.year}</p></div>}
   </article>
 }
 

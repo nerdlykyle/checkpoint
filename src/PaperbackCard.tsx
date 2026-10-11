@@ -1,4 +1,4 @@
-import { useContext, useState, type CSSProperties } from 'react'
+import { useContext, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Layers, SlidersHorizontal } from 'lucide-react'
 import { CollectionActionContext } from './CollectionActionContext'
 import BookCoverImage from './BookCoverImage'
@@ -13,6 +13,26 @@ export default function PaperbackCard({ book, user, crew = [], club = false, sou
   const collection = useContext(CollectionActionContext)
   const [riffling, setRiffling] = useState(false)
   const curl = usePaperbackCurl(book.id)
+  const playIntro = useRef(curl.play)
+  playIntro.current = curl.play
+  useEffect(() => {
+    if (!club || !window.matchMedia('(max-width: 700px)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const surface = curl.surface.current
+    if (!surface) return
+    let played = false, visible = false, timer: ReturnType<typeof setTimeout> | undefined
+    const start = () => {
+      const image = surface.querySelector<HTMLImageElement>('.paperback-cover-front img')
+      if (played || !visible || !image?.complete || !image.naturalWidth) return
+      played = true
+      timer = setTimeout(() => { if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && !playIntro.current()) setRiffling(true) }, 350)
+    }
+    const observer = new IntersectionObserver(entries => { visible = entries.some(entry => entry.isIntersecting); start() }, { threshold: .5 })
+    observer.observe(surface)
+    surface.addEventListener('load', start, true)
+    const images = new MutationObserver(start)
+    images.observe(surface, { childList: true, subtree: true })
+    return () => { clearTimeout(timer); observer.disconnect(); images.disconnect(); surface.removeEventListener('load', start, true) }
+  }, [book.id, club, curl.surface])
   const riffle = () => { if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && !curl.play()) setRiffling(true) }
   const chapter = bookChapterBookmark(book, user)
   const color = bookmarkColor(crew.find(member => member.id === user))
@@ -33,7 +53,7 @@ export default function PaperbackCard({ book, user, crew = [], club = false, sou
       <span className="paperback-cover" aria-hidden="true" onAnimationEnd={event => { if (event.target === event.currentTarget) setRiffling(false) }}>
         <span className="paperback-cover-front">
           <span className="paperback-fallback"><strong>{book.title}</strong><span>{authors}</span></span>
-          <BookCoverImage book={book} large />
+          <BookCoverImage book={book} large lazy={!club} />
           <span className="paperback-wear" />
         </span>
       </span>

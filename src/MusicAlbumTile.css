@@ -6,6 +6,7 @@
 .music-album-caption strong { font-size:clamp(15px,1.7vw,20px); line-height:1.2; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; }
 .music-album-hover { position:absolute; top:60px; left:8px; right:8px; display:flex; justify-content:center; gap:6px; z-index:3; opacity:0; visibility:hidden; transform:translateY(8px); pointer-events:none; transition:opacity 180ms ease,transform 180ms ease,visibility 0s linear 180ms; }
 .music-album-tile:has(:focus-visible) .music-album-hover { opacity:1; visibility:visible; transform:none; pointer-events:auto; transition-delay:0s; }
+.vinyl-sleeve-wrap.is-open .music-album-hover { opacity:1; visibility:visible; transform:none; pointer-events:auto; transition-delay:0s; }
 @media(hover:hover) and (pointer:fine) {
  .music-album-tile:hover .music-album-hover { opacity:1; visibility:visible; transform:none; pointer-events:auto; transition-delay:0s; }
 }
@@ -22,9 +23,8 @@ body .music-modal-title-actions>.icon-button { width:44px; height:44px; min-heig
  .music-album-caption strong { font-size:14px; }
  .music-album-tile .artwork-controls { top:5px; left:5px; right:5px; gap:2px; }
  .music-album-tile .artwork-source .member-portrait { flex-basis:24px; width:24px; height:24px; font-size:10px; }
- /* The corner menu opens full-size album controls on touch devices. */
- .music-album-hover { display:none; }
+ .music-album-hover { top:auto; bottom:5px; left:2px; right:2px; gap:2px; flex-wrap:wrap; }
+ body .music-album-hover :is(a,button) { flex-basis:40px; width:40px; height:44px; padding:8px; }
 }
-@media(hover:none) { .music-album-hover { display:none; } }
 @media(max-width:360px) { .music-album-grid { gap:7px; }.music-album-caption strong { font-size:12px; } }
 @media(prefers-reduced-motion:reduce) { .music-album-hover { transition:none; transform:none; } }

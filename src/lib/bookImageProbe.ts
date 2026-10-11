@@ -14,7 +14,7 @@ export function probeBookCover(url: string, signal: AbortSignal): Promise<boolea
       else resolve(ok)
     }
     const abort = () => finish(false, true)
-    const timer = setTimeout(() => finish(false), 8000)
+    const timer = setTimeout(() => finish(false), 4000)
     image.referrerPolicy = 'no-referrer'
     image.onload = () => finish(image.naturalWidth > 1 && image.naturalHeight > 1)
     image.onerror = () => finish(false)
