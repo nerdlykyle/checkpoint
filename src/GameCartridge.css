@@ -43,7 +43,7 @@
 .cartridge-library-action button { width:44px; height:44px; padding:0; border-color:#68778088; }
 .cartridge-replay { position:absolute; z-index:5; left:calc(8% - 22px); bottom:2%; display:grid; place-items:center; width:44px; height:44px; padding:0; border:0; border-radius:12px; background:transparent; color:#a0afb8; cursor:pointer; }
 .cartridge-replay:focus-visible { outline:2px solid #bcb4ff; outline-offset:1px; }
-.cartridge-replay svg { transform:rotate(-90deg); }
+.cartridge-replay svg { display:block; width:16px; height:16px; overflow:visible; pointer-events:none; }
 .cartridge-shell i:not(:last-child) { display:none; }
 .cartridge-progress { position:absolute; left:18%; right:18%; bottom:7%; height:4px; border-radius:8px; overflow:hidden; background:#71808b30; }
 .cartridge-progress span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#8973f6,#67bcda,#88e5bb); transition:width .3s; }

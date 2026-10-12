@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { ChevronDown, MoreHorizontal, Wind } from 'lucide-react'
+import { ChevronDown, MoreHorizontal } from 'lucide-react'
 import type { Game } from './types'
 import { statusLabels } from './data'
 import './GameCartridge.css'
@@ -93,7 +93,15 @@ export default function GameCartridge({ game, artwork, vote, ownership, price, l
         </div>
         <div className="cartridge-controls"><button className="cartridge-menu" type="button" onClick={onOpen} aria-label={`View details for ${game.title}`} aria-haspopup="dialog" title="Game details"><MoreHorizontal size={20} /></button>{controls}</div>
         <div className="cartridge-library-action">{libraryAction}</div>
-        <button className="cartridge-replay" type="button" onClick={replayIntro} aria-label="Replay cartridge air animation" title="Replay air animation"><Wind size={16} strokeWidth={1.5} aria-hidden="true" /></button>
+        <button className="cartridge-replay" type="button" onClick={replayIntro} aria-label="Replay cartridge air animation" title="Replay air animation">
+          {/* Upward wind geometry avoids a nested CSS-rotated SVG raster layer
+              becoming distorted when the cartridge's animation layer settles. */}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+            <path d="M19.6 11.2A2 2 0 1 0 16 10V22" />
+            <path d="M8 6.5a2.5 2.5 0 1 1 4-2V22" />
+            <path d="M4.4 14.2A2 2 0 1 1 8 13V22" />
+          </svg>
+        </button>
         <div className="cartridge-progress" role="progressbar" aria-label={`${game.title} completion`} aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} title={`${progress}% completed`}><span style={{ width: `${progress}%` }} /></div>
         <ChevronDown className={`cartridge-expand-hint${expanded ? ' is-expanded' : ''}`} size={13} aria-hidden="true" />
       </div>

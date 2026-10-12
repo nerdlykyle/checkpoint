@@ -52,12 +52,14 @@ test('glass shares the label clip and overscans its side and lower edges', () =>
 })
 test('small air replay icon has a touch-sized target and restarts without opening details', () => {
   assert.match(source, /className="cartridge-replay" type="button" onClick={replayIntro} aria-label="Replay cartridge air animation"/)
-  assert.match(source, /<Wind size=\{16\} strokeWidth=\{1\.5\} aria-hidden="true"/)
+  assert.match(source, /<svg width="16" height="16" viewBox="0 0 24 24"[^>]*strokeWidth="1.5"[^>]*aria-hidden="true" focusable="false"/)
+  assert.match(source, /M19.6 11.2A2 2 0 1 0 16 10V22/)
   assert.match(source, /const replayIntro = \(\) => {\s+stopIntro\(\)/)
   assert.match(source, /requestAnimationFrame\(\(\) => {\s+replayFrame.current = requestAnimationFrame/)
   assert.match(source, /cancelAnimationFrame\(replayFrame.current\)/)
   assert.match(css, /cartridge-replay \{[^}]*width:44px; height:44px;[^}]*background:transparent/)
-  assert.match(css, /cartridge-replay svg \{ transform:rotate\(-90deg\)/)
+  assert.match(css, /cartridge-replay svg \{ display:block; width:16px; height:16px;[^}]*pointer-events:none/)
+  assert.doesNotMatch(css, /cartridge-replay svg[^}]*transform:/)
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)[^\n]*cartridge-replay \{ display:none/)
 })
 test('cartridge retains its wide proportions on narrow screens without tall minimum heights', () => {
