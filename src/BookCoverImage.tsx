@@ -21,12 +21,16 @@ function CoverLoader({ book, large, lazy, refreshToken, cinematic }: { book: Art
   // request stable when unrelated shelf/progress/metadata updates arrive.
   const source = useRef(book)
   useEffect(() => {
-    if (visible || !anchor.current) return
+    // Paperback and collection styles hide the initials span. Observe its
+    // artwork container instead: hidden initials never intersect the viewport,
+    // leaving cold-cache covers (and failed cached covers) waiting forever.
+    const artwork = anchor.current?.parentElement
+    if (visible || !artwork) return
     if (!('IntersectionObserver' in window)) { setVisible(true); return }
     const observer = new IntersectionObserver(entries => {
       if (entries.some(entry => entry.isIntersecting)) { setVisible(true); observer.disconnect() }
     }, { rootMargin: '150px' })
-    observer.observe(anchor.current)
+    observer.observe(artwork)
     return () => observer.disconnect()
   }, [visible])
   useEffect(() => {

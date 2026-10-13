@@ -14,6 +14,18 @@ const initial: Book[] = [
   { ...base, id: 'paper-empty', title: 'Meddling Kids', authors: ['Edgar Cantero'], googleBooksId: 'q5ZnDQAAQBAJ', coverUrl: 'https://books.google.com/books/content?id=q5ZnDQAAQBAJ&printsec=frontcover&img=1&zoom=1&source=gbs_api', progress: {} },
   { ...base, id: 'paper-fallback', title: 'An Exceptionally Long Book Title Without Cover Artwork', authors: ['An Author With a Long Name', 'Another Author'], series: { name: 'An Unusually Long Series Name', position: 3 }, progress: { nern: { lastChapter: 0, updatedAt: '' } } },
 ]
+// /tests/paperbacks.html?cold gives each cover a fresh cache identity without
+// clearing any browser storage or changing the user's real library.
+const cold = new URLSearchParams(location.search).has('cold')
+if (cold) {
+  const run = crypto.randomUUID()
+  for (const book of initial) {
+    if (!book.coverUrl) continue
+    const url = new URL(book.coverUrl)
+    url.searchParams.set('checkpoint_qa', run)
+    book.coverUrl = url.href
+  }
+}
 initial[0].club = { status: 'reading', order: 0, participantIds: ['nern', 'jern', 'vern'] }
 initial[0].progress.vern = { lastChapter: 9, updatedAt: '' }
 const initialCrew = [{ id: 'nern', name: 'Nern' }, { id: 'jern', name: 'Jern' }, { id: 'vern', name: 'Vern' }] as Member[]

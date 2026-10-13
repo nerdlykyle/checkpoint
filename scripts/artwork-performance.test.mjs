@@ -60,3 +60,14 @@ test('mobile sleeves toggle without opening details, and only club books auto-ri
   assert.match(read('PaperbackCard.tsx'), /image\?\.complete/)
   assert.match(read('GameArtworkCards.css'), /\.game-case-front \{[^}]*border-radius:0/)
 })
+
+test('lazy covers observe the visible artwork container, not hidden paperback initials', () => {
+  const read = file => readFileSync(new URL('../src/'+file,import.meta.url),'utf8')
+  const loader = read('BookCoverImage.tsx')
+  assert.match(read('PaperbackCard.css'), /\.paperback-cover-front > span[^\n]+display:none/)
+  assert.match(read('PaperbackCard.tsx'), /large lazy=\{!club\}/)
+  assert.match(loader, /const artwork = anchor\.current\?\.parentElement/)
+  assert.match(loader, /observer\.observe\(artwork\)/)
+  assert.doesNotMatch(loader, /observer\.observe\(anchor\.current\)/)
+  assert.match(loader, /observer\.disconnect\(\)/)
+})
