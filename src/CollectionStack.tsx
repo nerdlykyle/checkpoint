@@ -4,7 +4,7 @@ import { CollectionActionContext } from './CollectionActionContext'
 import './CollectionStack.css'
 
 export default function CollectionStack({ title, count, kind, front, behind, children }: {
-  title: string; count: number; kind: 'books' | 'releases'; front: ReactNode; behind: ReactNode[]; children: ReactNode
+  title: string; count: number; kind: 'books' | 'releases' | 'movies'; front: ReactNode; behind: ReactNode[]; children: ReactNode
 }) {
   const [open, setOpen] = useState(false)
   const id = useId()

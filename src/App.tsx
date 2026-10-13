@@ -14,6 +14,7 @@ import { CheckpointLogo } from './CheckpointLogo'
 import './CleanSplitCards.css'
 import './GameArtworkCards.css'
 import GameShelf from './GameShelf'
+import RadarAddButton from './RadarAddButton'
 import GameReviews from './GameReviews'
 import NavigationSync, { type ConnectionState } from './NavigationSync'
 import BookClub, { type BookSection, type BookShelfFilter } from './BookClub'
@@ -2428,7 +2429,7 @@ function App() {
               </div><button className="queue-add" type="button" onClick={() => openAddGame()}><Plus size={17} /> Add another contender</button></div>
           </section>
           <section className="lower-section"><div className="section-heading"><div><span className="eyebrow">Worth a look</span><h2>On the radar</h2></div><button className="filter-button" onClick={() => openLibrary('all')}><ListFilter size={16} /> Browse library</button></div><GameShelf games={games.filter(game => game.status === 'wishlist')} allGames={games} kind="radar" limit={4} renderCard={(game, options) => <LibraryCard game={game} key={game.id} onOpen={() => setSelectedId(game.id)} {...options} />}>
-            <button className="radar-add" type="button" onClick={() => openAddGame()}><span><Plus size={21} /></span><strong>Add to the radar</strong><small>Suggest something new</small></button>
+            <RadarAddButton onClick={() => openAddGame()} />
           </GameShelf></section>
           <section className="stats-strip"><div><span className="stat-icon purple-bg"><Gamepad2 size={20} /></span><p><strong>{activeGames.length}</strong><span>Games tracked</span></p></div><div><span className="stat-icon amber-bg"><Heart size={20} /></span><p><strong>{activeGames.reduce((sum, game) => sum + game.votes.length, 0)}</strong><span>Votes cast</span></p></div><div><span className="stat-icon green-bg"><Trophy size={20} /></span><p><strong>{games.filter((game) => game.status === 'completed').length}</strong><span>Games finished</span></p></div><div><span className="stat-icon blue-bg"><Users size={20} /></span><p><strong>{groupMembers.length}</strong><span>Players synced</span></p></div></section>
         </div> : view === 'library' ? <div className="page library-page">

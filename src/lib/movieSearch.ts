@@ -1,6 +1,7 @@
 import { auth } from './firebase'
 import type { MovieDraft } from './movies'
-export type MovieResult = MovieDraft & { tmdbId: number }
+import type { MovieCollection } from './movieCollections'
+export type MovieResult = MovieDraft & { tmdbId: number; collection?: MovieCollection | null }
 export async function movieRequest<T>(board: string, params: Record<string,string>, signal?: AbortSignal): Promise<T> {
   if (!auth?.currentUser) throw new Error('Sign in to search the movie catalog. Manual entry is available in the demo.')
   const token = await auth.currentUser.getIdToken()

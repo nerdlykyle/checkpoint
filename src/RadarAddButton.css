@@ -1,0 +1,14 @@
+/* The tile stays quiet; only its small plus square reacts to interaction. */
+body .radar-add:is(:hover,:active,:focus-visible) { background:transparent !important; }
+body .radar-add > span { background:transparent; transition:transform .55s cubic-bezier(.2,.75,.2,1),background-color .2s ease,color .2s ease,border-color .2s ease; }
+.radar-add > span > svg { transform:rotate(0deg); transition:transform .55s cubic-bezier(.2,.75,.2,1); }
+@media(hover:hover) {
+  body .radar-add:hover > span { background:var(--button-accent); border-color:var(--button-accent); color:#fff; transform:translateY(-4px); }
+  .radar-add:hover > span > svg { transform:rotate(360deg); }
+}
+body .radar-add:focus-visible > span { background:var(--button-accent); border-color:var(--button-accent); color:#fff; transform:translateY(-4px); }
+.radar-add:focus-visible > span > svg { transform:rotate(360deg); }
+body .radar-add:active > span { background:var(--button-accent); border-color:var(--button-accent); color:#fff; }
+@media(prefers-reduced-motion:reduce) {
+  body .radar-add > span,.radar-add > span > svg { transition:none; transform:none !important; }
+}

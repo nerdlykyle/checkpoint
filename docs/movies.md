@@ -39,6 +39,21 @@ are not automatically merged into catalog records based on similar names.
 Manual entry remains available on failures or when no result fits. Missing or
 failed art displays the title instead. No demonstration movies enter real boards.
 
+### Series stacks
+
+Catalog movies group by TMDB's `belongs_to_collection.id`, never by similar
+titles. The newest saved release fronts a fanned VHS stack; its Layers icon
+expands the movies in release order. Grouping runs after the selected member,
+shelf, and search filters, and before the home-page preview limit.
+
+Existing TMDB-linked movies fetch collection metadata automatically through the
+authenticated detail route (at most two concurrent requests). Only public series
+IDs/names are cached locally for seven days in `checkpoint-movie-series-v1`.
+Failed requests remain retryable; manual movies stay separate. No saved movie,
+rating, review, personal shelf, group status, or authentication state is migrated.
+Deploy the updated Worker before the client; this addition needs no rules change.
+Use `/tests/movies.html?series` for the isolated Back to the Future I/II fixture.
+
 ### Secure setup (required before live search)
 
 1. Create an API Read Access Token in https://www.themoviedb.org/settings/api.

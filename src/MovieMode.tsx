@@ -3,7 +3,10 @@ import { createPortal } from 'react-dom'
 import { Check, Film, Library, ListVideo, Plus, Search, X } from 'lucide-react'
 import { useMovieStore } from './lib/movieStore'
 import { movieSections, movieShelves, moviesOnShelf, validateMovie, type Movie, type MovieAction, type MovieDraft, type MovieSection, type MovieShelf } from './lib/movies'
-import { MovieCassette, MovieSleeve } from './MovieArtwork'
+import { MovieCassette, MoviePoster, MovieSleeve } from './MovieArtwork'
+import CollectionStack from './CollectionStack'
+import { movieCollections } from './lib/movieCollections'
+import { useMovieCollections } from './useMovieCollections'
 import MovieDetails from './MovieDetails'
 import MemberShelfPicker from './MemberShelfPicker'
 import MovieSearch, { MovieCredits } from './MovieSearch'
@@ -34,6 +37,7 @@ export default function MovieMode(props: Props) {
 }
 
 export function MovieContent({ boardId, user, crew, section, onSection, search, showAdd, onCloseAdd, onOpenAdd, notify, store, catalogRequest }: Props & { store: ReturnType<typeof useMovieStore> }) {
+  const series = useMovieCollections(store.items, boardId, user, store.ready, catalogRequest)
   const [addDraft, setAddDraft] = useState<MovieDraft | null>(null)
   useEffect(() => { if (!showAdd) setAddDraft(null) }, [showAdd])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -67,18 +71,23 @@ export function MovieContent({ boardId, user, crew, section, onSection, search, 
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not save your rating. Please retry.') }
     finally { pending.current = false; setBusy(false) }
   }
-  const shelf = (items: Movie[]) => <div className="movie-shelf">{items.map(item => <MovieSleeve key={item.id} movie={item} onOpen={() => open(item.id)} />)}</div>
+  const card = (item: Movie) => <MovieSleeve key={item.id} movie={item} onOpen={() => open(item.id)} />
+  const shelf = (items: Movie[], limit?: number) => <div className="movie-shelf">{movieCollections(items, series.metadata).slice(0, limit).map(group => group.items.length < 2 ? card(group.items[0]) :
+    <CollectionStack key={group.key} title={group.title} count={group.items.length} kind="movies" front={card(group.items[0])} behind={group.items.slice(1,3).map(item => <MoviePoster key={item.id} movie={item} />)}>
+      {[...group.items].reverse().map(card)}
+    </CollectionStack>)}</div>
   const empty = (text: string) => <div className="movie-empty"><Film size={28} /><p>{text}</p><button type="button" className="button" disabled={!store.ready} onClick={onOpenAdd}><Plus size={18} />Add movie</button></div>
   return <div className="page movie-page">
     <div className="page-title-row"><div><span className="eyebrow">Checkpoint Movies</span><h1>{section === 'home' ? 'What’re we watching?' : movieSections[section]}</h1><p>Movie night together. A shelf worth sharing.</p></div><button type="button" className="button" disabled={!store.ready} onClick={onOpenAdd}><Plus size={18} />Add movie</button></div>
     {store.error && <div className="movie-error" role="alert">{store.error}<button className="button" type="button" onClick={store.retry}>Retry connection</button></div>}
+    {series.failed && <p className="movie-muted">Some series information couldn’t load. Your movies are still available. <button type="button" className="button" onClick={series.retry}>Retry series grouping</button></p>}
     {!store.ready && !store.error && <p role="status">Connecting to the movie collection…</p>}
     {section === 'home' ? <>
       <section className="movie-home-feature"><div className="section-heading"><div><span className="eyebrow">Tonight’s feature</span><h2>Our current group watch</h2></div></div>
         {current ? <MovieCassette key={current.id} movie={current} onOpen={() => open(current.id)} /> : store.ready && empty('No group watch yet. Add a movie, then choose Start group watch in its details.')}
       </section>
-      <section><div className="section-heading"><h2>Group watchlist</h2><button type="button" className="button" onClick={() => onSection('queue')}>View all</button></div>{queue.length ? shelf(queue.slice(0, 6)) : store.ready && <p className="movie-muted">The queue is empty. Add movies from their three-dot details menu.</p>}</section>
-      <section><div className="section-heading"><h2>My movies</h2><button type="button" className="button" onClick={() => { setMemberShelf({user,member:user}); setLibrary('all'); setQuery(''); onSection('library') }}>Browse library</button></div>{shelf(store.items.filter(item => item.libraries[user]).slice(0, 6))}</section>
+      <section><div className="section-heading"><h2>Group watchlist</h2><button type="button" className="button" onClick={() => onSection('queue')}>View all</button></div>{queue.length ? shelf(queue, 6) : store.ready && <p className="movie-muted">The queue is empty. Add movies from their three-dot details menu.</p>}</section>
+      <section><div className="section-heading"><h2>My movies</h2><button type="button" className="button" onClick={() => { setMemberShelf({user,member:user}); setLibrary('all'); setQuery(''); onSection('library') }}>Browse library</button></div>{shelf(store.items.filter(item => item.libraries[user]), 6)}</section>
     </> : <>
       {section === 'library' && <>
         <MemberShelfPicker key={`${boardId}:${user}`} crew={crew} currentUser={user} selected={reader} kind="movies" onSelect={member => { setMemberShelf({user,member}); setLibrary('all'); setQuery('') }} />

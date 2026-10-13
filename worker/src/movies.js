@@ -11,6 +11,8 @@ export function mapMovie(row) {
     year: /^\d{4}-/.test(row.release_date || '') ? row.release_date.slice(0, 4) : '',
     description: text(row.overview, 5000),
     posterUrl: typeof row.poster_path === 'string' && /^\/[a-zA-Z0-9_-]+\.(jpg|png|webp)$/.test(row.poster_path) ? `https://image.tmdb.org/t/p/w780${row.poster_path}` : '',
+    ...(Object.hasOwn(row, 'belongs_to_collection') ? { collection: Number.isSafeInteger(row.belongs_to_collection?.id) && row.belongs_to_collection.id > 0 && typeof row.belongs_to_collection.name === 'string' && row.belongs_to_collection.name.trim()
+      ? { id: row.belongs_to_collection.id, name: row.belongs_to_collection.name.trim().slice(0, 250) } : null } : {}),
   }
 }
 export async function authorizeMovieCatalog(request, env, fetcher = fetch) {

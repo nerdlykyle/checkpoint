@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { Film, MoreHorizontal } from 'lucide-react'
+import { useContext, useState } from 'react'
+import { Film, Layers, MoreHorizontal } from 'lucide-react'
+import { CollectionActionContext } from './CollectionActionContext'
 import type { Movie } from './lib/movies'
 import './MovieArtwork.css'
 
@@ -28,12 +29,14 @@ export function MovieCassette({ movie, onOpen }: { movie: Movie; onOpen: () => v
 
 export function MovieSleeve({ movie, onOpen }: { movie: Movie; onOpen: () => void }) {
   const [out, setOut] = useState(false)
+  const collection = useContext(CollectionActionContext)
   return <article className="movie-sleeve-item">
     <div className={`movie-sleeve${out ? ' is-out' : ''}`}>
       <div className="movie-mini-tape" aria-hidden="true"><i className="movie-mini-hub" /><i className="movie-mini-hub lower" /><span className="movie-mini-label">{movie.title}</span></div>
       <div className="movie-sleeve-box"><MoviePoster movie={movie} />
         <button type="button" className="movie-sleeve-open" aria-label={`${out ? 'Put away' : 'Slide out'} ${movie.title} cassette`} aria-pressed={out} onClick={() => setOut(value => !value)} />
         <button type="button" className="movie-sleeve-menu icon-button" title="Movie details" aria-label={`Open ${movie.title} details`} aria-haspopup="dialog" onClick={onOpen}><MoreHorizontal size={20} /></button>
+        {collection && <button type="button" className="movie-sleeve-menu movie-series-toggle icon-button" data-collection-toggle title={collection.label} aria-label={collection.label} aria-expanded={false} aria-controls={collection.controlsId} onClick={collection.onOpen}><Layers size={20} /></button>}
       </div>
     </div>
     <div className="movie-sleeve-caption"><h3>{movie.title}</h3>{movie.year && <p>{movie.year}</p>}</div>
