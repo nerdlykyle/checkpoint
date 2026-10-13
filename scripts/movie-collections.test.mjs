@@ -19,14 +19,21 @@ test('catalog exposes verified collection IDs from details, not title guesses', 
   assert.equal(validateMovie({...first,collection:series}).collection,undefined)
 })
 
-test('existing movie records stack newest first without changing personal or group data', () => {
+test('existing movie records stack first release in front without changing personal or group data', () => {
   const items = [first,other,second], before = structuredClone(items)
   const groups = movieCollections(items,{105:series,165:series,999:{id:555,name:series.name}})
   assert.equal(groups.length,2)
-  assert.deepEqual(groups[0].items.map(item=>item.id),['second','first'])
+  assert.deepEqual(groups[0].items.map(item=>item.id),['first','second'])
   assert.equal(groups[1].items[0].id,'other')
   assert.deepEqual(items,before)
   assert.equal(movieCollections(items,{}).length,3)
+})
+
+test('first release leads regardless of insertion order, with unknown years last', () => {
+  const unknown = {...other,year:''}
+  const metadata={105:series,165:series,999:series}
+  assert.deepEqual(movieCollections([unknown,second,first],metadata)[0].items.map(item=>item.id),['first','second','other'])
+  assert.deepEqual(movieCollections([second],metadata)[0].items.map(item=>item.id),['second'])
 })
 
 test('grouping happens after member, watched, watchlist and queue filters', () => {

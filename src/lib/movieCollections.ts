@@ -70,5 +70,7 @@ export function movieCollections(items: Movie[], metadata: MovieCollections) {
     if (group) group.items.push(item)
     else groups.push({ key, title: series?.name || item.title, items: [item] })
   }
-  return groups.map(group => ({ ...group, items: [...group.items].sort((a,b) => b.year.localeCompare(a.year) || b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id)) }))
+  // Lead with the first saved release, not the newest sequel. Unknown release
+  // years go last so missing metadata cannot displace the original movie.
+  return groups.map(group => ({ ...group, items: [...group.items].sort((a,b) => (a.year || '9999').localeCompare(b.year || '9999') || a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)) }))
 }

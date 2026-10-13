@@ -74,7 +74,7 @@ export function MovieContent({ boardId, user, crew, section, onSection, search, 
   const card = (item: Movie) => <MovieSleeve key={item.id} movie={item} onOpen={() => open(item.id)} />
   const shelf = (items: Movie[], limit?: number) => <div className="movie-shelf">{movieCollections(items, series.metadata).slice(0, limit).map(group => group.items.length < 2 ? card(group.items[0]) :
     <CollectionStack key={group.key} title={group.title} count={group.items.length} kind="movies" front={card(group.items[0])} behind={group.items.slice(1,3).map(item => <MoviePoster key={item.id} movie={item} />)}>
-      {[...group.items].reverse().map(card)}
+      {group.items.map(card)}
     </CollectionStack>)}</div>
   const empty = (text: string) => <div className="movie-empty"><Film size={28} /><p>{text}</p><button type="button" className="button" disabled={!store.ready} onClick={onOpenAdd}><Plus size={18} />Add movie</button></div>
   return <div className="page movie-page">

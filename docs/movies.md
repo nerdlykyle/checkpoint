@@ -42,7 +42,7 @@ failed art displays the title instead. No demonstration movies enter real boards
 ### Series stacks
 
 Catalog movies group by TMDB's `belongs_to_collection.id`, never by similar
-titles. The newest saved release fronts a fanned VHS stack; its Layers icon
+titles. The earliest saved release fronts a fanned VHS stack; its Layers icon
 expands the movies in release order. Grouping runs after the selected member,
 shelf, and search filters, and before the home-page preview limit.
 
