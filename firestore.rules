@@ -160,6 +160,16 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // Shared visibility, personal writes. No library or profile migration.
+      match /personalFavorites/{memberId} {
+        allow read: if boardMember(boardId);
+        allow create, update: if boardMember(boardId) && request.auth.uid == memberId
+          && request.resource.data.keys().hasOnly(['games','books','movies'])
+          && request.resource.data.games is list && request.resource.data.games.size() <= 2000
+          && request.resource.data.books is list && request.resource.data.books.size() <= 2000
+          && request.resource.data.movies is list && request.resource.data.movies.size() <= 2000;
+        allow delete: if false;
+      }
       // Movie records are additive: existing media and membership are untouched.
       match /movies/{movieId} {
         function validMovie() {

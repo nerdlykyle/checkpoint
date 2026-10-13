@@ -1,6 +1,7 @@
 import { Check, Eye, EyeOff, ListVideo, Pencil, Play, Plus, Star, Trash2 } from 'lucide-react'
 import { MoviePoster } from './MovieArtwork'
 import ReviewEditor from './ReviewEditor'
+import { FavoriteButton } from './PersonalFavorites'
 import type { Movie, MovieAction } from './lib/movies'
 import type { Member } from './types'
 
@@ -28,6 +29,7 @@ export default function MovieDetails({ movie, current, user, crew, disabled, onA
         </section>
       </div>
       <aside className="movie-detail-sidebar">
+        <section><h3>My favorites</h3><FavoriteButton kind="movies" id={movie.id} title={movie.title}/></section>
         <section><h3>Group watch</h3><div className="movie-action-stack">
           {movie.clubStatus !== 'watching' && <button type="button" className="button" disabled={disabled} onClick={() => onAction(movie.clubStatus === 'up-next' ? 'unqueue' : 'queue')}><ListVideo size={18} />{movie.clubStatus === 'up-next' ? 'Remove from group watchlist' : 'Add to group watchlist'}</button>}
           <button type="button" className="button" disabled={disabled || Boolean(current && current.id !== movie.id)} onClick={() => onAction(movie.clubStatus === 'watching' ? 'finish' : 'start')}>{movie.clubStatus === 'watching' ? <Check size={18} /> : <Play size={18} />}{movie.clubStatus === 'watching' ? 'Finish group watch' : 'Start group watch'}</button>

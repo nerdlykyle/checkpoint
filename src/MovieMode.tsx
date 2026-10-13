@@ -7,6 +7,7 @@ import { MovieCassette, MoviePoster, MovieSleeve } from './MovieArtwork'
 import CollectionStack from './CollectionStack'
 import { movieCollections } from './lib/movieCollections'
 import { useMovieCollections } from './useMovieCollections'
+import { FavoritesStatus, useFavorites } from './PersonalFavorites'
 import MovieDetails from './MovieDetails'
 import MemberShelfPicker from './MemberShelfPicker'
 import MovieSearch, { MovieCredits } from './MovieSearch'
@@ -38,6 +39,7 @@ export default function MovieMode(props: Props) {
 
 export function MovieContent({ boardId, user, crew, section, onSection, search, showAdd, onCloseAdd, onOpenAdd, notify, store, catalogRequest }: Props & { store: ReturnType<typeof useMovieStore> }) {
   const series = useMovieCollections(store.items, boardId, user, store.ready, catalogRequest)
+  const favorites = useFavorites()
   const [addDraft, setAddDraft] = useState<MovieDraft | null>(null)
   useEffect(() => { if (!showAdd) setAddDraft(null) }, [showAdd])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -50,10 +52,11 @@ export function MovieContent({ boardId, user, crew, section, onSection, search, 
   const [memberShelf, setMemberShelf] = useState({ user, member: user })
   const reader = memberShelf.user === user && (memberShelf.member === user || crew.some(member => member.id === memberShelf.member)) ? memberShelf.member : user
   const readerName = crew.find(member => member.id === reader)?.name || 'Member'
+  const favoriteIds = favorites.members[reader]?.movies || []
   const selected = store.items.find(item => item.id === selectedId)
   const current = store.items.find(item => item.clubStatus === 'watching')
   const queue = store.items.filter(item => item.clubStatus === 'up-next').sort((a, b) => a.queuedAt.localeCompare(b.queuedAt) || a.id.localeCompare(b.id))
-  const shown = (section === 'queue' ? queue : section === 'watched' ? store.items.filter(item => item.clubStatus === 'watched') : moviesOnShelf(store.items, reader, library))
+  const shown = (section === 'queue' ? queue : section === 'watched' ? store.items.filter(item => item.clubStatus === 'watched') : moviesOnShelf(store.items, reader, library, favoriteIds))
     .filter(item => `${item.title} ${item.year}`.toLowerCase().includes((search || query).trim().toLowerCase()))
   const open = (id: string) => { setSelectedId(id); setEditing(false); setError('') }
   const close = () => { if (!pending.current) { setSelectedId(null); setEditing(false); setError('') } }
@@ -90,8 +93,9 @@ export function MovieContent({ boardId, user, crew, section, onSection, search, 
       <section><div className="section-heading"><h2>My movies</h2><button type="button" className="button" onClick={() => { setMemberShelf({user,member:user}); setLibrary('all'); setQuery(''); onSection('library') }}>Browse library</button></div>{shelf(store.items.filter(item => item.libraries[user]), 6)}</section>
     </> : <>
       {section === 'library' && <>
-        <MemberShelfPicker key={`${boardId}:${user}`} crew={crew} currentUser={user} selected={reader} kind="movies" onSelect={member => { setMemberShelf({user,member}); setLibrary('all'); setQuery('') }} />
-        <div className="filter-tabs movie-shelf-tabs" role="group" aria-label="Movie shelves">{(Object.keys(movieShelves) as MovieShelf[]).map(value => <button type="button" key={value} className={value === library ? 'active' : ''} aria-pressed={value === library} onClick={() => setLibrary(value)}>{value === 'all' && reader !== user ? 'Library' : movieShelves[value]} <span>{moviesOnShelf(store.items,reader,value).length}</span></button>)}</div>
+        <MemberShelfPicker key={`${boardId}:${user}`} crew={crew} currentUser={user} selected={reader} kind="movies" onSelect={member => { setMemberShelf({user,member}); setLibrary(old=>old==='favorites'?'favorites':'all'); setQuery('') }} />
+        <div className="filter-tabs movie-shelf-tabs" role="group" aria-label="Movie shelves">{(Object.keys(movieShelves) as MovieShelf[]).map(value => <button type="button" key={value} className={value === library ? 'active' : ''} aria-pressed={value === library} onClick={() => setLibrary(value)}>{value === 'all' && reader !== user ? 'Library' : movieShelves[value]} <span>{moviesOnShelf(store.items,reader,value,favoriteIds).length}</span></button>)}</div>
+        {library === 'favorites' && <FavoritesStatus/>}
         {library === 'group' || library === 'crew' ? <p className="movie-muted">This collection is shared across the crew.</p> : reader !== user ? <p className="movie-muted">Browsing {readerName}’s collection. Watched and Watchlist reflect their choices; your seen status and ratings remain your own.</p> : library === 'watchlist' ? <p className="movie-muted">Your saved movies you haven’t marked as seen.</p> : null}
       </>}
       {section === 'watched' && <p className="movie-muted">Past group watches. Your personal Watched shelf is separate.</p>}

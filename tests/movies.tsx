@@ -1,6 +1,7 @@
 // Isolated local fixture. It does not connect to a production board.
 import { useState } from 'react'
 import { createRoot } from 'react-dom/client'
+import FavoritesFixture from './FavoritesFixture'
 import { MovieContent, MovieNavigation } from '../src/MovieMode'
 import { changeMovie, makeMovie, movieId, rateMovie, reviewMovie, type Movie, type MovieSection } from '../src/lib/movies'
 import type { Member } from '../src/types'
@@ -36,4 +37,4 @@ function Fixture() {
   }
   return <><header style={{padding:16}}><p role="status">{message}</p><MovieNavigation section={section} onSelect={setSection}/></header><MovieContent boardId="qa-movies" user="owner" crew={[{id:'owner',name:'Owner',initials:'O',color:'#7568e8'},{id:'friend',name:'Friend',initials:'F',color:'#358a85'}] as Member[]} section={section} onSection={setSection} search="" showAdd={showAdd} onCloseAdd={()=>setAdd(false)} onOpenAdd={()=>setAdd(true)} notify={setMessage} boardReady store={store} catalogRequest={fixtureCatalog}/></>
 }
-createRoot(document.getElementById('root')!).render(<Fixture/> )
+createRoot(document.getElementById('root')!).render(<FavoritesFixture user="owner" initial={{friend:{games:[],books:[],movies:[initial[1].id]}}}><Fixture/></FavoritesFixture>)

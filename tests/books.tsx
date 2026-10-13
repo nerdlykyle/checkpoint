@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Flag } from 'lucide-react'
+import FavoritesFixture from './FavoritesFixture'
 import BookClub, { type BookSection, type BookShelfFilter } from '../src/BookClub'
 import type { Book, Member } from '../src/types'
 import '../src/index.css'
@@ -23,6 +24,6 @@ function Fixture() {
   const [shelf,setShelf] = useState<BookShelfFilter>('all')
   const [add,setAdd] = useState(false)
   const [message,setMessage] = useState('Isolated test shelf — no cloud writes')
-  return <><nav style={{padding:16,display:'flex',gap:12,flexWrap:'wrap',alignItems:'center'}}><button className="brand" onClick={() => setSection('home')}><span className="brand-mark"><Flag size={21} fill="currentColor" /></span><span>checkpoint</span></button><button onClick={() => setSection('home')}>Book home</button><button onClick={() => setSection('library')}>My books</button><button onClick={() => setSection('club')}>Club books</button><button onClick={() => {setSection('readers');setShelf('all')}}>Readers’ shelves</button><span role="status">{message}</span></nav><BookClub books={books} currentUser="nern" crew={crew} section={section} shelfFilter={shelf} onShelfFilterChange={setShelf} search="" showAdd={add} onCloseAdd={() => setAdd(false)} onOpenAdd={() => setAdd(true)} onShowMyBooks={() => {setSection('library');setShelf('all')}} onChange={setBooks} notify={setMessage}/></>
+  return <><nav style={{padding:16,display:'flex',gap:12,flexWrap:'wrap',alignItems:'center'}}><button className="brand" onClick={() => setSection('home')}><span className="brand-mark"><Flag size={21} fill="currentColor" /></span><span>checkpoint</span></button><button onClick={() => setSection('home')}>Book home</button><button onClick={() => setSection('library')}>My books</button><button onClick={() => setSection('club')}>Club books</button><span role="status">{message}</span></nav><BookClub books={books} currentUser="nern" crew={crew} section={section} shelfFilter={shelf} onShelfFilterChange={setShelf} search="" showAdd={add} onCloseAdd={() => setAdd(false)} onOpenAdd={() => setAdd(true)} onShowMyBooks={() => {setSection('library');setShelf('all')}} onChange={setBooks} notify={setMessage}/></>
 }
-createRoot(document.getElementById('root')!).render(<Fixture />)
+createRoot(document.getElementById('root')!).render(<FavoritesFixture user="nern" initial={{jern:{games:[],books:['qa-c'],movies:[]}}}><Fixture /></FavoritesFixture>)

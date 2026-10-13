@@ -3,25 +3,32 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 const read = file => readFileSync(new URL('../src/' + file, import.meta.url), 'utf8')
-test('My Books and Readers shelves share paperback cards in every tab and collection', () => {
+test('My Books uses paperback cards in every member shelf tab and collection', () => {
   const source = read('BookOrganizer.tsx')
   assert.match(source, /return <div[^>]+className="organized-paperback"/)
   assert.doesNotMatch(source, /if \(!readers\) return|organized-book clean-split/)
   assert.match(source, /<PaperbackCard[^\n]+user=\{owner\}[^\n]+onOpen=\{\(\) => onOpen\(book.id, mine \? undefined : owner\)\}/)
   assert.match(source, /organized-books paperback-library-grid/)
-  assert.match(source, /\['all', ...Object.keys\(shelfNames\)\]/)
+  assert.match(source, /\['all', 'favorites', ...Object.keys\(shelfNames\)\]/)
   assert.match(source, /items.map\(card\)/)
   assert.match(source, /visible.map\(card\)/)
 })
-test('Readers shelves keep progress, attribution and read-only permissions tied to the selected reader', () => {
+test('My Books keeps progress, attribution and read-only permissions tied to the selected reader', () => {
   const source = read('BookOrganizer.tsx')
-  assert.match(source, /const owner = readers \? reader : currentUser/)
+  assert.match(source, /const owner = crew.some\(member => member.id === reader\) \? reader : currentUser/)
   assert.match(source, /const mine = owner === currentUser/)
   assert.match(source, /const canReorder = mine &&/)
   assert.match(source, /mine && book.shelves\[currentUser\] === 'to-read'/)
   assert.match(source, /readerOrganization\?\.\[owner\]\?\.savedFrom/)
   assert.match(source, /shelfNames\[book.shelves\[owner\]\]/)
   assert.match(source, /!mine && <button[^\n]+disabled=\{Boolean\(book.shelves\[currentUser\]\)\}[^\n]+onShelf\(book, 'to-read', owner\)/)
+})
+test('My Books always offers member avatars and removes redundant desktop/mobile navigation', () => {
+  const source = read('BookOrganizer.tsx')
+  assert.match(source, /<MemberShelfPicker[^\n]+selected=\{owner\}[^\n]+kind="books"/)
+  assert.doesNotMatch(source, /readers\??:|readers \|\|/)
+  assert.doesNotMatch(read('App.tsx'), /Readers’ shelves|setBookSection\('readers'\)/)
+  assert.doesNotMatch(read('BookClub.tsx'), /section === 'readers'|\| 'readers'/)
 })
 test('paperback series retain their own accessible expand action and friend attribution', () => {
   const source = read('PaperbackCard.tsx')

@@ -1,5 +1,6 @@
 import StyledSelect from "./StyledSelect"
 import MemberShelfPicker from './MemberShelfPicker'
+import { FavoritesStatus, useFavorites } from './PersonalFavorites'
 import { useState } from 'react'
 import { ArrowDown, ArrowUp, ArrowUpToLine, Check, GripVertical, ListOrdered, Plus, Shuffle } from 'lucide-react'
 import type { Book, BookShelf, Member } from './types'
@@ -14,8 +15,8 @@ import './BookOrganizer.css'
 import './CleanSplitCards.css'
 
 type Props = {
-  books: Book[]; currentUser: string; crew: Member[]; readers?: boolean; shelf: BookShelf | 'all'; search: string
-  onShelfFilter: (shelf: BookShelf | 'all') => void; onChange: (books: Book[]) => void
+  books: Book[]; currentUser: string; crew: Member[]; shelf: BookShelf | 'all' | 'favorites'; search: string
+  onShelfFilter: (shelf: BookShelf | 'all' | 'favorites') => void; onChange: (books: Book[]) => void
   onOpen: (id: string, source?: string) => void; onChapter: (id: string) => void; onEdit: (id: string) => void
   onShelf: (book: Book, shelf: BookShelf, source?: string) => void; onFindSeries: (book: Book) => void
   onRefresh: () => void; refreshing: boolean
@@ -26,8 +27,9 @@ export function SeriesLabel({ book }: { book: Book }) {
   return <span className="series-label">{book.series.name}{book.series.position !== undefined ? ` · Book ${book.series.position}` : ''}{book.series.total ? ` of ${book.series.total}` : ''}</span>
 }
 
-export default function BookOrganizer({ books, currentUser, crew, readers, shelf, search, onShelfFilter, onChange, onOpen, onShelf, onFindSeries, onRefresh, refreshing }: Props) {
+export default function BookOrganizer({ books, currentUser, crew, shelf, search, onShelfFilter, onChange, onOpen, onShelf, onFindSeries, onRefresh, refreshing }: Props) {
   const [reader, setReader] = useState(currentUser)
+  const favorites = useFavorites()
   const [genre, setGenre] = useState('')
   const [tag, setTag] = useState('')
   const [query, setQuery] = useState('')
@@ -36,21 +38,23 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
   const [moving, setMoving] = useState<string | null>(null)
   const [position, setPosition] = useState('1')
   const [announcement, setAnnouncement] = useState('')
-  const owner = readers ? reader : currentUser
+  const owner = crew.some(member => member.id === reader) ? reader : currentUser
+  const favoriteIds = favorites.members[owner]?.books || []
   const mine = owner === currentUser
   const owned = personalQueue(books, owner)
+  const shelfBooks = shelf === 'favorites' ? books.filter(book=>favoriteIds.includes(book.id)) : owned
   const ownerName = crew.find((member) => member.id === owner)?.name ?? 'Reader'
-  const genres = [...new Set(owned.flatMap((book) => book.genres ?? []))].sort()
-  const tags = [...new Set(owned.flatMap((book) => book.readerOrganization?.[owner]?.tags ?? []))].sort()
-  const visible = owned.filter((book) => (shelf === 'all' || book.shelves[owner] === shelf)
+  const genres = [...new Set(shelfBooks.flatMap((book) => book.genres ?? []))].sort()
+  const tags = [...new Set(shelfBooks.flatMap((book) => book.readerOrganization?.[owner]?.tags ?? []))].sort()
+  const visible = shelfBooks.filter((book) => (shelf === 'all' || shelf === 'favorites' || book.shelves[owner] === shelf)
     && (genre === '' || (genre === '__none' ? !book.genres?.length : book.genres?.includes(genre)))
     && (!tag || book.readerOrganization?.[owner]?.tags?.includes(tag))
     && `${book.title} ${book.authors.join(' ')} ${book.series?.name ?? ''}`.toLowerCase().includes((query || search).trim().toLowerCase()))
   if (sort === 'title') visible.sort((a, b) => a.title.localeCompare(b.title))
   if (sort === 'author') visible.sort((a, b) => a.authors.join().localeCompare(b.authors.join()))
   if (sort === 'newest') visible.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  const canReorder = mine && shelf !== 'all' && sort === 'order' && !groupSeries
-  const queue = personalQueue(books, owner, shelf === 'all' ? undefined : shelf)
+  const canReorder = mine && shelf !== 'all' && shelf !== 'favorites' && sort === 'order' && !groupSeries
+  const queue = personalQueue(books, owner, shelf === 'all' || shelf === 'favorites' ? undefined : shelf)
   const move = (id: string, rank: number) => {
     if (!mine) return
     onChange(movePersonalBook(books, currentUser, id, rank))
@@ -62,7 +66,7 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
     const rank = queue.findIndex((item) => item.id === book.id) + 1
     return <div key={book.id} className="organized-paperback" data-shelf-book={book.id} data-reorder-id={book.id}>
       <PaperbackCard book={book} user={owner} crew={crew} source={crew.find(member => member.id === book.readerOrganization?.[owner]?.savedFrom)} onOpen={() => onOpen(book.id, mine ? undefined : owner)} />
-      <div className="paperback-shelf-caption"><span>{canReorder ? `#${rank} · ` : ''}{shelfNames[book.shelves[owner]]}{!mine && book.ratings[owner]?.stars ? ` · ${book.ratings[owner].stars}/5 ★` : ''}</span>
+      <div className="paperback-shelf-caption"><span>{canReorder ? `#${rank} · ` : ''}{shelfNames[book.shelves[owner]] || 'Favorite'}{!mine && book.ratings[owner]?.stars ? ` · ${book.ratings[owner].stars}/5 ★` : ''}</span>
         {mine && book.shelves[currentUser] === 'to-read' && <button className="icon-button" type="button" aria-label={`Read ${book.title} next`} title="Read next" onClick={() => { move(book.id, 1); setSort('order'); setGroupSeries(false); onShelfFilter('to-read') }}><ArrowUpToLine size={18} /></button>}
         {!mine && <button className="icon-button" type="button" disabled={Boolean(book.shelves[currentUser])} aria-label={book.shelves[currentUser] ? `${book.title} is on my shelf` : `Save ${book.title} to my books`} title={book.shelves[currentUser] ? 'On my shelf' : 'Save to my books'} onClick={() => onShelf(book, 'to-read', owner)}>{book.shelves[currentUser] ? <Check size={18} /> : <Plus size={18} />}</button>}
       </div>
@@ -76,9 +80,10 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
   }
   const groups = bookCollections(visible)
   return <section className="book-organizer" aria-label="Personal book shelves">
-    {readers && <MemberShelfPicker key={currentUser} crew={crew} currentUser={currentUser} selected={reader} kind="books" onSelect={id => { setReader(id); setGenre(''); setTag(''); setQuery('') }} />}
+    <MemberShelfPicker key={currentUser} crew={crew} currentUser={currentUser} selected={owner} kind="books" onSelect={id => { setReader(id); setGenre(''); setTag(''); setQuery(''); setMoving(null) }} />
+    {shelf === 'favorites' && <FavoritesStatus/>}
     {!mine && <p className="reader-view-notice">Browsing {ownerName}’s library. Their shelves and reading order are read-only. Save a book to manage your own copy.</p>}
-    <div className="filter-tabs book-filter-tabs">{(['all', ...Object.keys(shelfNames)] as (BookShelf | 'all')[]).map((value) => <button key={value} className={shelf === value ? 'active' : ''} type="button" onClick={() => { onShelfFilter(value); setGroupSeries(true) }}>{value === 'all' ? 'Library' : shelfNames[value]}<span>{value === 'all' ? owned.length : owned.filter((book) => book.shelves[owner] === value).length}</span></button>)}</div>
+    <div className="filter-tabs book-filter-tabs">{(['all', 'favorites', ...Object.keys(shelfNames)] as (BookShelf | 'all' | 'favorites')[]).map((value) => <button key={value} className={shelf === value ? 'active' : ''} type="button" onClick={() => { onShelfFilter(value); setGroupSeries(true) }}>{value === 'all' ? 'Library' : value === 'favorites' ? 'Favorites' : shelfNames[value]}<span>{value === 'all' ? owned.length : value === 'favorites' ? books.filter(book=>favoriteIds.includes(book.id)).length : owned.filter((book) => book.shelves[owner] === value).length}</span></button>)}</div>
     <CollectionFilters activeCount={[query || search, genre, tag, sort !== 'order'].filter(Boolean).length} groupedBy={groupSeries ? 'series' : undefined}>
     <div className="book-organizer-toolbar">
       <label>Search<input type="search" placeholder="Title, author, or series" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
@@ -98,7 +103,7 @@ export default function BookOrganizer({ books, currentUser, crew, readers, shelf
         {items.map(card)}<button className="button button-secondary" type="button" onClick={() => onFindSeries(first)}>Find other books in this series</button>
       </CollectionStack>
     }) : visible.map(card)}</div>
-    {!visible.length && <div className="book-empty-panel"><h2>No books on this shelf</h2><p>Try another shelf or clear your filters. New books can be added with the plus button.</p></div>}
+    {!visible.length && <div className="book-empty-panel"><h2>No books on this shelf</h2><p>{shelf === 'favorites' ? mine ? 'Tap the heart in a book’s details to add it to Favorites, or clear your filters.' : 'This reader has no favorites matching these filters yet.' : 'Try another shelf or clear your filters. New books can be added with the plus button.'}</p></div>}
     {moving && <div className="modal-backdrop"><form className="modal-card book-move-modal" role="dialog" aria-modal="true" aria-label="Move book" onSubmit={(event) => { event.preventDefault(); move(moving, Number(position)); setMoving(null) }}><h2>Move to position</h2><p>{books.find((book) => book.id === moving)?.title}</p><label>Position in this shelf<input autoFocus type="number" min="1" max={queue.length} required value={position} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setPosition(event.target.value)} /></label><div className="modal-actions"><button className="button button-secondary" type="button" onClick={() => setMoving(null)}>Cancel</button><button className="button button-primary" type="submit">Move book</button></div></form></div>}
   </section>
 }

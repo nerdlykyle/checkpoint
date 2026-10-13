@@ -54,7 +54,7 @@ test('browsing a friend’s library filters their shelves while saving changes o
   assert.equal(moviesOnShelf([removed],'owner','all').length,0)
   assert.equal(moviesOnShelf([removed],'friend','watched').length,1)
   const ui=readFileSync(new URL('../src/MovieMode.tsx',import.meta.url),'utf8')
-  assert.match(ui,/moviesOnShelf\(store.items, reader, library\)/)
+  assert.match(ui,/moviesOnShelf\(store.items, reader, library, favoriteIds\)/)
   assert.match(ui,/useMovieStore\(props.boardId, props.user, props.boardReady\)/)
   assert.match(ui,/<MovieDetails[^>]+user={user}/)
 })

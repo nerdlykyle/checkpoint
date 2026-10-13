@@ -13,9 +13,10 @@ export type Movie = MovieDraft & {
   reviews?: Record<string, string>
 }
 export type MovieAction = 'save' | 'remove' | 'queue' | 'unqueue' | 'start' | 'finish' | 'seen' | 'unseen'
-export type MovieShelf = 'all' | 'watched' | 'watchlist' | 'group' | 'crew'
-export const movieShelves: Record<MovieShelf, string> = { all: 'My library', watched: 'Watched', watchlist: 'Watchlist', group: 'Group watchlist', crew: 'Crew collection' }
-export function moviesOnShelf(items: Movie[], user: string, shelf: MovieShelf): Movie[] {
+export type MovieShelf = 'all' | 'favorites' | 'watched' | 'watchlist' | 'group' | 'crew'
+export const movieShelves: Record<MovieShelf, string> = { all: 'My library', favorites: 'Favorites', watched: 'Watched', watchlist: 'Watchlist', group: 'Group watchlist', crew: 'Crew collection' }
+export function moviesOnShelf(items: Movie[], user: string, shelf: MovieShelf, favoriteIds: string[] = []): Movie[] {
+  if (shelf === 'favorites') return items.filter(item=>favoriteIds.includes(item.id))
   if (shelf === 'group') return items.filter(item => item.clubStatus === 'up-next').sort((a,b) => a.queuedAt.localeCompare(b.queuedAt) || a.id.localeCompare(b.id))
   if (shelf === 'crew') return items
   return items.filter(item => item.libraries[user] && (shelf === 'all' || (shelf === 'watched' ? item.seenBy?.[user] === true : item.seenBy?.[user] !== true)))
