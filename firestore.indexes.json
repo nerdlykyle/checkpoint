@@ -9,5 +9,7 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    { "collectionGroup": "covers", "fieldPath": "image", "indexes": [] }
+  ]
 }

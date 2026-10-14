@@ -36,8 +36,9 @@ export default function MemberShelfPicker({ crew, currentUser, selected, kind, o
     onSelect(id); dialog.current?.close()
   }
   const name = byId.get(selected)?.name || 'Member'
+  const collectionName = {books:'Bookshelf',music:'Catalogue',movies:'Vault',games:'My games'}[kind]
   return <section className="member-shelf-picker" aria-label={`Choose whose ${kind} to browse`}>
-    <h2>{selected === currentUser ? `My ${kind}` : `${name}’s ${kind}`}</h2>
+    <h2>{selected === currentUser ? collectionName : `${name}’s ${kind === 'games' ? kind : collectionName.toLowerCase()}`}</h2>
     <div className="member-shelf-quick">{quick.map(member => <button type="button" key={member.id} className="member-shelf-choice" aria-pressed={selected === member.id} aria-label={`View ${member.id === currentUser ? 'my' : `${member.name}’s`} ${kind}`} onClick={() => choose(member.id)}><MemberPortrait member={member} /><span>{member.id === currentUser ? 'You' : member.name}</span></button>)}
       {people.length > 3 && <button type="button" className="member-shelf-all" onClick={() => { setQuery(''); dialog.current?.showModal(); dialog.current?.querySelector('input')?.focus() }}><Users size={20} /><span>All members · {people.length}</span></button>}
     </div>

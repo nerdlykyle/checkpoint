@@ -53,7 +53,7 @@ export default function PaperbackCard({ book, user, crew = [], club = false, sou
       <span className="paperback-cover" aria-hidden="true" onAnimationEnd={event => { if (event.target === event.currentTarget) setRiffling(false) }}>
         <span className="paperback-cover-front">
           <span className="paperback-fallback"><strong>{book.title}</strong><span>{authors}</span></span>
-          <BookCoverImage book={book} large lazy={!club} />
+          <BookCoverImage book={book} owner={user} large lazy={!club} />
           <span className="paperback-wear" />
         </span>
       </span>

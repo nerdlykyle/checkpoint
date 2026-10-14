@@ -20,6 +20,6 @@ const previewBooks = new URLSearchParams(location.search).has('stack-edges')
   : books
 function Fixture() {
   const [items,setItems] = useState(previewBooks), [shelf,setShelf] = useState<BookShelf|'all'>('all'), [message,setMessage] = useState('Isolated preview — sample books only')
-  return <><p role="status" style={{padding:16}}>{message}</p><BookClub books={items} currentUser="nern" crew={crew} section="library" shelfFilter={shelf} onShelfFilterChange={setShelf} search="" showAdd={false} onCloseAdd={()=>{}} onOpenAdd={()=>{}} onShowMyBooks={()=>{}} onChange={setItems} notify={setMessage}/></>
+  return <><p role="status" style={{padding:16}}>{message}</p><BookClub books={items} currentUser="nern" crew={crew} section="library" shelfFilter={shelf} onShelfFilterChange={setShelf} search="" showAdd={false} onCloseAdd={()=>{}} onShowMyBooks={()=>{}} onChange={setItems} notify={setMessage}/></>
 }
 createRoot(document.getElementById('root')!).render(<Fixture/> )

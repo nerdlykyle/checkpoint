@@ -1,16 +1,25 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { artworkKey, bookArtworkVersion, cachedBookArtwork, resolveBookArtwork, subscribeBookArtwork, type ArtworkBook } from './lib/bookArtwork'
 import { probeBookCover } from './lib/bookImageProbe'
+import { usePersonalBookCover } from './PersonalBookCovers'
 import './BookCoverImage.css'
 
-export default function BookCoverImage({ book, large = false, lazy = false, retry = 0, cinematic = false }: { book: ArtworkBook; large?: boolean; lazy?: boolean; retry?: number; cinematic?: boolean }) {
+export default function BookCoverImage({ book, owner, large = false, lazy = false, retry = 0, cinematic = false }: { book: ArtworkBook; owner?: string; large?: boolean; lazy?: boolean; retry?: number; cinematic?: boolean }) {
+  const personal = usePersonalBookCover(book.id, owner)
   const key = artworkKey(book)
   const version = useSyncExternalStore(
     useCallback(listener => subscribeBookArtwork(key, listener), [key]),
     useCallback(() => bookArtworkVersion(key), [key]),
   )
   const refreshToken = Math.max(version, retry)
+  // Keep pinned artwork separate from automatic catalog recovery and refresh.
+  if (personal.cover) return <PinnedCover key={personal.cover.image} title={book.title} url={personal.cover.image} lazy={lazy} cinematic={cinematic}/>
   return <CoverLoader key={`${key}:${large}:${refreshToken}`} book={book} large={large} lazy={lazy} refreshToken={refreshToken} cinematic={cinematic} />
+}
+
+function PinnedCover({title,url,lazy,cinematic}:{title:string;url:string;lazy:boolean;cinematic:boolean}) {
+  const [failed,setFailed]=useState(false)
+  return <><span aria-hidden="true">{title.split(/\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase()}</span>{!failed&&<><img src={url} alt={`Cover of ${title}`} loading={lazy?'lazy':'eager'} decoding="async" referrerPolicy="no-referrer" onError={()=>setFailed(true)}/>{cinematic&&<div className="reading-art-blur" aria-hidden="true"><img src={url} alt="" referrerPolicy="no-referrer"/></div>}</>}</>
 }
 
 function CoverLoader({ book, large, lazy, refreshToken, cinematic }: { book: ArtworkBook; large: boolean; lazy: boolean; refreshToken: number; cinematic: boolean }) {

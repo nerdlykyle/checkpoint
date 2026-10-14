@@ -30,7 +30,7 @@ export function reviewMovie(item: Movie, user: string, text: string): Movie {
   return { ...item, reviews: { ...item.reviews, [user]: text.trim() } }
 }
 export const movieSections: Record<MovieSection, string> = {
-  home: 'Movie home', library: 'My movies', queue: 'Group watchlist', watched: 'Club watched',
+  home: 'Movie home', library: 'Vault', queue: 'Group watchlist', watched: 'Club watched',
 }
 export function movieImageUrl(value: string): string {
   if (!value.trim()) return ''

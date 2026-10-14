@@ -36,7 +36,7 @@ export default function CampaignCard({ game, artworkUrls, hours, note, liveNote,
   const headingId = useId()
   if (!game) return <section className="campaign-hero campaign-empty" aria-label="Current campaign"><span className="campaign-badge">Current campaign</span><button type="button" onClick={onAdd}><Plus size={24} /><span>Choose a game to start</span></button><p>Ready when you are.</p></section>
   return <section className="campaign-hero campaign-cartridge" aria-labelledby={headingId}>
-    <header className="campaign-cartridge-heading"><span className="eyebrow">Continue playing</span><h2 id={headingId}>Current campaign</h2></header>
+    <header className="campaign-cartridge-heading"><h2 id={headingId}>Current campaign</h2></header>
     <GameCartridge featured game={{ ...game, hours, note }} onOpen={onDetails} artwork={<CampaignArtwork key={artworkUrls.join('|')} urls={artworkUrls} />} vote={vote} ownership={ownership} price={price} libraryAction={null} badges={game.contentType === 'dlc' ? 'DLC' : null}
       controls={<>
         <button type="button" onClick={onSession} aria-label={hasActiveSession ? 'Open live session' : 'Start session'} title={hasActiveSession ? 'Open live session' : 'Start session'}>{hasActiveSession ? <Timer size={21} /> : <Play size={21} />}</button>

@@ -22,7 +22,7 @@ import './MusicMode.css'
 
 const navIcons={home:Headphones,library:Library,artists:Heart,club:ListMusic,poll:ThumbsUp,songs:Music2,listeners:Users,settings:Settings}
 export function MusicNavigation({section,onSelect,mobile=false}:{section:MusicSection;onSelect:(value:MusicSection)=>void;mobile?:boolean}) {return <nav className={mobile?'mobile-menu-nav':'main-nav'} aria-label="Music navigation">{Object.entries(musicSections).map(([value,label])=>{const Icon=navIcons[value as MusicSection];return <button key={value} className={section===value?'active':''} onClick={()=>onSelect(value as MusicSection)}>{mobile?<><span><Icon size={19}/></span><strong>{label}</strong></>:<><Icon size={19}/><span>{label}</span></>}</button>})}</nav>}
-type Props={boardId:string;user:string;crew:Member[];section:MusicSection;onSection:(section:MusicSection)=>void;search:string;showAdd:boolean;onCloseAdd:()=>void;onOpenAdd:()=>void;notify:(message:string)=>void;boardReady:boolean;onSyncChange?:(state:ConnectionState)=>void}
+type Props={boardId:string;user:string;crew:Member[];section:MusicSection;onSection:(section:MusicSection)=>void;search:string;showAdd:boolean;onCloseAdd:()=>void;notify:(message:string)=>void;boardReady:boolean;onSyncChange?:(state:ConnectionState)=>void}
 export default function MusicMode(props:Props) {
   const store=useMusicStore(props.boardId,props.user,props.boardReady)
   const state=musicConnectionState(store.status,store.error)
@@ -31,7 +31,7 @@ export default function MusicMode(props:Props) {
   useEffect(()=>()=>report?.('connecting'),[report])
   return <MusicContent {...props} store={store}/>
 }
-export function MusicContent({boardId,user,crew,section,onSection,search,showAdd,onCloseAdd,onOpenAdd,notify,store}:Props&{store:ReturnType<typeof useMusicStore>}) {
+export function MusicContent({boardId,user,crew,section,onSection,search,showAdd,onCloseAdd,notify,store}:Props&{store:ReturnType<typeof useMusicStore>}) {
   const {items,ready,service}=store
   const [selectedId,setSelectedId]=useState<string|null>(null),[editingId,setEditingId]=useState<string|null>(null),[logId,setLogId]=useState<string|null>(null)
   const [shelf,setShelf]=useState<'all'|'friends'|'favorites'>('all'),[reader,setReader]=useState(user),[genre,setGenre]=useState(''),[tag,setTag]=useState(''),[query,setQuery]=useState(''),[group,setGroup]=useState(true),[kind,setKind]=useState('albums')
@@ -92,11 +92,10 @@ export function MusicContent({boardId,user,crew,section,onSection,search,showAdd
     </MusicCard>
   }
   const recent=items.filter(item=>Object.keys(item.ratings).length).sort((a,b)=>Math.max(...Object.values(b.ratings).map(value=>Date.parse(value.updatedAt)))-Math.max(...Object.values(a.ratings).map(value=>Date.parse(value.updatedAt))))
-  return <div className="page music-page"><div className="page-title-row"><div><span className="eyebrow">Checkpoint Music</span><h1>{section==='home'?"What’re we listenin’ to?":musicSections[section]}</h1><p>Your music, with a shared place to discover and discuss.</p></div></div>
+  return <div className="page music-page"><div className="page-title-row"><div><h1>{section==='home'?"What’re we listenin’ to?":musicSections[section]}</h1></div></div>
     {(store.error||error)&&<div className="music-error" role="alert">{error||store.error}<button onClick={()=>{setError('');store.retry()}}>Retry connection</button></div>}
     {!ready&&<p role="status">Waiting for the crew’s music collection…</p>}
     <fieldset className="music-workspace" disabled={!ready||busy}>
-    {section!=='settings'&&section!=='artists'&&<div className="music-page-actions"><button className="button button-primary" onClick={onOpenAdd}><Plus size={16}/>Add music</button></div>}
     {section==='home'?<>
       <section className="music-home-section"><h2>Our current group listen</h2>{current?<>{card(current)}<div className="music-inline-actions"><button className="button button-secondary" onClick={()=>clubAction(current,current.club!.participants.includes(user)?'leave':'join')}>{current.club!.participants.includes(user)?'Leave this listen':'Join this listen'}</button><button className="button button-secondary" onClick={()=>clubAction(current,'finish')}>Finish group listen</button><p>{current.club!.participants.map(name).join(', ')||'No listeners joined yet'}</p></div></>:<p className="music-empty">No group listen yet. Nominate an album or choose one from the club queue.</p>}</section>
       <section className="music-home-section"><h2>My shared music</h2>{ownCollection.length?<div className="music-album-grid">{ownCollection.slice(0,6).map(tile)}</div>:<p className="music-empty">Add music you love and share it with the crew.</p>}</section>

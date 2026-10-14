@@ -28,7 +28,7 @@ test('paperback opens the existing book dialog, without an extra settings screen
   assert.match(card, /<SlidersHorizontal size=\{20\}/)
   assert.doesNotMatch(card, />Details & settings</)
   assert.match(card, /chapter !== null && <span/)
-  assert.match(card, /<BookCoverImage book=\{book\} large/)
+  assert.match(card, /<BookCoverImage book=\{book\} owner=\{user\} large/)
   assert.match(home, /<PaperbackCard book=\{currentClubBook\}[^>]+club/)
 })
 

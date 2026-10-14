@@ -68,6 +68,7 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
 .button-danger { margin-right: auto; border: 1px solid #d66262; background: transparent; color: #d66262; }.button-danger:hover { background: #d66262; color: #fff; }
 .page { width: min(1400px, 100%); margin: 0 auto; padding: 41px 38px 60px; }
 .page-title-row { min-height: 80px; margin-bottom: 29px; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+.dashboard-page > .page-title-row,.book-club-page > .page-title-row,.music-page > .page-title-row,.movie-page > .page-title-row { min-height: 0; align-items: flex-start; }
 .eyebrow { display: block; margin-bottom: 7px; color: #8a928e; font-size: 9px; line-height: 1; font-weight: 850; letter-spacing: 1.45px; text-transform: uppercase; }
 .page-title-row h1 { margin: 0; font-size: clamp(29px, 3vw, 39px); line-height: 1.05; letter-spacing: -1.5px; font-weight: 770; }.page-title-row p { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
 .sync-chip { margin-bottom: 4px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,.6); display: flex; align-items: center; gap: 7px; color: #78817e; font-size: 10.5px; cursor: pointer; }.sync-chip > span { width: 6px; height: 6px; border-radius: 50%; background: #55aa78; box-shadow: 0 0 0 3px #e1f3e8; }.sync-chip.sync-connecting > span { background: #d9933e; box-shadow: 0 0 0 3px #faecd8; animation: sync-pulse 1.2s ease infinite; }.sync-chip.sync-error > span { background: #d86464; box-shadow: 0 0 0 3px #f8dddd; }
@@ -168,7 +169,6 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
 }
 .book-manage-actions { display: flex; flex-direction: column; gap: 8px; }
 .book-manage-actions .button { width: 100%; min-height: 44px; margin: 0; white-space: normal; }
-.book-library-actions { display: flex; justify-content: flex-end; margin-bottom: 12px; }
 .book-add-destination { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 16px 0; font-size: 12px; }
 .book-add-destination small { flex-basis: 100%; color: var(--muted); line-height: 1.5; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
@@ -177,9 +177,6 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
 .mode-switcher button.active { background: #7769e5; color: white; box-shadow: 0 5px 12px rgba(0,0,0,.2); }
 .mobile-mode-switcher { display: none; }
 
-.book-club-page { max-width: 1320px; }
-.book-page-title { margin-bottom: 24px; }
-.book-section-count { min-width: 29px; height: 29px; padding: 0 8px; border: 1px solid #393453; border-radius: 9px; background: #211e35; color: #aaa1ec; display: grid; place-items: center; font-size: 9px; font-weight: 850; }
 .book-reading-section,.book-home-poll { margin-bottom: 32px; }
 .book-reading-section > .section-heading,.book-home-poll > .section-heading { margin-bottom: 14px; }
 @media (max-width: 850px) { .sidebar .brand { padding: 6px; } }
@@ -255,7 +252,6 @@ button, .library-card { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 620px) {
   .mobile-mode-switcher { margin: 0 0 13px; display: grid; }
   .book-club-page { padding-bottom: max(35px,env(safe-area-inset-bottom)); }
-  .book-page-title { min-height: 0; margin-bottom: 22px; }.book-page-title h1 { font-size: 29px; }
   .current-book-card { min-height: 190px; padding: 15px; grid-template-columns: 88px minmax(0,1fr); gap: 15px; }.current-book-card .book-cover.is-large { width: 88px; height: 132px; }.current-book-card h2 { font-size: 21px; }.current-book-actions { margin-top: 14px; }.current-book-actions .button { width: 100%; min-height: 36px; padding: 0 8px; font-size: 9px; }
   .book-grid { grid-template-columns: 1fr; }.book-card { min-height: 148px; padding: 14px; }
   .book-stats { grid-template-columns: repeat(2,1fr); }.book-stats > div:nth-child(3) { border-left: 0; border-top: 1px solid var(--line); }.book-stats > div:nth-child(4) { border-top: 1px solid var(--line); }

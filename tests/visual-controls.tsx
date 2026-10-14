@@ -29,7 +29,7 @@ function Fixture() {
   return <main style={{ maxWidth: 1000, margin: 'auto', padding: 16 }}>
     <div style={{ maxWidth: 240, paddingTop: 12 }}><ModeSwitcher mode={mode} onChange={setMode} /></div>
     <MusicLinks item={album} service="spotify" />
-    <BookClub books={books} currentUser="nern" crew={crew} section={clubPreview ? 'club' : 'home'} shelfFilter="all" onShelfFilterChange={() => {}} search="" showAdd={false} onCloseAdd={() => {}} onOpenAdd={() => {}} onShowMyBooks={() => {}} onChange={setBooks} notify={() => {}} />
+    <BookClub books={books} currentUser="nern" crew={crew} section={clubPreview ? 'club' : 'home'} shelfFilter="all" onShelfFilterChange={() => {}} search="" showAdd={false} onCloseAdd={() => {}} onShowMyBooks={() => {}} onChange={setBooks} notify={() => {}} />
   </main>
 }
 createRoot(document.getElementById('root')!).render(<Fixture />)

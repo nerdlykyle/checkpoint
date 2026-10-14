@@ -160,6 +160,25 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // Personal cover images are small sanitized copies, not board payloads.
+      // Crew can see a reader's edition when browsing their shelf; only its
+      // owner can replace/reset it. Catalog overrides remain pinned links.
+      match /bookCovers/{memberId}/covers/{bookId} {
+        function validCover() {
+          let data = request.resource.data;
+          return data.keys().hasOnly(['kind','image','updatedAt'])
+            && data.updatedAt is string && data.updatedAt.size() <= 40
+            && data.image is string
+            && ((data.kind == 'image' && data.image.size() <= 180000
+              && data.image.matches('data:image/jpeg;base64,/9j/[A-Za-z0-9+/]*={0,2}'))
+              || (data.kind == 'catalog' && data.image.size() <= 2000
+              && data.image.matches('https://(books[.]google[.]com|books[.]googleusercontent[.]com|covers[.]openlibrary[.]org)/[^ \\r\\n]*')));
+        }
+        allow read: if boardMember(boardId);
+        allow create, update: if boardMember(boardId) && request.auth.uid == memberId
+          && bookId.size() <= 200 && validCover();
+        allow delete: if boardMember(boardId) && request.auth.uid == memberId;
+      }
       // Shared visibility, personal writes. No library or profile migration.
       match /personalFavorites/{memberId} {
         allow read: if boardMember(boardId);

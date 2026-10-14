@@ -2,7 +2,7 @@ import type { Book } from '../types.ts'
 import { normalizeBookText } from './bookOrganization.ts'
 import { lookupGoogleBookCover, lookupGoogleCoverForBook } from './bookSearch.ts'
 
-export type ArtworkBook = Pick<Book, 'title' | 'authors' | 'coverUrl' | 'isbn10' | 'isbn13' | 'googleBooksId' | 'openLibraryKey'>
+export type ArtworkBook = Pick<Book, 'title' | 'authors' | 'coverUrl' | 'isbn10' | 'isbn13' | 'googleBooksId' | 'openLibraryKey'> & { id?: string }
 
 export function normalizeBookCover(value?: string, large = false) {
   if (!value) return undefined
