@@ -160,6 +160,43 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // Additive field-guide records: never modify library, sessions or members.
+      match /fieldGuides/{guideId}/maps/{mapId} {
+        function steps() {
+          return mapId == 'far-west' ? ['bell-1','bell-2','bell-3','church']
+            : mapId == 'canyon' ? ['sheriff','digging','dynamite','targets','cave']
+            : mapId == 'desert' ? ['pair-1','pair-2','pair-3','pair-4','pair-5','pair-6']
+            : mapId == 'woodlands' ? ['mushroom-1','mushroom-2','mushroom-3','mushroom-4','mushroom-5','mushroom-6','mushroom-7','stone']
+            : mapId == 'north' ? ['body','chest','head']
+            : mapId == 'area-41' ? ['symbol-1','symbol-2','symbol-3','symbol-4','enter'] : [];
+        }
+        function validRun() {
+          let data = request.resource.data;
+          return guideId == 'far-far-west' && steps().size() > 0
+            && data.keys().hasOnly(['checked','attempt','updatedBy','updatedAt'])
+            && data.checked is list && data.checked.size() <= steps().size()
+            && data.checked.toSet().hasOnly(steps()) && data.checked.toSet().size() == data.checked.size()
+            && data.attempt is int && data.attempt >= 1 && data.attempt <= 1000000
+            && data.updatedBy == request.auth.uid && data.updatedAt == request.time;
+        }
+        allow read: if guideId == 'far-far-west' && boardMember(boardId);
+        allow create: if boardMember(boardId) && validRun() && request.resource.data.attempt == 1;
+        allow update: if boardMember(boardId) && validRun()
+          && (request.resource.data.attempt == resource.data.attempt
+            || (request.resource.data.attempt == resource.data.attempt + 1 && request.resource.data.checked.size() == 0));
+        allow delete: if false;
+      }
+      match /fieldGuides/{guideId}/unlocks/{memberId} {
+        allow read: if guideId == 'far-far-west' && boardMember(boardId) && request.auth.uid == memberId;
+        allow create, update: if guideId == 'far-far-west' && boardMember(boardId) && request.auth.uid == memberId
+          && request.resource.data.keys().hasOnly(['checked','updatedAt'])
+          && request.resource.data.checked is list && request.resource.data.checked.size() <= 6
+          && request.resource.data.checked.toSet().hasOnly(['far-west','canyon','desert','woodlands','north','area-41'])
+          && request.resource.data.checked.toSet().size() == request.resource.data.checked.size()
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if false;
+      }
+
       // Personal cover images are small sanitized copies, not board payloads.
       // Crew can see a reader's edition when browsing their shelf; only its
       // owner can replace/reset it. Catalog overrides remain pinned links.

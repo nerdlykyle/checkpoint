@@ -28,6 +28,8 @@ import MovieMode, { MovieNavigation } from './MovieMode'
 import type { MovieSection } from './lib/movies'
 import ManualSessionModal from './ManualSessionModal'
 import CampaignCard from './CampaignCard'
+import FarFarWestFieldGuide from './FarFarWestFieldGuide'
+import { isFarFarWest } from './lib/farFarWestGuide'
 import ModeSwitcher from './ModeSwitcher'
 import MoreActions from './MoreActions'
 import { campaignArtworkUrls } from './lib/campaignArtwork'
@@ -1607,6 +1609,8 @@ function SessionHistoryEntry({ session, number, crew, initiallyOpen, onEditGame,
 }
 
 function TonightPage({ game, event, activeSession, sessionHistory, crew, now, onAddPastSession, onBack, onStart, onPause, onResume, onFinish, onPuzzle, onCopyDiscord, onUpdateSessionNote, onEditSession, onEditSessionNotes }: { game?: Game; event?: GameNight; activeSession?: GameSession; sessionHistory: GameSession[]; crew: Member[]; now: number; onAddPastSession: () => void; onBack: () => void; onStart: () => void; onPause: () => void; onResume: () => void; onFinish: () => void; onPuzzle: () => void; onCopyDiscord: () => void; onUpdateSessionNote: (note: string) => void; onEditSession: (sessionId: string) => void; onEditSessionNotes: (sessionId: string) => void }) {
+  const { boardId } = useContext(IntegrationsContext)
+  const guideUser = useContext(CurrentUserContext)
   const sessionParticipants = activeSession?.participantIds.map((id) => crew.find((member) => member.id === id)).filter((member): member is Member => Boolean(member)) ?? []
   const eventStart = event ? new Date(event.startAt) : undefined
   const eventEnd = event ? new Date(event.endAt) : undefined
@@ -1620,6 +1624,7 @@ function TonightPage({ game, event, activeSession, sessionHistory, crew, now, on
         {activeSession ? <div className="live-session"><div className="live-session-label"><span className={activeSession.pausedAt ? 'paused' : ''} />{activeSession.pausedAt ? 'Paused' : 'Live session'}</div><strong>{stopwatchLabel(sessionElapsedMilliseconds(activeSession, now))}</strong><div className="live-session-crew">{sessionParticipants.map((member) => <Avatar id={member.id} small key={member.id} />)}<span>{sessionParticipants.map((member) => member.name).join(', ')}</span></div><div className="live-session-actions">{activeSession.pausedAt ? <button className="button button-light" type="button" onClick={onResume}><Play size={16} fill="currentColor" /> Resume</button> : <button className="button button-light" type="button" onClick={onPause}><Pause size={16} fill="currentColor" /> Pause</button>}<button className="button button-finish-session" type="button" onClick={onFinish}><Square size={14} fill="currentColor" /> Stop session</button></div></div> : countdownMilliseconds > 0 ? <div className="scheduled-countdown"><span>Scheduled in · start manually when ready</span><strong>{stopwatchLabel(countdownMilliseconds)}</strong><button className="button tonight-start-button" type="button" onClick={onStart}><Play size={16} fill="currentColor" /> Start early</button></div> : <button className="button tonight-start-button" type="button" onClick={onStart}><Play size={19} fill="currentColor" /> Start session</button>}
       </div>
     </section>
+    {isFarFarWest(game) && <FarFarWestFieldGuide key={`${boardId}:${guideUser}`} boardId={boardId} user={guideUser} />}
     <div className="tonight-grid">
       <section className="tonight-card live-session-notes"><div className="section-heading"><div><span className="eyebrow">This session</span><h2>Live session notes</h2></div><NotebookPen size={19} /></div>
         <textarea value={activeSession?.note ?? ''} disabled={!activeSession} maxLength={5000} onChange={(event) => onUpdateSessionNote(event.target.value)} placeholder={activeSession ? 'Clues, discoveries, and moments to remember…' : 'Start a session to open a fresh shared note.'} />
