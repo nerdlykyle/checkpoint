@@ -1,8 +1,39 @@
 {
   "version": 1,
   "sourceUrl": "https://anthonyjeselnik.com/the-jeselnik-book-club",
-  "lastCheckedAt": "2026-10-30T21:12:37.706Z",
+  "lastCheckedAt": "2026-11-01T21:27:07.854Z",
   "picks": [
+    {
+      "id": "jeselnik-2026-11",
+      "month": "2026-11",
+      "isbn13": "9780735219458",
+      "bookshopUrl": "https://bookshop.org/a/122208/9780735219458",
+      "title": "The Friend",
+      "authors": [
+        "Sigrid Nunez"
+      ],
+      "description": "When a woman unexpectedly loses her lifelong best friend and mentor, she finds herself burdened with the unwanted dog he has left behind. Her…",
+      "coverUrl": "https://covers.openlibrary.org/b/id/10464927-L.jpg",
+      "openLibraryKey": "/works/OL19665493W",
+      "metadataUrl": "https://openlibrary.org/works/OL19665493W"
+    },
+    {
+      "id": "jeselnik-2026-10",
+      "month": "2026-10",
+      "discussionUrl": "https://www.youtube.com/watch?v=eR4a9lxZxXM",
+      "isbn13": "9781644450642",
+      "bookshopUrl": "https://bookshop.org/a/122208/9781644450642",
+      "title": "The Trees",
+      "authors": [
+        "Percival L. Everett",
+        "Javier Calvo",
+        "Jordi Martín Lloret"
+      ],
+      "description": "After a series of brutal murders in a rural Mississippi town, investigators arrive and discover a large number of similar cases that all have…",
+      "coverUrl": "https://covers.openlibrary.org/b/id/11137872-L.jpg",
+      "openLibraryKey": "/works/OL24511712W",
+      "metadataUrl": "https://openlibrary.org/works/OL24511712W"
+    },
     {
       "id": "jeselnik-2026-09",
       "month": "2026-09",
